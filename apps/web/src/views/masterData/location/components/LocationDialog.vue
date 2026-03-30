@@ -165,6 +165,8 @@ async function onSubmit() {
   const payload = {
     zoneId: form.zoneId,
     warehouseId: form.warehouseId,
+    // include warehouseCode for backend DTO
+    warehouseCode: warehouseOptions.value.find((w) => w.id === form.warehouseId)?.code ?? '',
     code: form.code,
     aisle: form.aisle,
     rack: form.rack,

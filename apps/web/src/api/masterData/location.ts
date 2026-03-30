@@ -57,6 +57,7 @@ export interface LocationDto {
 /** 创建/更新 DTO 鈥?不含 status（后竸接受外部传入 status锛?*/
 export interface CreateUpdateLocationDto {
   warehouseId: string
+  warehouseCode?: string
   zoneId: string
   code: string
   aisle: string
