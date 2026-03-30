@@ -1,63 +1,54 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const router = useRouter()
+const active = ref('/pda')
 
-const active = computed(() => route.path)
-
-function handleChange(path: string | number) {
-  router.push(String(path))
-}
+// 同步路由状态到底导
+watch(
+  () => route.path,
+  (newPath) => {
+    if (newPath === '/pda') active.value = '/pda'
+    else if (newPath.includes('/inventory')) active.value = '/pda/inventory'
+    else if (newPath.includes('/task')) active.value = '/pda/task'
+    else if (newPath.includes('/mine')) active.value = '/pda/mine'
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
-      <div class="font-bold text-lg">Polaris WMS</div>
-      <div class="flex items-center">
-        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" aria-hidden="true"></span>
-        <span class="text-sm mr-2">Online</span>
-        <van-icon name="battery-full" size="18" class="ml-2" />
-      </div>
-    </div>
-
-    <!-- Main content -->
+  <div class="flex flex-col h-screen bg-gray-50 overflow-hidden">
     <div class="flex-1 overflow-y-auto relative">
-      <div class="max-w-[560px] w-full mx-auto h-full">
-        <router-view />
-      </div>
+      <router-view v-slot="{ Component }">
+        <transition name="van-fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </div>
 
-    <!-- Footer Tabbar -->
-    <van-tabbar
-      v-show="!$route.meta.hideTabbar"
-      v-model="active"
-      route
-      class="w-full"
-      :style="{
-        '--van-tabbar-background': '#0f172a',
-        '--van-tabbar-item-text-color': '#9ca3af',
-        '--van-tabbar-item-active-color': '#ffffff'
-      }"
+    <van-tabbar 
+      v-show="!$route.meta.hideTabbar" 
+      v-model="active" 
+      route 
+      class="custom-tabbar shrink-0"
     >
-      <van-tabbar-item name="/pda" icon="wap-home-o">工作台</van-tabbar-item>
-      <van-tabbar-item name="/pda/inventory" icon="apps-o">库存</van-tabbar-item>
-      <van-tabbar-item name="/pda/scan" icon="bell" dot>消息</van-tabbar-item>
-      <van-tabbar-item name="/pda/mine" icon="user-o">我的</van-tabbar-item>
+      <van-tabbar-item to="/pda" icon="wap-home-o">工作台</van-tabbar-item>
+      <van-tabbar-item to="/pda/inventory" icon="apps-o">库存</van-tabbar-item>
+      <van-tabbar-item to="/pda/task" icon="todo-list-o" dot>任务</van-tabbar-item>
+      <van-tabbar-item to="/pda/mine" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
   </div>
 </template>
 
 <style scoped>
-:deep(.van-tabbar) {
-  --van-tabbar-background: #0f172a;
+/* 极深色底导风格 */
+.custom-tabbar {
+  --van-tabbar-background: #0f172a; /* slate-900 */
+  --van-tabbar-item-text-color: #9ca3af;
+  --van-tabbar-item-active-color: #ffffff;
+  --van-tabbar-item-active-background: transparent;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
 }
-
-:deep(.van-tabbar), :deep(.van-tabbar__item) {
-  color: var(--van-tabbar-item-text-color, #9ca3af);
-}
-
 </style>
