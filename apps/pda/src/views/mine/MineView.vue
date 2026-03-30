@@ -6,25 +6,22 @@ import { showConfirmDialog, showToast } from 'vant'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// 🚀 修复点：使用 async/await 分离【点击取消】和【执行跳转】的逻辑
+// Logout flow: confirm then clear auth and navigate to login
 const handleLogout = async () => {
   try {
-    // 1. 等待用户确认
+    // 等待用户确认
     await showConfirmDialog({
       title: '退出登录',
       message: '确定要退出当前工作账号吗？',
       confirmButtonColor: '#ef4444'
     })
-    
-    // 2. 确认后执行清理
+
+    // 确认后执行清理并跳转
     authStore.logout()
     showToast('已安全退出')
-    
-    // 3. 使用路由 Name 确保绝对命中，且不留下后退历史
     router.replace({ name: 'Login' })
-    
   } catch (error) {
-    // 用户点击了取消，什么都不做
+    // 取消或错误：仅在非取消情况下记录异常
     if (error !== 'cancel') {
       console.error('退出系统发生异常:', error)
     }

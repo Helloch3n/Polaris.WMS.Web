@@ -15,7 +15,7 @@ function goBack() {
   router.back()
 }
 
-// 模拟 PDA 激光扫码枪的填充动作
+// 模拟扫码填充
 function onScanTrigger() {
   locationCode.value = 'A-01-01'
 }
@@ -28,7 +28,7 @@ async function handleComplete() {
 
   submitting.value = true
   try {
-    // 调用后端接口
+    // 调用后端接口完成搬运
     await completeMoveTask(taskId, { actualLocationCode: locationCode.value })
     showSuccessToast('搬运已完成')
     setTimeout(() => router.back(), 800)

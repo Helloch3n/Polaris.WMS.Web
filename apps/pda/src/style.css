@@ -1,149 +1,30 @@
 @import "tailwindcss";
 
+/* 自定义主题变量 */
+@theme {
+  --color-primary: #2563eb;
+  --color-success: #10b981;
+}
+
 :root {
+  /* 你的基础变量可以保留 */
   --pda-bg: #f3f6fb;
   --pda-card-bg: #ffffff;
-  --pda-text: #0f172a;
-  --pda-subtext: #64748b;
-  --pda-primary: #2563eb;
-  --pda-primary-soft: #dbeafe;
-  --pda-success-soft: #dcfce7;
-  --pda-warning-soft: #fef3c7;
-  --pda-danger-soft: #fee2e2;
-  --pda-border: #e2e8f0;
-  --pda-radius-md: 12px;
-  --pda-radius-lg: 14px;
-  --pda-radius-xl: 18px;
-  --pda-shadow-card: 0 10px 24px rgba(15, 23, 42, 0.06);
-  --pda-page-x: 12px;
-  --pda-page-y: 10px;
-  --pda-gap: 10px;
-  --pda-nav-height: 46px;
-  --pda-tabbar-height: 58px;
-
-  --van-primary-color: #2563eb;
-  --van-success-color: #16a34a;
-  --van-warning-color: #f59e0b;
-  --van-danger-color: #ef4444;
-  --van-text-color: #0f172a;
-  --van-text-color-2: #475569;
-  --van-text-color-3: #64748b;
-  --van-background-2: #f8fafc;
-  --van-border-color: #e2e8f0;
-  --van-nav-bar-title-text-color: #0f172a;
-  --van-nav-bar-icon-color: #2563eb;
-  --van-button-border-radius: 10px;
-  --van-button-primary-background: #2563eb;
-  --van-button-primary-border-color: #2563eb;
-  --van-cell-vertical-padding: 12px;
-  --van-cell-horizontal-padding: 12px;
-  --van-field-label-color: #334155;
-  --van-tabbar-height: 58px;
-  --van-tabbar-item-font-size: 12px;
-  --van-tag-padding: 0 8px;
+  --pda-text-primary: #1f2937;
+  --pda-text-secondary: #6b7280;
+  --pda-border: #e5e7eb;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#app {
+body {
+  background-color: var(--pda-bg);
+  color: var(--pda-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--pda-bg);
-  color: var(--pda-text);
-  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.pda-page {
-  min-height: 100%;
-  padding: var(--pda-page-y) var(--pda-page-x) calc(var(--pda-page-y) + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: var(--pda-gap);
-}
-
-.pda-card {
-  background: var(--pda-card-bg);
-  border-radius: var(--pda-radius-lg);
-  padding: 12px;
-  border: 1px solid var(--pda-border);
-  box-shadow: var(--pda-shadow-card);
-}
-
-.pda-subtext {
-  color: var(--pda-subtext);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.pda-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--pda-text);
-  line-height: 1.3;
-}
-
-.pda-section-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--pda-text);
-}
-
-.pda-kv {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-:where(.van-nav-bar) {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-:where(.van-nav-bar__title) {
-  font-weight: 700;
-}
-
-:where(.van-search) {
-  padding: 0;
-  background: transparent;
-}
-
-:where(.van-search__content) {
-  border: 1px solid var(--pda-border);
-  border-radius: 12px;
-  background: #fff;
-}
-
-:where(.van-cell-group--inset) {
-  margin: 0;
-  border-radius: var(--pda-radius-md);
-  overflow: hidden;
-}
-
-:where(.van-cell) {
-  background: #fff;
-}
-
-:where(.van-button--small) {
-  height: 32px;
-  padding: 0 12px;
-}
-
-:where(.van-field__label) {
-  width: 68px;
-}
-
-:where(.van-tag--round) {
-  border-radius: 999px;
+/* 隐藏滚动条 */
+::-webkit-scrollbar {
+  display: none;
 }

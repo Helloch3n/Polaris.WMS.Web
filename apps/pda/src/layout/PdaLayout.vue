@@ -1,5 +1,21 @@
 <script setup lang="ts">
-// 🚀 修复点：移除了手动绑定的 active 和 watch，让 Vant 原生路由匹配接管
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
+// Track active tab based on current route
+const route = useRoute()
+const active = ref('/')
+
+watch(
+  () => route.path,
+  (newPath) => {
+    if (newPath === '/') active.value = '/'
+    else if (newPath.includes('/inventory')) active.value = '/inventory'
+    else if (newPath.includes('/task')) active.value = '/task'
+    else if (newPath.includes('/mine')) active.value = '/mine'
+  },
+  { immediate: true }
+)
 </script>
 
 <template>

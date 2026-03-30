@@ -12,7 +12,7 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
-// 注册 Vant 组件 (注：Toast/Dialog 在 Vant 4 中是函数，无需在此 use)
+// 注册 Vant 组件
 app.use(ConfigProvider).use(Button).use(Field).use(CellGroup).use(Empty)
    .use(Tabbar).use(TabbarItem).use(Icon).use(NavBar).use(Tag)
    .use(Grid).use(GridItem).use(Tab).use(Tabs).use(List).use(PullRefresh)

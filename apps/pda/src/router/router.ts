@@ -14,10 +14,10 @@ const router = createRouter({
     {
       path: '/', 
       component: PdaLayout,
-      redirect: '/home', // 🚀 修复点：访问根目录直接重定向到明确的 /home
+      redirect: '/home', // Redirect root to /home
       children: [
         {
-          path: 'home', // 🚀 明确的独立路径
+          path: 'home', // Home route
           name: 'PdaHome',
           component: () => import('@/views/home/HomeView.vue'),
           meta: { title: '工作台' }
