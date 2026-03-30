@@ -3,84 +3,100 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-function go(path: string) {
+const navigateTo = (path: string) => {
   router.push(path)
 }
 </script>
 
 <template>
-  <div class="p-4 space-y-5">
-    <!-- 区块 A: 智能待办卡片 -->
-    <section>
-      <div class="bg-gradient-to-r from-orange-500 to-red-500 p-4 rounded-xl shadow-lg text-white">
-        <div class="font-bold text-lg">🚨 紧急出库搬运</div>
-        <div class="text-sm mt-1 opacity-90">单号 #OUT-992，包含 2 个托盘，请立即从 A-01 移至出货月台。</div>
+  <div class="min-h-screen bg-[#F3F4F6] pb-24">
+    
+    <div class="bg-slate-800 px-5 pt-8 pb-10 rounded-b-[2rem] shadow-md">
+      <div class="flex justify-between items-center text-white">
         <div>
-          <van-button
-            block
-            round
-            size="small"
-            class="!mt-3 !bg-white !text-red-600 !border-none font-bold"
-            @click="go('/task')"
-          >
-            立即继续该任务
-          </van-button>
+          <div class="text-slate-400 text-sm font-medium mb-1 tracking-wide">Polaris WMS</div>
+          <div class="text-3xl font-extrabold tracking-wider">工作台</div>
+        </div>
+        <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-inner">
+          <van-icon name="user-circle-o" size="28" color="#fff" />
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- 区块 B: 入库业务域 -->
-    <section>
-      <div class="text-sm text-gray-500 font-bold uppercase tracking-wider mb-2">Inbound Operations / 入库作业</div>
-      <van-grid :column-num="2" :gutter="16" :border="false">
-        <van-grid-item icon="logistics" class="grid-item">
-          <div class="text-base font-medium">收货接收</div>
-        </van-grid-item>
+    <div class="px-4 -mt-6 relative z-10 space-y-4">
+      
+      <div 
+        class="bg-white rounded-2xl p-5 shadow-sm border-l-[6px] border-red-500 flex items-center justify-between active:scale-95 transition-transform cursor-pointer"
+        @click="navigateTo('/pda/task/move/MOVE-992')"
+      >
+        <div>
+          <div class="text-red-500 font-bold text-sm flex items-center tracking-wide mb-1">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse mr-2"></span> 紧急任务
+          </div>
+          <div class="text-slate-800 font-black text-xl">出库搬运 #OUT-992</div>
+          <div class="text-slate-500 text-sm mt-1.5 font-medium">A-01 <van-icon name="arrow" class="mx-1"/> 出货月台 (2托盘)</div>
+        </div>
+        <div class="bg-red-50 w-11 h-11 rounded-full flex items-center justify-center text-red-500 shrink-0">
+          <van-icon name="arrow" size="20" font-weight="bold" />
+        </div>
+      </div>
 
-        <van-grid-item icon="down" badge="12" class="grid-item">
-          <div class="text-base font-medium">上架作业</div>
-        </van-grid-item>
-      </van-grid>
-    </section>
+      <div class="grid grid-cols-2 gap-4 pt-2">
+        
+        <div class="bg-white p-5 rounded-3xl shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center gap-3 cursor-pointer">
+          <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 shadow-inner">
+            <van-icon name="logistics" size="36" />
+          </div>
+          <span class="text-slate-800 font-bold text-lg">收货接收</span>
+        </div>
 
-    <!-- 区块 C: 库内业务域 -->
-    <section>
-      <div class="text-sm text-gray-500 font-bold uppercase tracking-wider mb-2">Internal Operations / 库内作业</div>
-      <van-grid :column-num="2" :gutter="16" :border="false">
-        <van-grid-item icon="exchange" class="grid-item highlight-item" @click="go('/task')">
-          <div class="text-base font-medium text-green-600">搬运任务</div>
-        </van-grid-item>
+        <div class="bg-white p-5 rounded-3xl shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center gap-3 cursor-pointer relative">
+          <div class="absolute top-3 right-3 bg-red-500 text-white text-sm font-black px-2.5 py-0.5 rounded-full shadow-md border-2 border-white">
+            12
+          </div>
+          <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 shadow-inner">
+            <van-icon name="down" size="36" />
+          </div>
+          <span class="text-slate-800 font-bold text-lg">上架作业</span>
+        </div>
 
-        <van-grid-item icon="completed" class="grid-item">
-          <div class="text-base font-medium">盘点作业</div>
-        </van-grid-item>
-      </van-grid>
-    </section>
+        <div 
+          class="col-span-2 bg-green-500 p-6 rounded-3xl shadow-lg shadow-green-200 active:scale-95 transition-transform flex items-center justify-between cursor-pointer relative overflow-hidden" 
+          @click="navigateTo('/pda/task/move/MOVE-001')"
+        >
+          <div class="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-20 rounded-full blur-3xl"></div>
+          
+          <div class="flex items-center gap-4 relative z-10">
+            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white backdrop-blur-md shadow-inner border border-white/30">
+              <van-icon name="exchange" size="36" />
+            </div>
+            <div>
+              <div class="text-white font-black text-2xl tracking-wide">搬运任务</div>
+              <div class="text-green-100 text-sm mt-1 font-medium">执行库内移位与补货操作</div>
+            </div>
+          </div>
+          <van-icon name="arrow" size="24" color="white" class="opacity-90 relative z-10" />
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center gap-3 cursor-pointer">
+          <div class="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center text-purple-500 shadow-inner">
+            <van-icon name="completed" size="36" />
+          </div>
+          <span class="text-slate-800 font-bold text-lg">盘点作业</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center gap-3 cursor-pointer">
+          <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 shadow-inner">
+            <van-icon name="search" size="36" />
+          </div>
+          <span class="text-slate-800 font-bold text-lg">库存查询</span>
+        </div>
+
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* 为 van-grid-item 的内部内容块添加工业风卡片样式 */
-::v-deep(.grid-item .van-grid-item__content) {
-  border-radius: 0.75rem;
-  box-shadow: 0 6px 14px rgba(2,6,23,0.06);
-  border: 1px solid #f3f4f6;
-  padding: 12px 10px !important;
-  background: #ffffff;
-}
-
-/* 高亮搬运任务 */
-::v-deep(.highlight-item .van-grid-item__content) {
-  border-width: 2px !important;
-  border-color: #10b981 !important;
-}
-
-/* 提高触控面积 */
-::v-deep(.van-grid-item__content) {
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
+/* 此版本 100% 依赖 Tailwind CSS 实用类，无任何冗余样式，渲染极其纯净 */
 </style>

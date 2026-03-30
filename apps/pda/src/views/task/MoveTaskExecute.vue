@@ -1,109 +1,93 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Toast } from 'vant'
+import { showSuccessToast, showFailToast } from 'vant'
 import { completeMoveTask } from '@/api/wms/moveTask'
 
 const route = useRoute()
 const router = useRouter()
-const idParam = route.params.id ?? ''
-const taskId = String(idParam)
+const taskId = String(route.params.id ?? 'MOVE-001')
 
 const locationCode = ref('')
-const loading = ref(false)
-const fieldRef = ref<any>(null)
+const submitting = ref(false)
 
 function goBack() {
   router.back()
 }
 
-function focusInput() {
-  const el = fieldRef.value?.$el || fieldRef.value
-  const input = el?.querySelector?.('input')
-  input?.focus()
-}
-
-// 模拟扫码 — 在真实设备上此处应触发扫码 SDK
-function onScanClick() {
-  // 尝试聚焦输入框，若用户需要可替换为二维码扫码 SDK
-  focusInput()
+function onScanTrigger() {
+  // 占位：在真实 PDA 上应触发扫码 SDK
+  // 这里模拟快速填充示例条码以方便测试
+  locationCode.value = 'A-01-01'
 }
 
 async function handleComplete() {
   if (!locationCode.value) {
-    Toast.fail('请先扫描或输入目标库位')
+    showFailToast('请先扫描或输入目标库位')
     return
   }
-  if (!taskId) {
-    Toast.fail('任务ID缺失')
-    return
-  }
-
-  loading.value = true
+  submitting.value = true
   try {
     await completeMoveTask(taskId, { actualLocationCode: locationCode.value })
-    Toast.success('完成搬运')
-    router.back()
-  } catch (err) {
-    console.error(err)
-    Toast.fail('提交失败，请重试')
+    showSuccessToast('完成搬运')
+    setTimeout(() => router.back(), 1000)
+  } catch (e: any) {
+    console.error(e)
+    showFailToast(e?.message || '提交失败，请重试')
   } finally {
-    loading.value = false
+    submitting.value = false
   }
 }
 </script>
 
 <template>
   <div class="flex flex-col h-screen bg-gray-50">
-    <!-- Header -->
-    <van-nav-bar
-      class="!bg-slate-800 !text-white"
-      title=""
-      left-arrow
-      @click-left="goBack"
-    >
+    <!-- NavBar -->
+    <van-nav-bar class="!bg-slate-800" title="" left-arrow @click-left="goBack">
       <template #title>
-        <div class="!text-white font-semibold">Task #MOVE-{{ taskId }}</div>
+        <div class="text-white font-semibold">Task #MOVE-{{ taskId }}</div>
       </template>
       <template #right>
-        <van-tag type="warning">已领用</van-tag>
+        <van-tag type="warning" size="medium">已领用</van-tag>
       </template>
     </van-nav-bar>
 
     <!-- Content -->
-    <div class="flex-1 p-4 space-y-4 overflow-y-auto">
-      <!-- Card 1: Moving Container -->
-      <div class="bg-white rounded-lg shadow-sm p-4 text-gray-800">
-        <div class="text-sm text-gray-600">正在搬运</div>
-        <div class="mt-2 text-base font-medium">托盘 [P12345] · 盘具 [REEL_999]</div>
+    <div class="flex-1 p-4 space-y-5 overflow-y-auto">
+      <!-- Moving Container -->
+      <div class="bg-white rounded-xl shadow-sm p-4 border">
+        <div class="flex items-center mb-2 text-gray-800 font-medium text-base">
+          <van-icon name="points" class="mr-2" /> 托盘: <span class="ml-2 font-bold">P12345</span>
+        </div>
+        <div class="flex items-center text-gray-800 font-medium text-base">
+          <van-icon name="circle" class="mr-2" /> 盘具: <span class="ml-2 font-bold">REEL_999</span>
+        </div>
       </div>
 
-      <!-- Card 2: Target Location (视觉焦点) -->
-      <div class="bg-white rounded-lg shadow-lg p-4 border-2 border-blue-400">
-        <div class="text-xl font-bold mb-3">请扫描目标库位条码</div>
+      <!-- Target Location (焦点) -->
+      <div class="bg-white rounded-2xl p-5 border-2 border-blue-500 shadow-md shadow-blue-100">
+        <div class="text-center font-bold text-lg text-gray-800 mb-4">请扫描目标库位条码</div>
 
         <div class="flex items-center space-x-3">
           <van-field
-            ref="fieldRef"
             v-model="locationCode"
-            placeholder="扫描或输入库位"
-            input-align="center"
-            class="flex-1 font-mono text-2xl text-center bg-gray-100"
+            clearable
+            placeholder="请输入或扫描库位码"
+            class="flex-1 !bg-gray-100 !rounded-lg text-center font-mono text-xl"
           />
 
-          <button
-            type="button"
-            @click="onScanClick"
-            class="w-16 h-16 rounded-md flex items-center justify-center bg-green-500 text-white"
-            aria-label="scan"
+          <div
+            role="button"
+            class="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center shadow-md active:bg-green-600 transition-colors"
+            @click="onScanTrigger"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v4a1 1 0 001 1h4M21 7v4a1 1 0 01-1 1h-4M3 17v-4a1 1 0 011-1h4m10 5h-4a1 1 0 01-1-1v-4" />
-            </svg>
-          </button>
+            <van-icon name="scan" size="28" color="white" />
+          </div>
         </div>
 
-        <div v-if="locationCode" class="mt-3 text-green-600 font-semibold">✓ 库位 [{{ locationCode }}] 已就绪</div>
+        <div v-if="locationCode" class="mt-4 bg-green-50 py-2 rounded-lg text-green-600 font-bold flex items-center justify-center">
+          ✓ 库位验证就绪
+        </div>
       </div>
     </div>
 
@@ -112,9 +96,9 @@ async function handleComplete() {
       <van-button
         block
         round
-        :loading="loading"
-        :disabled="!locationCode || loading"
-        class="!bg-green-600 !text-white text-xl font-bold !h-14"
+        :loading="submitting"
+        :disabled="!locationCode || submitting"
+        class="!bg-green-600 active:!bg-green-700 !text-white text-xl font-bold !h-14 !border-none"
         @click="handleComplete"
       >
         COMPLETE MOVE / 完成搬运
@@ -124,17 +108,10 @@ async function handleComplete() {
 </template>
 
 <style scoped>
-/* 强制覆盖 vant nav-bar 内部颜色以确保高对比度 */
-.van-nav-bar {
-  --van-nav-bar-background: transparent;
-}
-.van-nav-bar__title,
-.van-nav-bar__left,
-.van-nav-bar__right {
+:deep(.van-nav-bar__title), :deep(.van-nav-bar__left) {
   color: #fff !important;
 }
 
-/* 保证底部按钮在某些设备上有明显触控区 */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 12px);
 }

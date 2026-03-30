@@ -13,54 +13,50 @@ function handleChange(path: string | number) {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-transparent">
-    <!-- Header: 自定义 Tailwind 头部 -->
-    <header class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
-      <div class="text-lg font-bold">Polaris WMS</div>
-      <div class="flex items-center space-x-3 text-sm">
-        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block" aria-hidden="true"></span>
-        <span>Online</span>
-        <van-icon name="battery-full" size="18" />
+  <div class="flex flex-col h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
+      <div class="font-bold text-lg">Polaris WMS</div>
+      <div class="flex items-center">
+        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" aria-hidden="true"></span>
+        <span class="text-sm mr-2">Online</span>
+        <van-icon name="battery-full" size="18" class="ml-2" />
       </div>
-    </header>
+    </div>
 
-    <!-- 中间滚动区 -->
-    <div class="flex-1 overflow-y-auto bg-gray-50">
-      <div class="max-w-[560px] w-full mx-auto">
+    <!-- Main content -->
+    <div class="flex-1 overflow-y-auto relative">
+      <div class="max-w-[560px] w-full mx-auto h-full">
         <router-view />
       </div>
     </div>
 
-    <!-- 底部 Tabbar -->
+    <!-- Footer Tabbar -->
     <van-tabbar
       v-show="!$route.meta.hideTabbar"
-      class="w-full"
-      :model-value="active"
-      @change="handleChange"
+      v-model="active"
       route
+      class="w-full"
       :style="{
         '--van-tabbar-background': '#0f172a',
-        '--van-tabbar-item-active-color': '#ffffff',
-        '--van-tabbar-item-text-color': '#9ca3af'
+        '--van-tabbar-item-text-color': '#9ca3af',
+        '--van-tabbar-item-active-color': '#ffffff'
       }"
     >
       <van-tabbar-item name="/pda" icon="wap-home-o">工作台</van-tabbar-item>
       <van-tabbar-item name="/pda/inventory" icon="apps-o">库存</van-tabbar-item>
-      <van-tabbar-item name="/pda/alerts" icon="bell" dot>消息</van-tabbar-item>
+      <van-tabbar-item name="/pda/scan" icon="bell" dot>消息</van-tabbar-item>
       <van-tabbar-item name="/pda/mine" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
   </div>
 </template>
 
 <style scoped>
-/* 覆盖 van-tabbar 的部分变量以达成极深色主题 */
-.van-tabbar {
+:deep(.van-tabbar) {
   --van-tabbar-background: #0f172a;
 }
 
-/* 保证布局中间区域在小屏幕有安全间距 */
-.van-tabbar,
-.van-tabbar__item {
+:deep(.van-tabbar), :deep(.van-tabbar__item) {
   color: var(--van-tabbar-item-text-color, #9ca3af);
 }
 
