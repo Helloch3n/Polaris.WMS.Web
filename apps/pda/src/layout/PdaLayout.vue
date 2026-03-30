@@ -33,6 +33,7 @@ function handleChange(path: string | number) {
 
     <!-- 底部 Tabbar -->
     <van-tabbar
+      v-show="!$route.meta.hideTabbar"
       class="w-full"
       :model-value="active"
       @change="handleChange"
