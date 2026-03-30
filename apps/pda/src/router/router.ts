@@ -12,7 +12,7 @@ const router = createRouter({
       meta: { requiresAuth: false, title: '登录' }
     },
     {
-      path: '/pda',
+      path: '/', // 修复基准路径
       component: PdaLayout,
       children: [
         {
@@ -24,7 +24,7 @@ const router = createRouter({
         {
           path: 'inventory',
           name: 'Inventory',
-          component: () => import('@/views/scan/ScanView.vue'), // 占位
+          component: () => import('@/views/scan/ScanView.vue'), // 暂时占位
           meta: { title: '库存管理' }
         },
         {

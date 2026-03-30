@@ -1,33 +1,29 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { Badge, Button, Cell, CellGroup, Checkbox, Divider, Empty, Field, Form, Icon, NavBar, PullRefresh, Search, Tabbar, TabbarItem, Tag, Grid, GridItem } from 'vant'
-import 'vant/lib/index.css'
-
 import App from './App.vue'
-import { router } from './router/router'
+import router from './router/router'
+
 import './style.css'
+import 'vant/lib/index.css'
+// 移除了 Toast，按需保留其他组件
+import { ConfigProvider, Button, Field, CellGroup, Empty, Tabbar, TabbarItem, Icon, NavBar, Tag, Grid, GridItem } from 'vant'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-app.use(Button)
-app.use(Badge)
-app.use(Cell)
-app.use(CellGroup)
-app.use(Checkbox)
-app.use(Divider)
-app.use(Empty)
-app.use(Field)
-app.use(Form)
-app.use(Icon)
-app.use(NavBar)
-app.use(PullRefresh)
-app.use(Search)
-app.use(Tabbar)
-app.use(TabbarItem)
-app.use(Tag)
-app.use(Grid)
-app.use(GridItem)
+
+app.use(ConfigProvider)
+  .use(Button)
+  .use(Field)
+  .use(CellGroup)
+  .use(Empty)
+  .use(Tabbar)
+  .use(TabbarItem)
+  .use(Icon)
+  .use(NavBar)
+  .use(Tag)
+  .use(Grid)
+  .use(GridItem)
 
 app.mount('#app')

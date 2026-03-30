@@ -16,6 +16,9 @@ export const useAuthStore = defineStore('pda-auth', {
     refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY) ?? '',
     userName: localStorage.getItem(USER_NAME_KEY) ?? '',
   }),
+  getters: {
+    isAuthenticated: (state): boolean => !!state.accessToken,
+  },
   actions: {
     setAuth(payload: { accessToken: string; refreshToken?: string; userName?: string }) {
       this.accessToken = payload.accessToken

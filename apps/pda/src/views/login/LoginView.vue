@@ -81,7 +81,7 @@ async function handleSubmit() {
     }
 
     showSuccessToast('登录成功')
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/task'
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     await router.replace(redirect)
   } catch (error) {
     showFailToast(error instanceof Error ? error.message : '登录失败')
