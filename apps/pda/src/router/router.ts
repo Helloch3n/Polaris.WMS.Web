@@ -12,11 +12,12 @@ const router = createRouter({
       meta: { requiresAuth: false, title: '登录' }
     },
     {
-      path: '/', // 修复基准路径
+      path: '/', 
       component: PdaLayout,
+      redirect: '/home', // 🚀 修复点：访问根目录直接重定向到明确的 /home
       children: [
         {
-          path: '',
+          path: 'home', // 🚀 明确的独立路径
           name: 'PdaHome',
           component: () => import('@/views/home/HomeView.vue'),
           meta: { title: '工作台' }
@@ -24,17 +25,16 @@ const router = createRouter({
         {
           path: 'inventory',
           name: 'Inventory',
-          component: () => import('@/views/scan/ScanView.vue'), // 暂时占位
+          component: () => import('@/views/scan/ScanView.vue'),
           meta: { title: '库存管理' }
         },
         {
           path: 'task',
           name: 'Task',
           component: () => import('@/views/task/TaskView.vue'),
-          meta: { title: '任务管理' }
+          meta: { title: '任务大厅' }
         },
         {
-          // 🚀 核心搬运任务执行页
           path: 'task/move/:id',
           name: 'MoveTaskExecute',
           component: () => import('@/views/task/MoveTaskExecute.vue'),
@@ -44,7 +44,7 @@ const router = createRouter({
           path: 'mine',
           name: 'Mine',
           component: () => import('@/views/mine/MineView.vue'),
-          meta: { title: '我的' }
+          meta: { title: '个人中心' }
         }
       ]
     },

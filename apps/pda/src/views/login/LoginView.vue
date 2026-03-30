@@ -1,197 +1,98 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { showFailToast, showSuccessToast } from 'vant'
-import { loginByPassword } from '../../api/auth'
-import { useAuthStore } from '../../stores/auth'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { showToast } from 'vant'
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
+const username = ref('admin')
+const password = ref('123456')
 const loading = ref(false)
-const rememberPassword = ref(false)
-const passwordVisible = ref(false)
 
-const REMEMBER_USERNAME_KEY = 'pda_login_remember_username'
-const REMEMBER_PASSWORD_KEY = 'pda_login_remember_password'
-
-const form = reactive({
-  username: '',
-  password: '',
-})
-
-let viewportListener: (() => void) | null = null
-
-function updateKeyboardOffset() {
-  const vv = window.visualViewport
-  if (!vv) {
-    document.documentElement.style.setProperty('--pda-keyboard-offset', '0px')
+async function handleLogin() {
+  if (!username.value || !password.value) {
+    showToast('请输入账号和密码')
     return
   }
-
-  const overlap = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop))
-  const offset = Math.max(0, overlap - 12)
-  document.documentElement.style.setProperty('--pda-keyboard-offset', `${offset}px`)
-}
-
-function bindViewportListener() {
-  const vv = window.visualViewport
-  if (!vv) return
-
-  const onViewportChange = () => updateKeyboardOffset()
-  vv.addEventListener('resize', onViewportChange)
-  vv.addEventListener('scroll', onViewportChange)
-  updateKeyboardOffset()
-
-  viewportListener = () => {
-    vv.removeEventListener('resize', onViewportChange)
-    vv.removeEventListener('scroll', onViewportChange)
-  }
-}
-
-async function handleSubmit() {
-  if (!form.username.trim() || !form.password.trim()) {
-    return
-  }
-
   loading.value = true
   try {
-    const data = await loginByPassword({
-      username: form.username.trim(),
-      password: form.password,
-    })
-
-    if (!data?.access_token) {
-      throw new Error('登录失败：未获取到 access_token')
-    }
-
-    authStore.setAuth({
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      userName: form.username.trim(),
-    })
-
-    if (rememberPassword.value) {
-      localStorage.setItem(REMEMBER_USERNAME_KEY, form.username.trim())
-      localStorage.setItem(REMEMBER_PASSWORD_KEY, form.password)
+    const success = await authStore.login(username.value, password.value)
+    if (success) {
+      showToast({ type: 'success', message: '登录成功' })
+      const redirect = (route.query.redirect as string) || '/'
+      router.replace(redirect)
     } else {
-      localStorage.removeItem(REMEMBER_USERNAME_KEY)
-      localStorage.removeItem(REMEMBER_PASSWORD_KEY)
+      showToast({ type: 'fail', message: '账号或密码错误' })
     }
-
-    showSuccessToast('登录成功')
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    await router.replace(redirect)
-  } catch (error) {
-    showFailToast(error instanceof Error ? error.message : '登录失败')
   } finally {
     loading.value = false
   }
 }
-
-onMounted(() => {
-  document.body.classList.add('pda-login-immersive')
-  bindViewportListener()
-
-  const savedUsername = localStorage.getItem(REMEMBER_USERNAME_KEY) ?? ''
-  const savedPassword = localStorage.getItem(REMEMBER_PASSWORD_KEY) ?? ''
-  if (savedUsername && savedPassword) {
-    form.username = savedUsername
-    form.password = savedPassword
-    rememberPassword.value = true
-  }
-})
-
-onUnmounted(() => {
-  document.body.classList.remove('pda-login-immersive')
-  viewportListener?.()
-  viewportListener = null
-  document.documentElement.style.setProperty('--pda-keyboard-offset', '0px')
-})
 </script>
 
 <template>
-  <div class="login-page">
-    <div class="pda-card login-card">
-      <div class="login-head">
-        <h3 class="login-title">Polaris WMS PDA</h3>
-        <div class="pda-subtext">仓储移动作业终端登录</div>
+  <div class="min-h-screen bg-slate-900 flex flex-col justify-center px-6 relative overflow-hidden">
+    <div class="absolute -top-20 -right-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+    <div class="absolute top-40 -left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+
+    <div class="relative z-10 w-full max-w-sm mx-auto">
+      <div class="text-center mb-10">
+        <div class="w-20 h-20 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/50 mb-4">
+          <van-icon name="cluster" size="48" color="white" />
+        </div>
+        <h1 class="text-3xl font-extrabold text-white tracking-wider">Polaris WMS</h1>
+        <p class="text-slate-400 mt-2 tracking-widest text-sm">INDUSTRIAL PDA TERMINAL</p>
       </div>
-      <van-form @submit="handleSubmit">
-        <van-cell-group inset>
-          <van-field v-model="form.username" name="username" label="账号" placeholder="请输入账号" clearable />
+
+      <div class="space-y-5">
+        <div class="bg-slate-800 rounded-2xl p-2 border border-slate-700 shadow-inner">
           <van-field
-            v-model="form.password"
-            :type="passwordVisible ? 'text' : 'password'"
-            name="password"
-            label="密码"
-            placeholder="请输入密码"
-            :right-icon="passwordVisible ? 'eye-o' : 'closed-eye'"
-            @click-right-icon="passwordVisible = !passwordVisible"
+            v-model="username"
             clearable
+            left-icon="user-o"
+            placeholder="员工工号 / Username"
+            class="!bg-transparent !text-white custom-login-field"
           />
-        </van-cell-group>
-        <div class="remember-wrap">
-          <van-checkbox v-model="rememberPassword">记住密码</van-checkbox>
         </div>
-        <div class="login-action">
-          <van-button block type="primary" native-type="submit" :loading="loading">登录</van-button>
+        
+        <div class="bg-slate-800 rounded-2xl p-2 border border-slate-700 shadow-inner">
+          <van-field
+            v-model="password"
+            type="password"
+            clearable
+            left-icon="lock"
+            placeholder="登录密码 / Password"
+            class="!bg-transparent !text-white custom-login-field"
+          />
         </div>
-      </van-form>
+
+        <van-button
+          block
+          round
+          :loading="loading"
+          class="!bg-blue-600 !border-none !text-white font-bold text-lg !h-14 mt-8 shadow-lg shadow-blue-600/40 active:!bg-blue-700"
+          @click="handleLogin"
+        >
+          登 录 系 统
+        </van-button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-page {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  min-height: 100dvh;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(180deg, #f3f6fb 0%, #eaf0fb 100%);
-  overflow: hidden;
+:deep(.custom-login-field .van-field__control) {
+  color: white !important;
+  font-size: 16px;
 }
-
-.login-title {
-  margin: 0;
-  text-align: center;
+:deep(.custom-login-field .van-field__control::placeholder) {
+  color: #64748b;
 }
-
-.login-card {
-  width: min(420px, 92vw);
-  border-radius: 18px;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
-  transform: translateY(calc(-1 * var(--pda-keyboard-offset, 0px)));
-  transition: transform 0.2s ease;
-  padding: 16px;
-}
-
-.login-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.login-action {
-  padding: 14px 6px 4px;
-}
-
-.remember-wrap {
-  padding: 10px 8px 0;
-}
-
-:global(body.pda-login-immersive) {
-  margin: 0;
-  overflow: hidden;
-  padding-top: env(safe-area-inset-top);
-  padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
+:deep(.custom-login-field .van-icon) {
+  color: #94a3b8 !important;
+  font-size: 20px;
 }
 </style>

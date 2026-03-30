@@ -5,25 +5,16 @@ import router from './router/router'
 
 import './style.css'
 import 'vant/lib/index.css'
-// 移除了 Toast，按需保留其他组件
-import { ConfigProvider, Button, Field, CellGroup, Empty, Tabbar, TabbarItem, Icon, NavBar, Tag, Grid, GridItem } from 'vant'
+import { ConfigProvider, Button, Field, CellGroup, Empty, Tabbar, TabbarItem, Icon, NavBar, Tag, Grid, GridItem, Tab, Tabs, List, PullRefresh } from 'vant'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
 
-app.use(ConfigProvider)
-  .use(Button)
-  .use(Field)
-  .use(CellGroup)
-  .use(Empty)
-  .use(Tabbar)
-  .use(TabbarItem)
-  .use(Icon)
-  .use(NavBar)
-  .use(Tag)
-  .use(Grid)
-  .use(GridItem)
+// 注册 Vant 组件 (注：Toast/Dialog 在 Vant 4 中是函数，无需在此 use)
+app.use(ConfigProvider).use(Button).use(Field).use(CellGroup).use(Empty)
+   .use(Tabbar).use(TabbarItem).use(Icon).use(NavBar).use(Tag)
+   .use(Grid).use(GridItem).use(Tab).use(Tabs).use(List).use(PullRefresh)
 
 app.mount('#app')
