@@ -152,6 +152,18 @@ const router = createRouter({
               meta: { title: '采购入库', requiresAuth: true, order: 3 },
             },
             {
+              path: 'asn',
+              name: 'AsnList',
+              component: () => import('../views/inbound/asn/AsnIndex.vue'),
+              meta: { title: 'ASN 查询', requiresAuth: true, order: 4 },
+            },
+            {
+              path: 'purchase-order',
+              name: 'PurchaseOrderList',
+              component: () => import('../views/inbound/purchaseOrder/PurchaseOrderIndex.vue'),
+              meta: { title: '采购单查询', requiresAuth: true, order: 5 },
+            },
+            {
               path: 'production-inbound',
               name: 'ProductionInboundManagement',
               component: () => import('../views/inbound/productionInbound/ProductionInboundIndex.vue'),

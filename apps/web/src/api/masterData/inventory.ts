@@ -33,6 +33,8 @@ export type InventoryType = (typeof InventoryType)[keyof typeof InventoryType]
 export interface Inventory {
   id: string
   reelId: string
+  /** 服务端新增：序号 */
+  sequence?: number
   productId: string
   type: InventoryType | keyof typeof InventoryType | string | number
   productCode?: string

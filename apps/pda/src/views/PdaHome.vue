@@ -68,7 +68,7 @@
     <!-- 底部导航（固定） -->
     <footer class="fixed bottom-0 left-0 right-0 z-40">
       <van-tabbar
-        v-model:active="activeTab"
+        v-model="activeTab"
         class="shadow-lg"
         :style="{
           '--van-tabbar-background': '#0f172a',

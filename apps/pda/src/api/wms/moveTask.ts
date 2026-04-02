@@ -44,20 +44,23 @@ export interface MoveTaskSearchDto {
 }
 
 // --- API 方法 ---
-export function getMoveTaskList(params: MoveTaskSearchDto) {
+export async function getMoveTaskList(params: MoveTaskSearchDto): Promise<PagedResultDto<MoveTaskDto>> {
   // 注意：根据你的 proxy 配置，这里应该使用相对路径，Vite 会代理到后端
   // 如果你的 proxy 配置 target 是 'https://localhost:44346'，这里直接写 '/api/app/move-task' 即可
-  return http.get<PagedResultDto<MoveTaskDto>>('/api/app/move-task', { params })
+  const res = await http.get<PagedResultDto<MoveTaskDto>>('/api/app/move-task', { params })
+  return res.data
 }
 
 export interface CompleteMoveTaskDto {
   actualLocationCode: string;
 }
 
-export function completeMoveTask(id: string, data: CompleteMoveTaskDto) {
-  return http.post(`/api/app/move-task/${id}/complete`, data)
+export async function completeMoveTask(id: string, data: CompleteMoveTaskDto) {
+  const res = await http.post(`/api/app/move-task/${id}/complete`, data)
+  return res.data
 }
 
-export function getMoveTaskDetails(id: string) {
-  return http.get<MoveTaskDto>(`/api/app/move-task/${id}`)
+export async function getMoveTaskDetails(id: string) {
+  const res = await http.get<MoveTaskDto>(`/api/app/move-task/${id}`)
+  return res.data
 }

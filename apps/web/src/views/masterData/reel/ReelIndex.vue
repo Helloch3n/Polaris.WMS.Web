@@ -223,7 +223,7 @@ function syncColumnSettingsByData(data: ReelRow[]) {
 }
 
 const query = reactive({
-  reelNo: '',
+  containerCode: '',
   page: 1,
   pageSize: 10,
   total: 0,
@@ -232,7 +232,7 @@ const query = reactive({
 const listParams = computed<GetReelListParams>(() => ({
   maxResultCount: query.pageSize,
   skipCount: (query.page - 1) * query.pageSize,
-  reelNo: query.reelNo || undefined,
+  containerCode: query.containerCode || undefined,
 }))
 
 function getRowKey(row: ReelRow) {
@@ -271,7 +271,7 @@ function handleSearch() {
 }
 
 function handleReset() {
-  query.reelNo = ''
+  query.containerCode = ''
   handleSearch()
 }
 
@@ -594,11 +594,11 @@ onMounted(() => {
       <n-form inline class="crud-search-form">
         <n-form-item>
           <n-input
-            :value="query.reelNo"
+            :value="query.containerCode"
             placeholder="请输入盘号"
             clearable
             style="max-width: 260px"
-            @update:value="(value) => { query.reelNo = value }"
+            @update:value="(value) => { query.containerCode = value }"
             @keyup.enter="handleSearch"
           />
         </n-form-item>

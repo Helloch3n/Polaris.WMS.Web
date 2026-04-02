@@ -91,11 +91,9 @@ export interface ProductionInboundDto extends AuditedEntityDto {
 }
 
 export interface ProductionInboundSearchDto extends PagedAndSortedResultRequestDto {
-  filter?: string
-  inboundType?: ProductionInboundType
+  orderNo?: string
+  sourceOrderNo?: string
   status?: ProductionInboundStatus
-  sourceDepartmentId?: string
-  targetWarehouseId?: string
 }
 
 export interface CreateProductionInboundDto {

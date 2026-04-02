@@ -4,6 +4,7 @@ import {
   NButton,
   NDataTable,
   NDatePicker,
+  NPagination,
   NForm,
   NFormItem,
   NInput,
@@ -51,6 +52,8 @@ const typeOptions: SelectOption[] = [
   { label: '出库', value: 'Out' },
   { label: '移库', value: 'Move' },
   { label: '盘点', value: 'Check' },
+  { label: '材料投入', value: 'Feed' },
+  { label: '材料退回', value: 'Return' },
 ]
 
 function toIso(v?: number | null) {
@@ -72,6 +75,8 @@ function resolveType(raw: unknown) {
     if (raw === 'Out') return '出库'
     if (raw === 'Move') return '移库'
     if (raw === 'Check') return '盘点'
+    if (raw === 'Feed') return '材料投入'
+    if (raw === 'Return') return '材料退回'
     return raw
   }
   if (typeof raw === 'number') {
@@ -79,6 +84,8 @@ function resolveType(raw: unknown) {
     if (raw === 1) return '出库'
     if (raw === 2) return '移库'
     if (raw === 3) return '盘点'
+    if (raw === 4) return '材料投入'
+    if (raw === 5) return '材料退回'
   }
   return '-'
 }
@@ -88,6 +95,8 @@ function getTypeTagType(label: string) {
   if (label === '出库') return 'error'
   if (label === '移库') return 'info'
   if (label === '盘点') return 'warning'
+  if (label === '材料投入') return 'primary'
+  if (label === '材料退回') return 'warning'
   return 'default'
 }
 
@@ -216,9 +225,16 @@ const columnMap: Record<string, DataTableColumns<TransactionRow>[number]> = {
     render: (row) => {
       const val = row.quantity
       if (typeof val !== 'number' || Number.isNaN(val)) return '-'
-      const sign = val > 0 ? '+' : ''
-      const color = val >= 0 ? '#22c55e' : '#ef4444'
-      return h('span', { style: { color, fontWeight: '600' } }, `${sign}${val}`)
+      // 判断类型是否为出库或材料退回
+      const outTypes = ['Out', 'Return', 1, 5]
+      const inTypes = ['In', 0]
+      let color: string | undefined
+      if (outTypes.includes(row.type)) {
+        color = '#ef4444'
+      } else if (inTypes.includes(row.type)) {
+        color = '#22c55e'
+      }
+      return h('span', { style: { color, fontWeight: '600' } }, `${val}`)
     },
   },
   quantityAfter: { title: createDraggableTitle('quantityAfter', '结存'), key: 'quantityAfter', width: 120, align: 'right', sorter: (a, b) => compareSortValue(a.quantityAfter, b.quantityAfter) },
@@ -255,7 +271,7 @@ onMounted(() => {
 <template>
   <BaseCrudPage>
     <template #search>
-      <n-form inline class="crud-search-form">
+      <n-form inline class="crud-search-form inventory-transaction-search-form">
         <n-form-item>
           <n-input :value="query.billNo" placeholder="请输入单据号" clearable @update:value="(value) => { query.billNo = value }" />
         </n-form-item>
@@ -297,15 +313,18 @@ onMounted(() => {
     </template>
 
     <template #data>
-      <n-data-table
-        class="crud-table-flat"
-        :loading="loading"
-        :columns="columns"
-        :data="rows"
-        :bordered="false"
-      />
+      <div style="overflow-x: auto;">
+        <n-data-table
+          class="crud-table-flat"
+          :loading="loading"
+          :columns="columns"
+          :data="rows"
+          :bordered="false"
+        />
+      </div>
     </template>
 
+    <template #pager-left />
     <template #pager-right>
       <n-pagination
         :page="pagination.page"
@@ -321,4 +340,30 @@ onMounted(() => {
 </template>
 
 <style scoped>
+:deep(.inventory-transaction-search-form.crud-search-form) {
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  row-gap: 8px;
+  column-gap: 8px;
+}
+
+:deep(.inventory-transaction-search-form .n-form-item) {
+  margin-bottom: 0;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+}
+
+:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-input),
+:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-base-selection),
+:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-date-picker),
+:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-input-number) {
+  min-width: 120px !important;
+  max-width: 100% !important;
+  width: auto !important;
+}
+
+:deep(.inventory-transaction-search-form .n-form-item .n-date-picker) {
+  min-width: 160px !important;
+}
+
 </style>

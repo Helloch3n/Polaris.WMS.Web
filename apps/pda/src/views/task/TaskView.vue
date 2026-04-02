@@ -2,8 +2,8 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { getMoveTaskList, MoveTaskStatus, MoveTaskType } from '@/api/wms/moveTask'
-import type { MoveTaskDto } from '@/api/wms/moveTask'
+import { getMoveTaskList, MoveTaskStatus, MoveTaskType } from '../../api/wms/moveTask'
+import type { MoveTaskDto } from '../../api/wms/moveTask'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -115,8 +115,8 @@ const navigateToTask = (id: string) => {
       <div class="text-white font-extrabold text-2xl tracking-wider">任务大厅</div>
     </div>
 
-    <van-tabs 
-      v-model:active="activeTab" 
+      <van-tabs 
+      v-model="activeTab" 
       sticky 
       swipeable 
       color="#10b981" 
@@ -134,7 +134,7 @@ const navigateToTask = (id: string) => {
     <div class="flex-1 overflow-y-auto relative p-4">
       <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
         <van-list
-          v-model:loading="loading"
+          :loading="loading"
           :finished="finished"
           finished-text="没有更多任务了"
           :immediate-check="false"

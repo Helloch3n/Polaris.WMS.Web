@@ -202,6 +202,7 @@ const {
 } = useColumnConfig({
   storageKey: 'inventory-column-settings-v3',
   preferredKeys: [
+    'sequence',
     'reelNo',
     'warehouseCode',
     'warehouseName',
@@ -226,6 +227,7 @@ const {
     'layer',
   ],
   resolveTitle: (key) => {
+    if (key === 'sequence') return '序号'
     if (key === 'reelNo') return '盘号'
     if (key === 'warehouseCode') return '仓库编码'
     if (key === 'warehouseName') return '仓库名称'
@@ -253,6 +255,14 @@ const {
 })
 
 const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
+  sequence: {
+    title: createDraggableTitle('sequence', '序号'),
+    key: 'sequence',
+    width: 100,
+    align: 'center',
+    sorter: (a, b) => compareSortValue((a as any).sequence, (b as any).sequence),
+    render: (row) => (row.sequence !== undefined && row.sequence !== null) ? String((row as any).sequence) : '-',
+  },
   reelNo: { title: createDraggableTitle('reelNo', '盘号'), key: 'reelNo', minWidth: 160, sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo), render: (row) => h('strong', row.reelNo ?? '-') },
   warehouseCode: { title: createDraggableTitle('warehouseCode', '仓库编码'), key: 'warehouseCode', minWidth: 140, sorter: (a, b) => compareSortValue(a.warehouseCode, b.warehouseCode), render: (row) => row.warehouseCode ?? '-' },
   warehouseName: { title: createDraggableTitle('warehouseName', '仓库名称'), key: 'warehouseName', minWidth: 160, sorter: (a, b) => compareSortValue(a.warehouseName, b.warehouseName), render: (row) => row.warehouseName ?? '-' },

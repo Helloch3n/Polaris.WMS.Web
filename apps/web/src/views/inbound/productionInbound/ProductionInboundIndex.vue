@@ -16,8 +16,7 @@ import {
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
 
 import * as productionInboundApi from '../../../api/inbound/productionInbound'
-import * as warehouseApi from '../../../api/masterData/warehouse'
-import * as organizationUnitsApi from '../../../api/identity/organizationUnits'
+import { t } from '../../../utils/i18n'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
@@ -32,15 +31,12 @@ const dialog = useDialog()
 const router = useRouter()
 const loading = ref(false)
 const rows = ref<RowItem[]>([])
-const warehouseOptions = ref<SelectOption[]>([])
-const departmentOptions = ref<SelectOption[]>([])
+// 查询表单只需 orderNo / sourceOrderNo / status
 
 const query = reactive({
-  filter: '',
-  inboundType: null as productionInboundApi.ProductionInboundType | null,
+  orderNo: '',
+  sourceOrderNo: '',
   status: null as productionInboundApi.ProductionInboundStatus | null,
-  sourceDepartmentId: null as string | null,
-  targetWarehouseId: null as string | null,
 })
 
 const pagination = reactive<PaginationProps>({
@@ -49,64 +45,21 @@ const pagination = reactive<PaginationProps>({
   itemCount: 0,
 })
 
-const inboundTypeOptions: SelectOption[] = [
-  { label: '成品入库', value: productionInboundApi.ProductionInboundType.FinishedProduct },
-  { label: '半成品入库', value: productionInboundApi.ProductionInboundType.SemiFinishedProduct },
-  { label: '工序品/在制品入库', value: productionInboundApi.ProductionInboundType.WorkInProgress },
-]
-
 const statusOptions: SelectOption[] = [
-  { label: '草稿', value: productionInboundApi.ProductionInboundStatus.Draft },
-  { label: '作业中', value: productionInboundApi.ProductionInboundStatus.InProgress },
-  { label: '已完成', value: productionInboundApi.ProductionInboundStatus.Completed },
+  { label: t('productionInbound.status.draft'), value: productionInboundApi.ProductionInboundStatus.Draft },
+  { label: t('productionInbound.status.inProgress'), value: productionInboundApi.ProductionInboundStatus.InProgress },
+  { label: t('productionInbound.status.completed'), value: productionInboundApi.ProductionInboundStatus.Completed },
 ]
 
 const listParams = computed<productionInboundApi.ProductionInboundSearchDto>(() => ({
   maxResultCount: pagination.pageSize ?? 10,
   skipCount: ((pagination.page ?? 1) - 1) * (pagination.pageSize ?? 10),
-  filter: query.filter.trim() || undefined,
-  inboundType: query.inboundType ?? undefined,
+  orderNo: (query.orderNo || '').trim() || undefined,
+  sourceOrderNo: (query.sourceOrderNo || '').trim() || undefined,
   status: query.status ?? undefined,
-  sourceDepartmentId: query.sourceDepartmentId ?? undefined,
-  targetWarehouseId: query.targetWarehouseId ?? undefined,
 }))
 
-function flattenDepartments(nodes: Array<{ id: string; displayName: string; code?: string; children?: any[] }>) {
-  const result: Array<{ id: string; displayName: string; code?: string }> = []
-  const walk = (items: Array<{ id: string; displayName: string; code?: string; children?: any[] }>) => {
-    for (const item of items) {
-      result.push({ id: item.id, displayName: item.displayName, code: item.code })
-      if (Array.isArray(item.children) && item.children.length > 0) {
-        walk(item.children)
-      }
-    }
-  }
-  walk(nodes)
-  return result
-}
-
-async function loadQueryOptions() {
-  try {
-    const [warehouseData, departmentTree] = await Promise.all([
-      warehouseApi.getList({ maxResultCount: 1000, skipCount: 0 }),
-      organizationUnitsApi.getTree(),
-    ])
-
-    warehouseOptions.value = (warehouseData.items ?? []).map((item) => ({
-      label: item.code ? `${item.code}${item.name ? ` - ${item.name}` : ''}` : (item.name || '-'),
-      value: item.id,
-    }))
-
-    departmentOptions.value = flattenDepartments(departmentTree.items ?? []).map((item) => ({
-      label: item.code ? `${item.code}${item.displayName ? ` - ${item.displayName}` : ''}` : (item.displayName || '-'),
-      value: item.id,
-    }))
-  } catch (e) {
-    warehouseOptions.value = []
-    departmentOptions.value = []
-    message.error(e instanceof Error ? e.message : '加载查询条件失败')
-  }
-}
+// 不再加载额外查询选项，查询条件只包含 orderNo / sourceOrderNo / status
 
 function getRowKey(row: RowItem) {
   return row.id
@@ -123,18 +76,6 @@ const {
 } = useTableSelection(rows, getRowKey)
 
 const canViewSelected = computed(() => selectedCount.value === 1)
-const canEditSelected = computed(() => {
-  if (selectedCount.value !== 1) return false
-  const selected = selectedRows.value[0]
-  if (!selected) return false
-  return normalizeStatusValue(selected.status) === productionInboundApi.ProductionInboundStatus.Draft
-})
-const canApproveSelected = computed(() => {
-  if (selectedCount.value !== 1) return false
-  const selected = selectedRows.value[0]
-  if (!selected) return false
-  return normalizeStatusValue(selected.status) === productionInboundApi.ProductionInboundStatus.Draft
-})
 
 function formatDateTime(v?: string) {
   if (!v) return '-'
@@ -158,9 +99,9 @@ function normalizeInboundTypeValue(value: productionInboundApi.ProductionInbound
 
 function resolveInboundTypeLabel(value: productionInboundApi.ProductionInboundType) {
   const normalized = normalizeInboundTypeValue(value)
-  if (normalized === productionInboundApi.ProductionInboundType.FinishedProduct) return '成品入库'
-  if (normalized === productionInboundApi.ProductionInboundType.SemiFinishedProduct) return '半成品入库'
-  if (normalized === productionInboundApi.ProductionInboundType.WorkInProgress) return '工序品/在制品入库'
+  if (normalized === productionInboundApi.ProductionInboundType.FinishedProduct) return t('productionInbound.inboundType.finished')
+  if (normalized === productionInboundApi.ProductionInboundType.SemiFinishedProduct) return t('productionInbound.inboundType.semiFinished')
+  if (normalized === productionInboundApi.ProductionInboundType.WorkInProgress) return t('productionInbound.inboundType.workInProgress')
   return '-'
 }
 
@@ -178,9 +119,9 @@ function normalizeStatusValue(status: productionInboundApi.ProductionInboundStat
 
 function resolveStatusLabel(status: productionInboundApi.ProductionInboundStatus) {
   const value = normalizeStatusValue(status)
-  if (value === productionInboundApi.ProductionInboundStatus.Draft) return '草稿'
-  if (value === productionInboundApi.ProductionInboundStatus.InProgress) return '作业中'
-  if (value === productionInboundApi.ProductionInboundStatus.Completed) return '已完成'
+  if (value === productionInboundApi.ProductionInboundStatus.Draft) return t('productionInbound.status.draft')
+  if (value === productionInboundApi.ProductionInboundStatus.InProgress) return t('productionInbound.status.inProgress')
+  if (value === productionInboundApi.ProductionInboundStatus.Completed) return t('productionInbound.status.completed')
   return '-'
 }
 
@@ -212,71 +153,71 @@ const {
     'creationTime',
   ],
   resolveTitle: (key) => {
-    if (key === 'orderNo') return '生产入库单号'
-    if (key === 'sourceOrderNo') return '来源单号'
-    if (key === 'inboundType') return '入库类型'
-    if (key === 'sourceDepartmentCode') return '来源部门编码'
-    if (key === 'sourceDepartmentName') return '来源部门名称'
-    if (key === 'targetWarehouseCode') return '目标仓库编码'
-    if (key === 'targetWarehouseName') return '目标仓库名称'
-    if (key === 'status') return '状态'
-    if (key === 'creationTime') return '创建时间'
+    if (key === 'orderNo') return t('productionInbound.columns.orderNo')
+    if (key === 'sourceOrderNo') return t('productionInbound.columns.sourceOrderNo')
+    if (key === 'inboundType') return t('productionInbound.columns.inboundType')
+    if (key === 'sourceDepartmentCode') return t('productionInbound.columns.sourceDepartmentCode')
+    if (key === 'sourceDepartmentName') return t('productionInbound.columns.sourceDepartmentName')
+    if (key === 'targetWarehouseCode') return t('productionInbound.columns.targetWarehouseCode')
+    if (key === 'targetWarehouseName') return t('productionInbound.columns.targetWarehouseName')
+    if (key === 'status') return t('productionInbound.columns.status')
+    if (key === 'creationTime') return t('productionInbound.columns.creationTime')
     return key
   },
 })
 
 const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
   orderNo: {
-    title: createDraggableTitle('orderNo', '生产入库单号'),
+    title: createDraggableTitle('orderNo', t('productionInbound.columns.orderNo')),
     key: 'orderNo',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.orderNo, b.orderNo),
     render: (row) => row.orderNo ?? '-',
   },
   sourceOrderNo: {
-    title: createDraggableTitle('sourceOrderNo', '来源单号'),
+    title: createDraggableTitle('sourceOrderNo', t('productionInbound.columns.sourceOrderNo')),
     key: 'sourceOrderNo',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.sourceOrderNo, b.sourceOrderNo),
     render: (row) => row.sourceOrderNo ?? '-',
   },
   inboundType: {
-    title: createDraggableTitle('inboundType', '入库类型'),
+    title: createDraggableTitle('inboundType', t('productionInbound.columns.inboundType')),
     key: 'inboundType',
     minWidth: 160,
     sorter: (a, b) => compareSortValue(normalizeInboundTypeValue(a.inboundType), normalizeInboundTypeValue(b.inboundType)),
     render: (row) => resolveInboundTypeLabel(row.inboundType),
   },
   sourceDepartmentCode: {
-    title: createDraggableTitle('sourceDepartmentCode', '来源部门编码'),
+    title: createDraggableTitle('sourceDepartmentCode', t('productionInbound.columns.sourceDepartmentCode')),
     key: 'sourceDepartmentCode',
     minWidth: 160,
     sorter: (a, b) => compareSortValue(a.sourceDepartmentCode, b.sourceDepartmentCode),
     render: (row) => row.sourceDepartmentCode ?? '-',
   },
   sourceDepartmentName: {
-    title: createDraggableTitle('sourceDepartmentName', '来源部门名称'),
+    title: createDraggableTitle('sourceDepartmentName', t('productionInbound.columns.sourceDepartmentName')),
     key: 'sourceDepartmentName',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.sourceDepartmentName, b.sourceDepartmentName),
     render: (row) => row.sourceDepartmentName ?? '-',
   },
   targetWarehouseCode: {
-    title: createDraggableTitle('targetWarehouseCode', '目标仓库编码'),
+    title: createDraggableTitle('targetWarehouseCode', t('productionInbound.columns.targetWarehouseCode')),
     key: 'targetWarehouseCode',
     minWidth: 160,
     sorter: (a, b) => compareSortValue(a.targetWarehouseCode, b.targetWarehouseCode),
     render: (row) => row.targetWarehouseCode ?? '-',
   },
   targetWarehouseName: {
-    title: createDraggableTitle('targetWarehouseName', '目标仓库名称'),
+    title: createDraggableTitle('targetWarehouseName', t('productionInbound.columns.targetWarehouseName')),
     key: 'targetWarehouseName',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.targetWarehouseName, b.targetWarehouseName),
     render: (row) => row.targetWarehouseName ?? '-',
   },
   status: {
-    title: createDraggableTitle('status', '状态'),
+    title: createDraggableTitle('status', t('productionInbound.columns.status')),
     key: 'status',
     width: 120,
     align: 'center',
@@ -287,7 +228,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     },
   },
   creationTime: {
-    title: createDraggableTitle('creationTime', '创建时间'),
+    title: createDraggableTitle('creationTime', t('productionInbound.columns.creationTime')),
     key: 'creationTime',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.creationTime, b.creationTime),
@@ -317,41 +258,21 @@ async function loadData() {
     syncCheckedRowKeys()
     pagination.itemCount = data.totalCount ?? 0
   } catch (e) {
-    message.error(e instanceof Error ? e.message : '加载失败')
+    message.error(e instanceof Error ? e.message : t('common.loadFailed'))
   } finally {
     loading.value = false
   }
 }
 
-function handleCreate() {
-  router.push({ name: 'ProductionInboundCreate' })
-}
-
-function handleEdit() {
-  if (selectedRows.value.length !== 1) {
-    message.warning('请选择一条数据进行编辑')
-    return
-  }
-  const selected = selectedRows.value[0]
-  if (!selected?.id) {
-    message.warning('当前数据缺少单据ID，无法编辑')
-    return
-  }
-  if (normalizeStatusValue(selected.status) !== productionInboundApi.ProductionInboundStatus.Draft) {
-    message.warning('仅草稿状态支持编辑')
-    return
-  }
-  router.push({ name: 'ProductionInboundEdit', params: { orderId: selected.id } })
-}
 
 function handleView() {
   if (selectedRows.value.length !== 1) {
-    message.warning('请选择一条数据进行查看')
+    message.warning(t('common.selectOneToView'))
     return
   }
   const selected = selectedRows.value[0]
   if (!selected?.id) {
-    message.warning('当前数据缺少单据ID，无法查看')
+    message.warning(t('common.missingRecordId'))
     return
   }
   router.push({ name: 'ProductionInboundDetail', params: { orderId: selected.id } })
@@ -362,35 +283,7 @@ function openDetail(row: RowItem) {
   router.push({ name: 'ProductionInboundDetail', params: { orderId: row.id } })
 }
 
-function handleApprove() {
-  const selected = selectedRows.value[0]
-  if (!selected || selectedRows.value.length !== 1) {
-    message.warning('请选择一条数据进行审核')
-    return
-  }
-
-  if (normalizeStatusValue(selected.status) !== productionInboundApi.ProductionInboundStatus.Draft) {
-    message.warning('仅草稿状态支持审核执行')
-    return
-  }
-
-  dialog.warning({
-    title: '确认审核',
-    content: `确认审核并执行生产入库单 ${selected.orderNo || ''} 吗？`,
-    positiveText: '确认',
-    negativeText: '取消',
-    onPositiveClick: async () => {
-      try {
-        await productionInboundApi.approveAndExecute(selected.id)
-        message.success('审核执行成功')
-        clearSelection()
-        await loadData()
-      } catch (e) {
-        message.error(e instanceof Error ? e.message : '审核执行失败')
-      }
-    },
-  })
-}
+// 审核/编辑/新增操作在此页面被禁用（只读查询）
 
 function handleQuery() {
   pagination.page = 1
@@ -398,11 +291,9 @@ function handleQuery() {
 }
 
 function handleReset() {
-  query.filter = ''
-  query.inboundType = null
+  query.orderNo = ''
+  query.sourceOrderNo = ''
   query.status = null
-  query.sourceDepartmentId = null
-  query.targetWarehouseId = null
   pagination.page = 1
   loadData()
 }
@@ -430,7 +321,6 @@ function handleColumnConfigShowChange(value: boolean) {
 
 onMounted(() => {
   loadColumnSettings()
-  loadQueryOptions()
   loadData()
 })
 </script>
@@ -440,65 +330,33 @@ onMounted(() => {
     <template #search>
       <n-form inline class="crud-search-form production-inbound-search-form">
         <n-form-item>
-          <n-input :value="query.filter" placeholder="请输入入库单号/来源单号" clearable @update:value="(value) => { query.filter = value }" />
+          <n-input :value="query.orderNo" :placeholder="t('productionInbound.search.orderNo')" clearable @update:value="(value) => { query.orderNo = value }" />
         </n-form-item>
         <n-form-item>
-          <n-select
-            :value="query.inboundType"
-            :options="inboundTypeOptions"
-            placeholder="请选择入库类型"
-            clearable
-            style="width: 180px"
-            @update:value="(value) => { query.inboundType = value }"
-          />
+          <n-input :value="query.sourceOrderNo" :placeholder="t('productionInbound.search.sourceOrderNo')" clearable @update:value="(value) => { query.sourceOrderNo = value }" />
         </n-form-item>
         <n-form-item>
           <n-select
             :value="query.status"
             :options="statusOptions"
-            placeholder="请选择状态"
+            :placeholder="t('productionInbound.search.status')"
             clearable
             style="width: 160px"
             @update:value="(value) => { query.status = value }"
           />
         </n-form-item>
         <n-form-item>
-          <n-select
-            :value="query.sourceDepartmentId"
-            :options="departmentOptions"
-            placeholder="请输入来源部门搜索"
-            clearable
-            style="width: 220px"
-            filterable
-            @update:value="(value) => { query.sourceDepartmentId = value }"
-          />
+          <n-button type="primary" :loading="loading" @click="handleQuery">{{ t('common.query') }}</n-button>
         </n-form-item>
         <n-form-item>
-          <n-select
-            :value="query.targetWarehouseId"
-            :options="warehouseOptions"
-            placeholder="请输入目标仓库搜索"
-            clearable
-            style="width: 220px"
-            filterable
-            @update:value="(value) => { query.targetWarehouseId = value }"
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
-        </n-form-item>
-        <n-form-item>
-          <n-button @click="handleReset">重置</n-button>
+          <n-button @click="handleReset">{{ t('common.reset') }}</n-button>
         </n-form-item>
       </n-form>
     </template>
 
     <template #actions-left>
       <div class="crud-action-main">
-        <n-button type="primary" :loading="loading" @click="handleCreate">新增</n-button>
-        <n-button :disabled="!canEditSelected || loading" @click="handleEdit">编辑</n-button>
-        <n-button :disabled="!canViewSelected || loading" @click="handleView">查看</n-button>
-        <n-button type="warning" :disabled="!canApproveSelected || loading" @click="handleApprove">审核</n-button>
+        <n-button :disabled="!canViewSelected || loading" @click="handleView">{{ t('common.view') }}</n-button>
       </div>
     </template>
 
@@ -529,8 +387,8 @@ onMounted(() => {
 
     <template #pager-left>
       <div class="crud-selection-summary">
-        <n-tag size="small" type="info">已选 {{ selectedCount }} 条</n-tag>
-        <n-button text :disabled="selectedCount === 0" @click="clearSelection">清空选择</n-button>
+        <n-tag size="small" type="info">{{ t('common.selected') }} {{ selectedCount }} {{ t('common.items') }}</n-tag>
+        <n-button text :disabled="selectedCount === 0" @click="clearSelection">{{ t('common.clearSelection') }}</n-button>
       </div>
     </template>
 
