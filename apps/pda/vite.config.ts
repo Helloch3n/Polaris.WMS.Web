@@ -9,7 +9,8 @@ export default defineConfig({
     vue(),
     tailwindcss()
   ],
-  base: '/pda/',
+  //base: '/pda/',
+  base: './',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')

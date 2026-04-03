@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">polaris-wms-pda</string>
+    <string name="title_activity_main">polaris-wms-pda</string>
+    <string name="package_name">com.polaris.wms.pda</string>
+    <string name="custom_url_scheme">com.polaris.wms.pda</string>
+</resources>
