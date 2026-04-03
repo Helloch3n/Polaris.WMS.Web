@@ -1,12 +1,11 @@
-@import "tailwindcss";
-
-/* 自定义主题变量 */
-@theme {
-  --color-primary: #2563eb;
-  --color-success: #10b981;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
+  --color-primary: #2563eb;
+  --color-success: #10b981;
+
   /* 你的基础变量可以保留 */
   --pda-bg: #f3f6fb;
   --pda-card-bg: #ffffff;

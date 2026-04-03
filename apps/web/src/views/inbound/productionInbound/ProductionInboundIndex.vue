@@ -10,7 +10,6 @@ import {
   NPagination,
   NSelect,
   NTag,
-  useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
@@ -27,7 +26,6 @@ import { compareSortValue } from '../../../utils/tableColumn'
 type RowItem = productionInboundApi.ProductionInboundDto
 
 const message = useMessage()
-const dialog = useDialog()
 const router = useRouter()
 const loading = ref(false)
 const rows = ref<RowItem[]>([])

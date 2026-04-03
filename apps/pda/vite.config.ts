@@ -1,14 +1,10 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
-import tailwindcss from '@tailwindcss/vite'
 
 // Vite configuration
 export default defineConfig({
-  plugins: [
-    vue(),
-    tailwindcss()
-  ],
+  plugins: [vue()],
   //base: '/pda/',
   base: './',
   resolve: {

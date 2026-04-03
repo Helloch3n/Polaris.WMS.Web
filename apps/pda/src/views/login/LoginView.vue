@@ -88,13 +88,13 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-900 flex flex-col justify-center px-6 relative overflow-hidden">
-    <div class="absolute -top-20 -right-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-    <div class="absolute top-40 -left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+  <div class="login-page">
+    <div class="login-glow login-glow-blue"></div>
+    <div class="login-glow login-glow-emerald"></div>
 
-    <div class="relative z-10 w-full max-w-sm mx-auto">
-      <div class="text-center mb-10">
-        <div class="w-20 h-20 mx-auto mb-4 logo-icon" aria-hidden="true">
+    <div class="login-panel">
+      <div class="login-header">
+        <div class="logo-icon" aria-hidden="true">
           <svg class="brand-warehouse" viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="polaris-gem-bg" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
@@ -123,22 +123,22 @@ async function handleLogin() {
             </g>
           </svg>
         </div>
-        <h1 class="text-3xl font-extrabold text-white tracking-wider">Polaris WMS</h1>
-        <p class="text-slate-400 mt-2 tracking-widest text-sm">INDUSTRIAL PDA TERMINAL</p>
+        <h1 class="login-title">Polaris WMS</h1>
+        <p class="login-subtitle">INDUSTRIAL PDA TERMINAL</p>
       </div>
 
-      <div class="space-y-5">
-        <div class="bg-slate-800 rounded-2xl p-2 border border-slate-700 shadow-inner">
+      <div class="login-form">
+        <div class="input-shell">
           <van-field
             v-model="username"
             clearable
             left-icon="user-o"
             placeholder="员工工号 / Username"
-            class="!bg-transparent !text-white custom-login-field"
+            class="custom-login-field"
           />
         </div>
-        
-        <div class="bg-slate-800 rounded-2xl p-2 border border-slate-700 shadow-inner">
+
+        <div class="input-shell">
           <van-field
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
@@ -146,21 +146,21 @@ async function handleLogin() {
             left-icon="lock"
             :right-icon="showPassword ? 'eye-o' : 'closed-eye'"
             placeholder="登录密码 / Password"
-            class="!bg-transparent !text-white custom-login-field"
+            class="custom-login-field"
             @click-right-icon="togglePasswordVisible"
           />
         </div>
 
-        <div class="flex items-center justify-between px-1 text-slate-300">
+        <div class="remember-row">
           <button
             type="button"
-            class="flex items-center gap-2 text-slate-300 hover:text-white"
+            class="remember-toggle"
             @click="handleRememberToggle"
             :aria-pressed="rememberPassword"
           >
-            <span v-if="rememberPassword" class="w-3 h-3 rounded-full bg-blue-500 inline-block" />
-            <span v-else class="w-3 h-3 rounded-full border border-slate-600 inline-block" />
-            <span class="ml-1 text-sm">记住密码</span>
+            <span v-if="rememberPassword" class="remember-dot remember-dot-active" />
+            <span v-else class="remember-dot remember-dot-inactive" />
+            <span class="remember-text">记住密码</span>
           </button>
         </div>
 
@@ -168,7 +168,7 @@ async function handleLogin() {
           block
           round
           :loading="loading"
-          class="!bg-blue-600 !border-none !text-white font-bold text-lg !h-14 mt-8 shadow-lg shadow-blue-600/40 active:!bg-blue-700"
+          class="login-submit"
           @click="handleLogin"
         >
           登 录 系 统
@@ -179,8 +179,120 @@ async function handleLogin() {
 </template>
 
 <style scoped>
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  background: radial-gradient(circle at 52% -18%, #15306f 0%, #0a1c4b 38%, #07153b 100%);
+}
+
+.login-glow {
+  position: absolute;
+  width: 288px;
+  height: 288px;
+  border-radius: 9999px;
+  filter: blur(56px);
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.login-glow-blue {
+  top: -84px;
+  right: -84px;
+  background: #3b82f6;
+}
+
+.login-glow-emerald {
+  top: 180px;
+  left: -84px;
+  background: #10b981;
+}
+
+.login-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.login-subtitle {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-size: 15px;
+  letter-spacing: 2.8px;
+}
+
+.login-form {
+  display: grid;
+  gap: 18px;
+}
+
+.input-shell {
+  background: rgba(30, 41, 59, 0.82);
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  border-radius: 16px;
+  padding: 8px 10px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.4);
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+}
+
+.remember-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  padding: 2px 0;
+}
+
+.remember-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.remember-dot-active {
+  background: #3b82f6;
+}
+
+.remember-dot-inactive {
+  border: 1px solid #475569;
+}
+
+.remember-text {
+  font-size: 15px;
+  line-height: 1;
+}
+
 .logo-icon {
   position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
   border-radius: 28%;
   background: linear-gradient(145deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.1));
   display: flex;
@@ -250,12 +362,43 @@ async function handleLogin() {
   color: white !important;
   font-size: 16px;
 }
+
+:deep(.custom-login-field) {
+  --van-cell-background: transparent;
+  padding: 0;
+}
+
+:deep(.custom-login-field .van-field__left-icon),
+:deep(.custom-login-field .van-field__right-icon) {
+  color: #94a3b8 !important;
+}
+
 :deep(.custom-login-field .van-field__control::placeholder) {
   color: #64748b;
 }
 :deep(.custom-login-field .van-icon) {
   color: #94a3b8 !important;
   font-size: 20px;
+}
+
+:deep(.login-submit.van-button) {
+  height: 56px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #2563eb, #256cf3);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+}
+
+:deep(.login-submit.van-button .van-button__text) {
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 8px;
+}
+
+:deep(.login-submit.van-button:active) {
+  background: linear-gradient(90deg, #1d4ed8, #1f5fe3);
 }
 
 /* checkbox styles removed — using text-only remember control */
@@ -370,6 +513,25 @@ async function handleLogin() {
 
   100% {
     opacity: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-title {
+    font-size: 38px;
+  }
+
+  .login-subtitle {
+    letter-spacing: 2px;
+  }
+
+  :deep(.login-submit.van-button .van-button__text) {
+    font-size: 24px;
+    letter-spacing: 6px;
   }
 }
 </style>

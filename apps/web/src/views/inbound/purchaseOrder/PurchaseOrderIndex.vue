@@ -71,7 +71,7 @@ function handlePageSizeChange(size: number) {
   loadData()
 }
 
-const { showColumnConfig, columnSettings, loadColumnSettings, handleVisibleChange, createDraggableTitle } = useColumnConfig({
+const { columnSettings, loadColumnSettings, createDraggableTitle } = useColumnConfig({
   storageKey: 'purchase-order-column-settings-v1',
   preferredKeys: ['poNo', 'supplierCode', 'supplierName', 'orderDate', 'status', 'creationTime'],
   resolveTitle: (key) => {

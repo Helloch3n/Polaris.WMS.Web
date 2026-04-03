@@ -229,9 +229,9 @@ const columnMap: Record<string, DataTableColumns<TransactionRow>[number]> = {
       const outTypes = ['Out', 'Return', 1, 5]
       const inTypes = ['In', 0]
       let color: string | undefined
-      if (outTypes.includes(row.type)) {
+      if (row.type !== undefined && outTypes.includes(row.type as string | number)) {
         color = '#ef4444'
-      } else if (inTypes.includes(row.type)) {
+      } else if (row.type !== undefined && inTypes.includes(row.type as string | number)) {
         color = '#22c55e'
       }
       return h('span', { style: { color, fontWeight: '600' } }, `${val}`)

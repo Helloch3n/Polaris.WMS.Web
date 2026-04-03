@@ -8,7 +8,6 @@ import {
   NInput,
   NPagination,
   NSelect,
-  NTag,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
@@ -89,10 +88,8 @@ function handlePageSizeChange(size: number) {
 }
 
 const {
-  showColumnConfig,
   columnSettings,
   loadColumnSettings,
-  handleVisibleChange,
   createDraggableTitle,
 } = useColumnConfig({
   storageKey: 'asn-column-settings-v1',

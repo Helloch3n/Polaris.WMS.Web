@@ -76,6 +76,7 @@ export interface GetReelListParams extends PagedAndSortedResultRequestDto {
   skipCount?: number
   sorting?: string
   containerCode?: string
+  filter?: string
 }
 
 const baseUrl = '/api/app/reel'
