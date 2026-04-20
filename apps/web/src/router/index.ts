@@ -295,6 +295,30 @@ const router = createRouter({
               component: () => import('../views/outbound/wave/WaveIndex.vue'),
               meta: { title: '波次管理', requiresAuth: true, order: 3 },
             },
+            {
+              path: 'misc-outbound-orders',
+              name: 'MiscOutboundOrdersManagement',
+              component: () => import('../views/outbound/MiscOutboundOrders/MiscOutboundOrdersIndex.vue'),
+              meta: { title: '其他出库', requiresAuth: true, order: 4 },
+            },
+            {
+              path: 'misc-outbound-orders/create',
+              name: 'MiscOutboundOrdersCreate',
+              component: () => import('../views/outbound/MiscOutboundOrders/create.vue'),
+              meta: { title: '新增其他出库', requiresAuth: true, hidden: true },
+            },
+            {
+              path: 'misc-outbound-orders/edit/:id',
+              name: 'MiscOutboundOrdersEdit',
+              component: () => import('../views/outbound/MiscOutboundOrders/edit.vue'),
+              meta: { title: '编辑其他出库', requiresAuth: true, hidden: true },
+            },
+            {
+              path: 'misc-outbound-orders/:id',
+              name: 'MiscOutboundOrdersDetail',
+              component: () => import('../views/outbound/MiscOutboundOrders/detail.vue'),
+              meta: { title: '其他出库详情', requiresAuth: true, hidden: true },
+            },
           ],
         },
         {
