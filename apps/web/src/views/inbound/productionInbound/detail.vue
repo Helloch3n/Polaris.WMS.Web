@@ -126,9 +126,9 @@ const detailColumns = computed<DataTableColumns<productionInboundApi.ProductionI
   },
   {
     title: '盘号',
-    key: 'reelCode',
+    key: 'containerCode',
     minWidth: 140,
-    render: (row) => row.reelCode || '-',
+    render: (row) => row.containerCode || '-',
   },
   {
     title: '数量',

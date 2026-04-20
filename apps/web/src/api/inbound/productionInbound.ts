@@ -62,8 +62,8 @@ export interface ProductionInboundDetailDto extends AuditedEntityDto {
   productName: string
   batchNo: string
   craftVersion: string
-  reelId: string
-  reelCode: string
+  containerId: string
+  containerCode: string
   qty: number
   unit: string
   weight: number
@@ -108,7 +108,7 @@ export interface CreateProductionInboundDetailDto {
   productId: string
   batchNo: string
   craftVersion: string
-  reelId: string
+  containerId: string
   qty: number
   unit: string
   weight?: number | null

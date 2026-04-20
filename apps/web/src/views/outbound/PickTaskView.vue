@@ -35,7 +35,7 @@ const rows = ref<TaskRow[]>([])
 const completingIds = ref<Set<string>>(new Set())
 
 const query = reactive({
-  reelNo: '',
+  containerNo: '',
   status: 'Pending' as string | null,
   page: 1,
   pageSize: 10,
@@ -53,7 +53,7 @@ const statusOptions: SelectOption[] = [
 const listParams = computed<pickTaskApi.GetPickTaskListParams>(() => ({
   maxResultCount: query.pageSize,
   skipCount: (query.page - 1) * query.pageSize,
-  reelNo: query.reelNo.trim() || undefined,
+  containerNo: query.containerNo.trim() || undefined,
   status: query.status ?? undefined,
 }))
 
@@ -76,7 +76,7 @@ function onQuery() {
 }
 
 function onReset() {
-  query.reelNo = ''
+  query.containerNo = ''
   query.status = 'Pending'
   query.page = 1
   loadData()
@@ -98,7 +98,7 @@ async function handleComplete(row: TaskRow) {
   completingIds.value = new Set([...completingIds.value, id])
   try {
     await pickTaskApi.complete(id)
-    message.success(`盘号 ${row.reelNo} 拣货完成`)
+    message.success(`盘号 ${row.containerNo} 拣货完成`)
     await loadData()
   } catch {
     // 全局拦截器已弹出 ABP 业务错，处无重提示
@@ -149,9 +149,9 @@ const {
   createDraggableTitle,
 } = useColumnConfig({
   storageKey: 'pick-task-column-settings-v1',
-  preferredKeys: ['reelNo', 'fromLocationCode', 'productCode', 'batchNo', 'sn', 'targetLength', 'status', 'creationTime'],
+  preferredKeys: ['containerNo', 'fromLocationCode', 'productCode', 'batchNo', 'sn', 'targetLength', 'status', 'creationTime'],
   resolveTitle: (key) => {
-    if (key === 'reelNo') return '盘号'
+    if (key === 'containerNo') return '盘号'
     if (key === 'fromLocationCode') return '源库位'
     if (key === 'productCode') return '产品编码'
     if (key === 'batchNo') return '批次号'
@@ -164,12 +164,12 @@ const {
 })
 
 const columnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
-  reelNo: {
-    title: createDraggableTitle('reelNo', '盘号'),
-    key: 'reelNo',
+  containerNo: {
+    title: createDraggableTitle('containerNo', '盘号'),
+    key: 'containerNo',
     minWidth: 160,
-    sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo),
-    render: (row) => row.reelNo || '-',
+    sorter: (a, b) => compareSortValue(a.containerNo, b.containerNo),
+    render: (row) => row.containerNo || '-',
   },
   fromLocationCode: {
     title: createDraggableTitle('fromLocationCode', '源库位'),
@@ -261,7 +261,7 @@ const columns = computed<DataTableColumns<TaskRow>>(() =>
                 },
                 { default: () => '完成拣货' },
               ),
-            default: () => `确认盘号 ${row.reelNo} 已完成分配拣货？`,
+            default: () => `确认盘号 ${row.containerNo} 已完成分配拣货？`,
           },
         )
       },
@@ -291,11 +291,11 @@ onMounted(() => {
       <n-form inline class="crud-search-form">
         <n-form-item>
           <n-input
-            :value="query.reelNo"
+            :value="query.containerNo"
             placeholder="请输入盘号"
             clearable
             style="width: 220px"
-            @update:value="(value) => (query.reelNo = value)"
+            @update:value="(value) => (query.containerNo = value)"
             @keyup.enter="onQuery"
           />
         </n-form-item>

@@ -3,7 +3,7 @@ import { http } from '../utils/http'
 export type PickTaskDto = {
   id: string
   outboundOrderId?: string
-  reelNo?: string
+  containerNo?: string
   fromLocationCode?: string
   toLocationCode?: string
   status: number | string
@@ -15,7 +15,7 @@ export type PickTaskDto = {
 export type GetPickTaskListParams = {
   outboundOrderId?: string
   status?: string | number
-  reelNo?: string
+  containerNo?: string
   skipCount?: number
   maxResultCount?: number
 }

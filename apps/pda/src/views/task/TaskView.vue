@@ -92,7 +92,7 @@ const getTaskTypeInfo = (type: MoveTaskType) => {
     case MoveTaskType.MoveToQc:
       return { text: '送检', color: '#eab308', bg: '#fefce8' } // Yellow
     case MoveTaskType.InternalMove:
-      return { text: '理货', color: '#3b82f6', bg: '#eff6ff' } // Blue
+      return { text: '理货', color: '#4f46e5', bg: '#eef2ff' } // Indigo
     case MoveTaskType.PickDown:
       return { text: '下架', color: '#8b5cf6', bg: '#faf5ff' } // Purple
     default:
@@ -119,8 +119,8 @@ const navigateToTask = (id: string) => {
       v-model="activeTab" 
       sticky 
       swipeable 
-      color="#10b981" 
-      title-active-color="#10b981" 
+      color="#4f46e5" 
+      title-active-color="#4f46e5" 
       class="shrink-0 custom-tabs z-10 shadow-sm"
     >
       <van-tab 
@@ -221,7 +221,7 @@ const navigateToTask = (id: string) => {
 }
 :deep(.custom-tabs .van-tab--active) {
   font-weight: 900;
-  color: #10b981;
+  color: #4f46e5;
 }
 :deep(.van-pull-refresh) {
   min-height: 100%;

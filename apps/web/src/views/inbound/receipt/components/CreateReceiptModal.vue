@@ -23,7 +23,7 @@ import type { FormRules, SelectOption } from 'naive-ui'
 
 import * as receiptApi from '../../../../api/inbound/receipt'
 import { getProductList } from '../../../../api/masterData/product'
-import { getList as getReelList } from '../../../../api/masterData/reel'
+import { getList as getContainerList } from '../../../../api/masterData/container'
 import { getList as getWarehouseList } from '../../../../api/masterData/warehouse'
 
 interface DetailRow {
@@ -33,8 +33,8 @@ interface DetailRow {
   planQuantity: number | null
   batchNo: string
   sourceWo: string
-  reelId: string | null
-  reelNo: string
+  containerId: string | null
+  containerNo: string
   sn: string
   craftVersion: string
   layerIndex: number | null
@@ -84,8 +84,8 @@ function createDetail(): DetailRow {
     planQuantity: 1,
     batchNo: '',
     sourceWo: '',
-    reelId: null,
-    reelNo: '',
+    containerId: null,
+    containerNo: '',
     sn: '',
     craftVersion: '',
     layerIndex: 1,
@@ -96,8 +96,8 @@ function createDetail(): DetailRow {
 const productOptions = ref<Array<SelectOption & { name?: string; unit?: string }>>([])
 const productLoading = ref(false)
 
-const reelOptions = ref<Array<SelectOption & { reelNo?: string }>>([])
-const reelLoading = ref(false)
+const containerOptions = ref<Array<SelectOption & { containerCode?: string }>>([])
+const containerLoading = ref(false)
 
 const warehouseOptions = ref<Array<SelectOption & { code?: string; name?: string }>>([])
 const warehouseLoading = ref(false)
@@ -153,22 +153,22 @@ async function loadProducts(keyword?: string) {
   }
 }
 
-async function loadReels(keyword?: string) {
-  reelLoading.value = true
+async function loadContainers(keyword?: string) {
+  containerLoading.value = true
   try {
-    const data = await getReelList({
+    const data = await getContainerList({
       maxResultCount: 20,
       skipCount: 0,
       filter: keyword?.trim() || undefined,
     })
     const items = data.items ?? []
-    reelOptions.value = items.map((item) => ({
-      label: item.reelNo,
-      value: item.id ?? item.reelNo,
-      reelNo: item.reelNo,
+    containerOptions.value = items.map((item) => ({
+      label: item.containerCode,
+      value: item.id ?? item.containerCode,
+      containerCode: item.containerCode,
     }))
   } finally {
-    reelLoading.value = false
+    containerLoading.value = false
   }
 }
 
@@ -176,8 +176,8 @@ function handleProductSearch(keyword: string) {
   loadProducts(keyword)
 }
 
-function handleReelSearch(keyword: string) {
-  loadReels(keyword)
+function handleContainerSearch(keyword: string) {
+  loadContainers(keyword)
 }
 
 function handleProductChange(value: string | null, row: DetailRow) {
@@ -187,24 +187,24 @@ function handleProductChange(value: string | null, row: DetailRow) {
   row.productId = value
 }
 
-function handleReelChange(value: string | null, row: DetailRow) {
-  const selected = reelOptions.value.find((option) => option.value === value)
-  row.reelNo = selected?.reelNo ?? ''
-  row.reelId = value
+function handleContainerChange(value: string | null, row: DetailRow) {
+  const selected = containerOptions.value.find((option) => option.value === value)
+  row.containerNo = selected?.containerCode ?? ''
+  row.containerId = value
 }
 
 function handleToWarehouseChange(value: string | null, row: DetailRow) {
   row.toWarehouseId = value
-  const reelNo = row.reelNo?.trim()
-  if (!reelNo || !value) return
+  const containerNo = row.containerNo?.trim()
+  if (!containerNo || !value) return
 
-  const sameReelRows = details.value.filter((d) => (d.reelNo ?? '').trim() === reelNo)
-  const conflict = sameReelRows.find(
+  const sameContainerRows = details.value.filter((d) => (d.containerNo ?? '').trim() === containerNo)
+  const conflict = sameContainerRows.find(
     (d) => d !== row && d.toWarehouseId && String(d.toWarehouseId) !== String(value),
   )
 
   if (conflict) {
-    message.error(`盘号 ${reelNo} 的目标仓库必须一致`)
+    message.error(`盘号 ${containerNo} 的目标仓库必须一致`)
     row.toWarehouseId = conflict.toWarehouseId ?? value
   }
 }
@@ -256,11 +256,11 @@ async function handleSubmit() {
       message.error('明细中在未塆来源工单的')
       return
     }
-    if (!row.reelId) {
+    if (!row.containerId) {
       message.error('明细中在未选择线盘的')
       return
     }
-    if (!row.reelNo?.trim()) {
+    if (!row.containerNo?.trim()) {
       message.error('明细中存在未填写线盘号的数据')
       return
     }
@@ -282,16 +282,16 @@ async function handleSubmit() {
     }
 
     // 同盘号目标仓库一致性校验
-    const reelNo = row.reelNo?.trim()
-    if (reelNo) {
-      const sameReelRows = details.value.filter((d) => (d.reelNo ?? '').trim() === reelNo)
-      if (sameReelRows.length > 1) {
-        const firstWarehouseId = sameReelRows[0]?.toWarehouseId
-        const hasMismatch = sameReelRows.some(
+    const containerNo = row.containerNo?.trim()
+    if (containerNo) {
+      const sameContainerRows = details.value.filter((d) => (d.containerNo ?? '').trim() === containerNo)
+      if (sameContainerRows.length > 1) {
+        const firstWarehouseId = sameContainerRows[0]?.toWarehouseId
+        const hasMismatch = sameContainerRows.some(
           (d) => String(d.toWarehouseId ?? '') !== String(firstWarehouseId ?? ''),
         )
         if (hasMismatch) {
-          message.error(`盘号 ${reelNo} 的目标仓库不一致，请保持一致`)
+          message.error(`盘号 ${containerNo} 的目标仓库不一致，请保持一致`)
           return
         }
       }
@@ -308,8 +308,8 @@ async function handleSubmit() {
       productName: row.productName || undefined,
       unit: row.unit || undefined,
       planQuantity: row.planQuantity ?? undefined,
-      reelId: row.reelId ?? undefined,
-      reelNo: row.reelNo || undefined,
+      containerId: row.containerId ?? undefined,
+      containerNo: row.containerNo || undefined,
       batchNo: row.batchNo?.trim() || undefined,
       sourceWo: row.sourceWo?.trim() || undefined,
       sn: row.sn?.trim() || undefined,
@@ -339,7 +339,7 @@ watch(
       resetForm()
       loadWarehouses()
       loadProducts()
-      loadReels()
+      loadContainers()
     }
   },
 )
@@ -424,14 +424,14 @@ watch(
                 <div class="detail-field">
                   <div class="detail-label required">线盘</div>
                   <n-select
-                    :value="value.reelId"
+                    :value="value.containerId"
                     filterable
                     remote
-                    :loading="reelLoading"
-                    :options="reelOptions"
+                    :loading="containerLoading"
+                    :options="containerOptions"
                     placeholder="指定线盘"
-                    @search="handleReelSearch"
-                    @update:value="(val) => { value.reelId = val; handleReelChange(val, value) }"
+                    @search="handleContainerSearch"
+                    @update:value="(val) => { value.containerId = val; handleContainerChange(val, value) }"
                   />
                 </div>
 

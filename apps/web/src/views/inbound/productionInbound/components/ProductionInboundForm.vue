@@ -20,7 +20,7 @@ import type { DataTableColumns, SelectOption } from 'naive-ui'
 
 import * as productionInboundApi from '../../../../api/inbound/productionInbound'
 import * as productApi from '../../../../api/masterData/product'
-import * as reelApi from '../../../../api/masterData/reel'
+import * as containerApi from '../../../../api/masterData/container'
 import * as locationApi from '../../../../api/masterData/location'
 import * as warehouseApi from '../../../../api/masterData/warehouse'
 import * as organizationUnitsApi from '../../../../api/identity/organizationUnits'
@@ -49,12 +49,12 @@ const warehouses = ref<warehouseApi.WarehouseDto[]>([])
 const departments = ref<Array<{ id: string; displayName: string; code?: string }>>([])
 const productOptions = ref<SelectOption[]>([])
 const productLoading = ref(false)
-const reelOptions = ref<SelectOption[]>([])
-const reelLoading = ref(false)
+const containerOptions = ref<SelectOption[]>([])
+const containerLoading = ref(false)
 const locationOptions = ref<SelectOption[]>([])
 const locationLoading = ref(false)
 const productLookup = ref<Record<string, { id: string; code: string; name: string }>>({})
-const reelLookup = ref<Record<string, { id: string; reelNo: string }>>({})
+const containerLookup = ref<Record<string, { id: string; containerCode: string }>>({})
 const locationLookup = ref<Record<string, { id: string; code: string }>>({})
 
 const contextWarehouseId = computed(() => String(authStore.currentWarehouseId ?? '').trim())
@@ -317,29 +317,29 @@ async function loadProductOptions(keyword?: string) {
   }
 }
 
-async function loadReelOptions(keyword?: string) {
-  reelLoading.value = true
+async function loadContainerOptions(keyword?: string) {
+  containerLoading.value = true
   try {
-    const data = await reelApi.getList({
+    const data = await containerApi.getList({
       maxResultCount: 50,
       skipCount: 0,
       filter: keyword?.trim() || undefined,
     })
     const items = data.items ?? []
-    const lookup: Record<string, { id: string; reelNo: string }> = {}
-    reelOptions.value = items.map((item) => {
+    const lookup: Record<string, { id: string; containerCode: string }> = {}
+    containerOptions.value = items.map((item) => {
       const id = String(item.id ?? '')
       if (id) {
-        lookup[id] = { id, reelNo: item.reelNo ?? '' }
+        lookup[id] = { id, containerCode: item.containerCode ?? '' }
       }
       return {
-        label: item.reelNo || '-',
+        label: item.containerCode || '-',
         value: id,
       }
     }).filter((item) => Boolean(item.value))
-    reelLookup.value = lookup
+    containerLookup.value = lookup
   } finally {
-    reelLoading.value = false
+    containerLoading.value = false
   }
 }
 
@@ -377,8 +377,8 @@ function handleProductSearch(keyword: string) {
   loadProductOptions(keyword)
 }
 
-function handleReelSearch(keyword: string) {
-  loadReelOptions(keyword)
+function handleContainerSearch(keyword: string) {
+  loadContainerOptions(keyword)
 }
 
 function handleLocationSearch(keyword: string) {
@@ -399,8 +399,8 @@ function createEmptyDetailRow(): DetailDraftRow {
     productName: '',
     batchNo: '',
     craftVersion: '',
-    reelId: '',
-    reelCode: '',
+    containerId: '',
+    containerCode: '',
     qty: 0,
     unit: '',
     weight: 0,
@@ -425,13 +425,13 @@ function updateDetailRow(rowKey: string, patch: Partial<DetailDraftRow>) {
   formModel.details = detailRows.value
 }
 
-function syncActualLocationForSameReel(rowKey: string, actualLocationId: string, actualLocationCode: string) {
+function syncActualLocationForSameContainer(rowKey: string, actualLocationId: string, actualLocationCode: string) {
   const sourceRow = detailRows.value.find((item) => item.id === rowKey)
   if (!sourceRow) return
 
-  const sourceReelId = String(sourceRow.reelId ?? '').trim()
-  const sourceReelCode = String(sourceRow.reelCode ?? '').trim()
-  if (!sourceReelId && !sourceReelCode) {
+  const sourceContainerId = String(sourceRow.containerId ?? '').trim()
+  const sourceContainerCode = String(sourceRow.containerCode ?? '').trim()
+  if (!sourceContainerId && !sourceContainerCode) {
     updateDetailRow(rowKey, {
       actualLocationId,
       actualLocationCode,
@@ -440,13 +440,13 @@ function syncActualLocationForSameReel(rowKey: string, actualLocationId: string,
   }
 
   detailRows.value = detailRows.value.map((item) => {
-    const currentReelId = String(item.reelId ?? '').trim()
-    const currentReelCode = String(item.reelCode ?? '').trim()
-    const isSameReel = sourceReelId
-      ? currentReelId === sourceReelId
-      : Boolean(sourceReelCode && currentReelCode === sourceReelCode)
+    const currentContainerId = String(item.containerId ?? '').trim()
+    const currentContainerCode = String(item.containerCode ?? '').trim()
+    const isSameContainer = sourceContainerId
+      ? currentContainerId === sourceContainerId
+      : Boolean(sourceContainerCode && currentContainerCode === sourceContainerCode)
 
-    if (!isSameReel) {
+    if (!isSameContainer) {
       return item
     }
 
@@ -459,17 +459,17 @@ function syncActualLocationForSameReel(rowKey: string, actualLocationId: string,
   formModel.details = detailRows.value
 }
 
-function validateSameReelLocationConsistency() {
-  const locationByReel = new Map<string, string>()
+function validateSameContainerLocationConsistency() {
+  const locationByContainer = new Map<string, string>()
   for (const row of detailRows.value) {
-    const reelKey = String(row.reelId ?? '').trim() || String(row.reelCode ?? '').trim()
-    if (!reelKey) continue
+    const containerKey = String(row.containerId ?? '').trim() || String(row.containerCode ?? '').trim()
+    if (!containerKey) continue
     const locationKey = String(row.actualLocationId ?? '').trim() || String(row.actualLocationCode ?? '').trim()
-    if (!locationByReel.has(reelKey)) {
-      locationByReel.set(reelKey, locationKey)
+    if (!locationByContainer.has(containerKey)) {
+      locationByContainer.set(containerKey, locationKey)
       continue
     }
-    if (locationByReel.get(reelKey) !== locationKey) {
+    if (locationByContainer.get(containerKey) !== locationKey) {
       message.warning('同一盘号的实际库位编码必须一致，请检查明细')
       return false
     }
@@ -494,23 +494,23 @@ function handleDeleteSelectedDetails() {
   message.success('已删除选中明细')
 }
 
-function inheritLocationFromSameReel(rowId: string) {
+function inheritLocationFromSameContainer(rowId: string) {
   const currentRow = detailRows.value.find((item) => item.id === rowId)
   if (!currentRow) return
-  const reelId = String(currentRow.reelId ?? '').trim()
-  const reelCode = String(currentRow.reelCode ?? '').trim()
-  if (!reelId && !reelCode) return
+  const containerId = String(currentRow.containerId ?? '').trim()
+  const containerCode = String(currentRow.containerCode ?? '').trim()
+  if (!containerId && !containerCode) return
 
   const peer = detailRows.value.find((item) => {
     if (item.id === rowId) return false
-    const peerReelId = String(item.reelId ?? '').trim()
-    const peerReelCode = String(item.reelCode ?? '').trim()
-    if (reelId) return peerReelId === reelId
-    return Boolean(reelCode && peerReelCode === reelCode)
+    const peerContainerId = String(item.containerId ?? '').trim()
+    const peerContainerCode = String(item.containerCode ?? '').trim()
+    if (containerId) return peerContainerId === containerId
+    return Boolean(containerCode && peerContainerCode === containerCode)
   })
   if (!peer) return
 
-  syncActualLocationForSameReel(
+  syncActualLocationForSameContainer(
     rowId,
     String(peer.actualLocationId ?? '').trim(),
     String(peer.actualLocationCode ?? '').trim(),
@@ -535,8 +535,8 @@ const {
     'productName',
     'batchNo',
     'craftVersion',
-    'reelId',
-    'reelCode',
+    'containerId',
+    'containerCode',
     'qty',
     'unit',
     'weight',
@@ -554,8 +554,8 @@ const {
     if (key === 'productName') return '物料名称'
     if (key === 'batchNo') return '批次号'
     if (key === 'craftVersion') return '工艺版本'
-    if (key === 'reelId') return '盘ID'
-    if (key === 'reelCode') return '盘号'
+    if (key === 'containerId') return '盘ID'
+    if (key === 'containerCode') return '盘号'
     if (key === 'qty') return '数量'
     if (key === 'unit') return '单位'
     if (key === 'weight') return '重量'
@@ -630,37 +630,37 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
       onUpdateValue: (value) => updateDetailRow(row.id, { craftVersion: value }),
     }),
   },
-  reelId: {
-    title: createDraggableTitle('reelId', '盘ID'),
-    key: 'reelId',
+  containerId: {
+    title: createDraggableTitle('containerId', '盘ID'),
+    key: 'containerId',
     minWidth: 220,
     render: (row) => h(NInput, {
-      value: row.reelId,
+      value: row.containerId,
       placeholder: '请输入盘ID',
-      onUpdateValue: (value) => updateDetailRow(row.id, { reelId: value }),
+      onUpdateValue: (value) => updateDetailRow(row.id, { containerId: value }),
     }),
   },
-  reelCode: {
-    title: createDraggableTitle('reelCode', '盘号'),
-    key: 'reelCode',
+  containerCode: {
+    title: createDraggableTitle('containerCode', '盘号'),
+    key: 'containerCode',
     minWidth: 180,
     render: (row) => h(NSelect, {
-      value: row.reelId || null,
-      options: reelOptions.value,
+      value: row.containerId || null,
+      options: containerOptions.value,
       filterable: true,
       remote: true,
       clearable: true,
-      loading: reelLoading.value,
+      loading: containerLoading.value,
       placeholder: '请选择盘号',
-      onSearch: handleReelSearch,
+      onSearch: handleContainerSearch,
       onUpdateValue: (value: string | null) => {
         const id = value ? String(value) : ''
-        const selected = id ? reelLookup.value[id] : undefined
+        const selected = id ? containerLookup.value[id] : undefined
         updateDetailRow(row.id, {
-          reelId: id,
-          reelCode: selected?.reelNo ?? '',
+          containerId: id,
+          containerCode: selected?.containerCode ?? '',
         })
-        inheritLocationFromSameReel(row.id)
+        inheritLocationFromSameContainer(row.id)
       },
     }),
   },
@@ -748,7 +748,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     render: (row) => h(NInput, {
       value: row.actualLocationId,
       placeholder: '请输入实入库位ID',
-      onUpdateValue: (value) => syncActualLocationForSameReel(row.id, value || '', row.actualLocationCode || ''),
+      onUpdateValue: (value) => syncActualLocationForSameContainer(row.id, value || '', row.actualLocationCode || ''),
     }),
   },
   actualLocationCode: {
@@ -768,7 +768,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
       onUpdateValue: (value: string | null) => {
         const id = value ? String(value) : ''
         const selected = id ? locationLookup.value[id] : undefined
-        syncActualLocationForSameReel(row.id, id || '', selected?.code ?? '')
+        syncActualLocationForSameContainer(row.id, id || '', selected?.code ?? '')
       },
     }),
   },
@@ -868,7 +868,7 @@ async function handleSave() {
     return
   }
 
-  if (!validateSameReelLocationConsistency()) {
+  if (!validateSameContainerLocationConsistency()) {
     return
   }
 
@@ -885,7 +885,7 @@ async function handleSave() {
       if (!isValidGuid(productionInboundId)) return true
     }
     return !isValidGuid(item.productId)
-      || !isValidGuid(item.reelId)
+      || !isValidGuid(item.containerId)
       || !isValidGuid(item.actualLocationId)
   })
   if (invalidDetailIndex >= 0) {
@@ -914,8 +914,8 @@ async function handleSave() {
           productName: safeTrim(item.productName),
           batchNo: safeTrim(item.batchNo),
           craftVersion: safeTrim(item.craftVersion),
-          reelId: toRequiredGuid(item.reelId),
-          reelCode: toRequiredGuid(item.reelCode, item.reelId),
+          containerId: toRequiredGuid(item.containerId),
+          containerCode: toRequiredGuid(item.containerCode, item.containerId),
           qty: Number(item.qty ?? 0),
           unit: safeTrim(item.unit),
           weight: Number(item.weight ?? 0),
@@ -941,7 +941,7 @@ async function handleSave() {
         productId: toRequiredGuid(item.productId),
         batchNo: safeTrim(item.batchNo),
         craftVersion: safeTrim(item.craftVersion),
-        reelId: toRequiredGuid(item.reelId),
+        containerId: toRequiredGuid(item.containerId),
         qty: Number(item.qty ?? 0),
         unit: safeTrim(item.unit),
         weight: Number(item.weight ?? 0),
@@ -977,7 +977,7 @@ async function handleSave() {
 onMounted(() => {
   loadColumnSettings()
   loadProductOptions()
-  loadReelOptions()
+  loadContainerOptions()
   loadHeaderOptions().then(() => {
     if (isEditMode.value) {
       loadDetail()

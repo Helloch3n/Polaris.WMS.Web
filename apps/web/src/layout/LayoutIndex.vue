@@ -509,11 +509,13 @@ onMounted(() => {
 
       <!-- ========== 主内容 ========== -->
       <n-layout-content class="main">
-        <router-view v-slot="{ Component }">
-          <keep-alive :include="cachedViews">
-            <component :is="Component" :key="viewKey" />
-          </keep-alive>
-        </router-view>
+        <div class="main-view">
+          <router-view v-slot="{ Component }">
+            <keep-alive :include="cachedViews">
+              <component :is="Component" :key="viewKey" />
+            </keep-alive>
+          </router-view>
+        </div>
       </n-layout-content>
     </n-layout>
   </n-layout>
@@ -943,9 +945,16 @@ onMounted(() => {
    主内容区
    ============================ */
 .main {
-  padding: 20px 24px;
-  min-height: calc(100vh - 48px);
-  overflow: auto;
+  padding: 12px 14px;
+  height: calc(100vh - 48px);
+  min-height: 0;
+  overflow: hidden;
   background: #f5f7fb;
+}
+
+.main-view {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
 }
 </style>

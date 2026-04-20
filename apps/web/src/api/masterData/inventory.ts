@@ -25,14 +25,15 @@ export type InventoryStatus = (typeof InventoryStatus)[keyof typeof InventorySta
 export const InventoryType = {
   SemiFinished: 0,
   Finished: 1,
-  ProcessReel: 2,
+  ProcessContainer: 2,
 } as const
 
 export type InventoryType = (typeof InventoryType)[keyof typeof InventoryType]
 
 export interface Inventory {
   id: string
-  reelId: string
+  containerId: string
+  reelId?: string
   /** 服务端新增：序号 */
   sequence?: number
   productId: string
@@ -52,7 +53,9 @@ export interface Inventory {
   craftVersion?: string | null
   fifoDate: string
   layerIndex: number
-  reelNo: string
+  containerNo: string
+  containerCode?: string
+  reelNo?: string
   locationCode: string
   productName: string
   warehouseName?: string
@@ -62,7 +65,7 @@ export interface Inventory {
 }
 
 export interface ProductionReceiveInput {
-  reelId: string
+  containerId: string
   productId: string
   quantity: number
   weight?: number
@@ -75,7 +78,8 @@ export interface GetInventoryListParams extends PagedAndSortedResultRequestDto {
   maxResultCount?: number
   skipCount?: number
   sorting?: string  
-  reelNo?: string
+  containerNo?: string
+  containerCode?: string
   productId?: string
   relatedOrderNo?: string
   warehouseCode?: string
@@ -84,9 +88,50 @@ export interface GetInventoryListParams extends PagedAndSortedResultRequestDto {
 
 const baseUrl = '/api/app/inventory'
 
+type InventoryWithLegacyFields = Inventory & {
+  ContainerNo?: string
+  ContainerCode?: string
+  reelNo?: string
+  ReelNo?: string
+}
+
+function toContainerNo(item: InventoryWithLegacyFields): string {
+  const value = item.containerNo ?? item.ContainerNo ?? item.containerCode ?? item.ContainerCode ?? item.reelNo ?? item.ReelNo
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return ''
+}
+
 export async function getList(params: GetInventoryListParams) {
-  const res = await request.get<PagedResultDto<Inventory>>(baseUrl, { params })
-  return res.data
+  const normalizedParams: GetInventoryListParams = {
+    maxResultCount: params.maxResultCount,
+    skipCount: params.skipCount,
+    sorting: params.sorting,
+    productId: params.productId,
+    relatedOrderNo: params.relatedOrderNo,
+    warehouseCode: params.warehouseCode,
+    zoneCode: params.zoneCode,
+  }
+  const containerKeyword = params.containerCode ?? params.containerNo
+  if (containerKeyword) {
+    normalizedParams.containerCode = containerKeyword
+    normalizedParams.containerNo = containerKeyword
+  }
+
+  const res = await request.get<PagedResultDto<Inventory>>(baseUrl, { params: normalizedParams })
+  const data = res.data
+  return {
+    ...data,
+    items: (data.items ?? []).map((item) => {
+      const normalizedContainerNo = toContainerNo(item as InventoryWithLegacyFields)
+      return {
+        ...item,
+        containerNo: normalizedContainerNo,
+        containerCode: normalizedContainerNo,
+        reelNo: normalizedContainerNo,
+      }
+    }),
+  }
 }
 
 /**

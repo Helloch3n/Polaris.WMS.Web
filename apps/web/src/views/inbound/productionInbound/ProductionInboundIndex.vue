@@ -343,6 +343,7 @@ onMounted(() => {
             @update:value="(value) => { query.status = value }"
           />
         </n-form-item>
+        <n-form-item class="crud-page-spacer" />
         <n-form-item>
           <n-button type="primary" :loading="loading" @click="handleQuery">{{ t('common.query') }}</n-button>
         </n-form-item>
@@ -403,15 +404,3 @@ onMounted(() => {
     </template>
   </BaseCrudPage>
 </template>
-
-<style scoped>
-:deep(.production-inbound-search-form.crud-search-form) {
-  flex-wrap: wrap;
-  overflow: visible;
-  row-gap: 8px;
-}
-
-:deep(.production-inbound-search-form .n-form-item) {
-  margin-bottom: 0;
-}
-</style>

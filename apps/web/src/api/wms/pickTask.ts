@@ -5,7 +5,7 @@ export interface PickTaskDto {
   outboundOrderId: string
   outboundOrderItemId?: string
   inventoryId?: string
-  reelNo: string
+  containerNo: string
   fromLocationCode: string
   toLocationCode: string
   status: number | string
@@ -20,7 +20,7 @@ export interface PickTaskDto {
 export interface GetPickTaskListParams {
   outboundOrderId?: string
   status?: string
-  reelNo?: string
+  containerNo?: string
   skipCount?: number
   maxResultCount?: number
 }

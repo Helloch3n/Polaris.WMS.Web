@@ -51,7 +51,7 @@ const navigateTo = (path: string) => {
           <div class="text-sm font-extrabold text-slate-700 tracking-wide">业务大厅 Operations</div>
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center active:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer" @click="navigateTo('/inventory')">
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center active:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer" @click="navigateTo('/inbound/purchase-receipt/create')">
             <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 mb-3 shadow-inner"><van-icon name="logistics" size="28" /></div>
             <span class="text-slate-800 font-extrabold text-[15px]">入库接收</span>
             <span class="text-slate-400 text-[11px] mt-1 font-bold tracking-wider uppercase">Receipt</span>

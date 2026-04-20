@@ -21,4 +21,7 @@ npm run dev
 cd apps/pda
 npm install
 npm run dev
+
+npm run build
+npx cap sync
 ```

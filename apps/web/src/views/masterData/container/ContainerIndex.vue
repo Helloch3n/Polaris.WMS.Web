@@ -16,34 +16,34 @@ import type { DataTableColumns } from 'naive-ui'
 import { withResizable } from '../../../utils/table'
 import {
   getList,
-  delete as deleteReel,
-  ReelType,
-  type GetReelListParams,
-  type ReelDto,
-} from '../../../api/masterData/reel'
+  delete as deleteContainer,
+  ContainerType,
+  type GetContainerListParams,
+  type ContainerDto,
+} from '../../../api/masterData/container'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { compareSortValue } from '../../../utils/tableColumn'
-import ReelModal from './components/ReelModal.vue'
+import ContainerModal from './components/ContainerModal.vue'
 
-type ReelRow = ReelDto
+type ContainerRow = ContainerDto
 
-type ReelDialogExpose = {
-  open: (row?: ReelRow) => void
+type ContainerDialogExpose = {
+  open: (row?: ContainerRow) => void
 }
 
 const loading = ref(false)
-const rows = ref<ReelRow[]>([])
+const rows = ref<ContainerRow[]>([])
 const message = useMessage()
 const dialog = useDialog()
-const dialogRef = ref<ReelDialogExpose | null>(null)
+const dialogRef = ref<ContainerDialogExpose | null>(null)
 
 const permissionCodes = {
-  create: 'MasterData.Reel.Create',
-  update: 'MasterData.Reel.Update',
-  delete: 'MasterData.Reel.Delete',
+  create: 'MasterData.Container.Create',
+  update: 'MasterData.Container.Update',
+  delete: 'MasterData.Container.Delete',
 } as const
 
 function hasPermission(code: string) {
@@ -62,12 +62,12 @@ const canCreate = computed(() => hasPermission(permissionCodes.create))
 const canUpdate = computed(() => hasPermission(permissionCodes.update))
 const canDelete = computed(() => hasPermission(permissionCodes.delete))
 
-const COLUMN_STORAGE_KEY = 'reel-column-settings-v5'
+const COLUMN_STORAGE_KEY = 'container-column-settings-v6'
 const preferredColumnOrder = [
-  'reelNo',
+  'containerCode',
   'name',
   'size',
-  'reelType',
+  'containerType',
   'currentWarehouseCode',
   'currentZoneCode',
   'currentLocationCode',
@@ -77,12 +77,11 @@ const preferredColumnOrder = [
 ]
 const columnTitleMap: Record<string, string> = {
   id: 'ID',
-  reelNo: '盘号',
-  reelCode: '盘号编码',
+  containerCode: '容器编号',
   name: '名称',
   code: '编码',
   size: '规格',
-  reelType: '盘具类型',
+  containerType: '盘具类型',
   currentWarehouseCode: '当前仓库',
   currentWarehouseId: '当前仓库ID',
   currentZoneCode: '当前库区',
@@ -110,7 +109,7 @@ const columnTitleMap: Record<string, string> = {
 }
 
 const columnTokenTitleMap: Record<string, string> = {
-  reel: '线盘',
+  container: '线盘',
   no: '编号',
   code: '编码',
   name: '名称',
@@ -205,7 +204,7 @@ const {
   defaultVisible: (key) => !isIdLikeKey(key),
 })
 
-function collectDynamicColumnKeys(data: ReelRow[]) {
+function collectDynamicColumnKeys(data: ContainerRow[]) {
   const keySet = new Set<string>(preferredColumnOrder)
   for (const row of data) {
     const rowObj = row as unknown as Record<string, unknown>
@@ -218,7 +217,7 @@ function collectDynamicColumnKeys(data: ReelRow[]) {
   return [...known, ...others]
 }
 
-function syncColumnSettingsByData(data: ReelRow[]) {
+function syncColumnSettingsByData(data: ContainerRow[]) {
   syncColumnSettingsByKeys(collectDynamicColumnKeys(data))
 }
 
@@ -229,14 +228,14 @@ const query = reactive({
   total: 0,
 })
 
-const listParams = computed<GetReelListParams>(() => ({
+const listParams = computed<GetContainerListParams>(() => ({
   maxResultCount: query.pageSize,
   skipCount: (query.page - 1) * query.pageSize,
   containerCode: query.containerCode || undefined,
 }))
 
-function getRowKey(row: ReelRow) {
-  return row.id ?? row.reelNo
+function getRowKey(row: ContainerRow) {
+  return row.id ?? row.containerCode
 }
 
 const {
@@ -279,7 +278,7 @@ function handleCreate() {
   dialogRef.value?.open()
 }
 
-function handleEdit(row: ReelRow) {
+function handleEdit(row: ContainerRow) {
   dialogRef.value?.open(row)
 }
 
@@ -299,7 +298,7 @@ function handleToolbarEdit() {
 async function deleteByIds(ids: string[]) {
   loading.value = true
   try {
-    await Promise.all(ids.map((id) => deleteReel(id)))
+    await Promise.all(ids.map((id) => deleteContainer(id)))
     checkedRowKeys.value = []
     message.success('删除成功')
     await loadData()
@@ -350,17 +349,17 @@ function getStatusTagType(status: string) {
   return 'default'
 }
 
-function resolveReelType(raw: unknown) {
-  if (raw === ReelType.Turnover || raw === 'Turnover' || raw === '0' || raw === 0) return '周转盘'
-  if (raw === ReelType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return '成品盘'
-  if (raw === ReelType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return '虚拟盘'
+function resolveContainerType(raw: unknown) {
+  if (raw === ContainerType.Turnover || raw === 'Turnover' || raw === '0' || raw === 0) return '周转盘'
+  if (raw === ContainerType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return '成品盘'
+  if (raw === ContainerType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return '虚拟盘'
   return '-'
 }
 
-function getReelTypeTagType(reelType: string) {
-  if (reelType === '周转盘') return 'info'
-  if (reelType === '成品盘') return 'success'
-  if (reelType === '虚拟盘') return 'warning'
+function getContainerTypeTagType(containerType: string) {
+  if (containerType === '周转盘') return 'info'
+  if (containerType === '成品盘') return 'success'
+  if (containerType === '虚拟盘') return 'warning'
   return 'default'
 }
 
@@ -410,20 +409,32 @@ function formatCellValue(value: unknown, key?: string) {
   return String(value)
 }
 
+function resolveContainerCode(row: ContainerRow): string {
+  const fromCode = row.containerCode
+  if (typeof fromCode === 'string' && fromCode.trim()) {
+    return fromCode
+  }
+  const fromLegacy = (row as unknown as Record<string, unknown>).containerNo
+  if (typeof fromLegacy === 'string' && fromLegacy.trim()) {
+    return fromLegacy
+  }
+  return '-'
+}
+
 function buildHeaderTitle(key: string) {
   return createDraggableTitle(key, resolveColumnTitle(key))
 }
 
-function buildColumnByKey(key: string): DataTableColumns<ReelRow>[number] {
-  if (key === 'reelNo') {
+function buildColumnByKey(key: string): DataTableColumns<ContainerRow>[number] {
+  if (key === 'containerCode') {
     return {
-      title: buildHeaderTitle('reelNo'),
-      key: 'reelNo',
+      title: buildHeaderTitle('containerCode'),
+      key: 'containerCode',
       minWidth: 140,
       align: 'center',
       titleAlign: 'center',
-      sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo),
-      render: (row) => row.reelNo ?? '-',
+      sorter: (a, b) => compareSortValue(resolveContainerCode(a), resolveContainerCode(b)),
+      render: (row) => resolveContainerCode(row),
     }
   }
   if (key === 'name') {
@@ -448,20 +459,20 @@ function buildColumnByKey(key: string): DataTableColumns<ReelRow>[number] {
       render: (row) => row.size ?? '-',
     }
   }
-  if (key === 'reelType') {
+  if (key === 'containerType') {
     return {
-      title: buildHeaderTitle('reelType'),
-      key: 'reelType',
+      title: buildHeaderTitle('containerType'),
+      key: 'containerType',
       width: 120,
       align: 'center',
       titleAlign: 'center',
-      sorter: (a, b) => compareSortValue(resolveReelType(a.reelType), resolveReelType(b.reelType)),
+      sorter: (a, b) => compareSortValue(resolveContainerType(a.containerType), resolveContainerType(b.containerType)),
       render: (row) => {
-        const reelType = resolveReelType(row.reelType)
+        const containerType = resolveContainerType(row.containerType)
         return h(
           NTag,
-          { type: getReelTypeTagType(reelType), size: 'small' },
-          { default: () => reelType },
+          { type: getContainerTypeTagType(containerType), size: 'small' },
+          { default: () => containerType },
         )
       },
     }
@@ -561,7 +572,7 @@ function buildColumnByKey(key: string): DataTableColumns<ReelRow>[number] {
   }
 }
 
-const columns = computed<DataTableColumns<ReelRow>>(() => withResizable([
+const columns = computed<DataTableColumns<ContainerRow>>(() => withResizable([
   {
     type: 'selection',
     fixed: 'left',
@@ -595,7 +606,7 @@ onMounted(() => {
         <n-form-item>
           <n-input
             :value="query.containerCode"
-            placeholder="请输入盘号"
+            placeholder="请输入容器编号"
             clearable
             style="max-width: 260px"
             @update:value="(value) => { query.containerCode = value }"
@@ -643,7 +654,7 @@ onMounted(() => {
         :checked-row-keys="checkedRowKeys"
         @update:checked-row-keys="handleCheckedRowKeysChange"
       />
-      <ReelModal ref="dialogRef" @success="loadData" />
+      <ContainerModal ref="dialogRef" @success="loadData" />
     </template>
 
     <template #pager-left>

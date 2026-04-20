@@ -21,12 +21,38 @@ export interface AuditedEntityDto {
   lastModifierId?: string
 }
 
+export const PurchaseOrderStatus = {
+  Open: 10,
+  PartialReceived: 20,
+  Completed: 30,
+  Closed: 40,
+} as const
+
+export type PurchaseOrderStatus = (typeof PurchaseOrderStatus)[keyof typeof PurchaseOrderStatus] | string
+
+export interface PurchaseOrderDetailDto {
+  id: string
+  purchaseOrderId: string
+  lineNo: number
+  productId: string
+  productCode?: string
+  productName?: string
+  uom?: string
+  expectedQty?: number
+  receivedQty?: number
+  deliveredQty?: number
+  isQualityCheckRequired?: boolean
+}
+
 export interface PurchaseOrderDto extends AuditedEntityDto {
   poNo: string
+  supplierId?: string
   supplierCode?: string
   supplierName?: string
+  expectedDeliveryDate?: string
   orderDate?: string
-  status?: number
+  status?: PurchaseOrderStatus
+  details?: PurchaseOrderDetailDto[]
 }
 
 export interface PurchaseOrderSearchDto extends PagedAndSortedResultRequestDto {

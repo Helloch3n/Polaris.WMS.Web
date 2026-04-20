@@ -19,7 +19,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-gray-50 overflow-hidden">
+  <div class="flex flex-col h-screen bg-[var(--pda-bg)] overflow-hidden">
     <div class="flex-1 overflow-y-auto relative">
       <router-view v-slot="{ Component }">
         <transition name="van-fade" mode="out-in">
@@ -43,10 +43,12 @@ watch(
 
 <style scoped>
 .custom-tabbar {
-  --van-tabbar-background: #0f172a;
-  --van-tabbar-item-text-color: #9ca3af;
-  --van-tabbar-item-active-color: #ffffff;
+  --van-tabbar-background: #ffffff;
+  --van-tabbar-item-text-color: #64748b;
+  --van-tabbar-item-active-color: #4f46e5;
   --van-tabbar-item-active-background: transparent;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.06);
   padding-bottom: env(safe-area-inset-bottom, 8px);
 }
 </style>

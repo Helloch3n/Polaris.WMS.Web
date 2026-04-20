@@ -36,8 +36,8 @@ export interface TransferListDto {
 
 export interface TransferDetailDto {
   id: string
-  reelId: string
-  reelCode: string
+  containerId: string
+  containerCode: string
   inventoryId: string
   productId: string
   productCode: string
@@ -66,7 +66,7 @@ export interface TransferDto extends TransferListDto {
 }
 
 export interface CreateTransferDetailDto {
-  reelId: string
+  containerId: string
   inventoryId: string
   productId: string
   qty: number

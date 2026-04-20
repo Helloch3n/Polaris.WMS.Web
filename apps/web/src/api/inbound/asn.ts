@@ -19,12 +19,39 @@ export interface AuditedEntityDto {
   lastModifierId?: string
 }
 
+export const AsnStatus = {
+  Pending: 10,
+  Receiving: 20,
+  Completed: 30,
+} as const
+
+export type AsnStatus = (typeof AsnStatus)[keyof typeof AsnStatus] | string
+
+export interface AsnDetailDto {
+  id: string
+  asnId: string
+  scmAsnRowNo?: string
+  sourcePoNo?: string
+  sourcePoLineNo?: number
+  productId: string
+  productCode?: string
+  productName?: string
+  supplierBatchNo?: string
+  licensePlate?: string
+  uom?: string
+  expectedQty?: number
+  receivedQty?: number
+}
+
 export interface AsnDto extends AuditedEntityDto {
   asnNo: string
+  supplierId?: string
   supplierCode?: string
   supplierName?: string
-  status?: number
+  status?: AsnStatus
+  expectedArrivalTime?: string
   licensePlate?: string
+  details?: AsnDetailDto[]
 }
 
 export interface AsnSearchDto extends PagedAndSortedResultRequestDto {

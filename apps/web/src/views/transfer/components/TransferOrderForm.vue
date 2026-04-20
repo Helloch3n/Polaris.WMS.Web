@@ -24,7 +24,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 
 import * as transferApi from '../../../api/transfer/transfer'
-import * as reelApi from '../../../api/masterData/reel'
+import * as containerApi from '../../../api/masterData/container'
 import * as locationApi from '../../../api/masterData/location'
 import * as warehouseApi from '../../../api/masterData/warehouse'
 import * as usersApi from '../../../api/identity/users'
@@ -57,8 +57,8 @@ const locationVisible = ref(false)
 const locationLoading = ref(false)
 const warehouseLoading = ref(false)
 const departmentLoading = ref(false)
-const checkedMovableReelIds = ref<string[]>([])
-const movableReels = ref<reelApi.MovableReelDto[]>([])
+const checkedMovableContainerIds = ref<string[]>([])
+const movableContainers = ref<containerApi.MovableContainerDto[]>([])
 const warehouses = ref<warehouseApi.WarehouseDto[]>([])
 const allowedSourceWarehouseIds = ref<string[]>([])
 const departments = ref<Array<{ id: string; displayName: string; code?: string }>>([])
@@ -141,7 +141,7 @@ function getStatusTagType(status: transferApi.TransferOrderStatus) {
 }
 
 function getDetailIdentity(row: transferApi.TransferDetailDto) {
-  return `${row.reelId || ''}::${row.inventoryId || ''}`
+  return `${row.containerId || ''}::${row.inventoryId || ''}`
 }
 
 const detailRows = computed<transferApi.TransferDetailDto[]>(() => detailDraftRows.value)
@@ -213,9 +213,9 @@ const selectedTargetWarehouseCode = computed(() => {
 
 type MovableFlatRow = {
   id: string
-  reelId: string
-  reelNo: string
-  reelType: string
+  containerId: string
+  containerNo: string
+  containerType: string
   currentLocationCode: string
   productCode: string
   productName: string
@@ -234,7 +234,7 @@ const {
 } = useColumnConfig({
   storageKey: 'transfer-order-detail-column-settings-v1',
   preferredKeys: [
-    'reelCode',
+    'containerCode',
     'productCode',
     'productName',
     'craftVersion',
@@ -246,7 +246,7 @@ const {
     'isCompleted',
   ],
   resolveTitle: (key) => {
-    if (key === 'reelCode') return '盘号'
+    if (key === 'containerCode') return '盘号'
     if (key === 'productCode') return '物料编码'
     if (key === 'productName') return '物料名称'
     if (key === 'craftVersion') return '工艺版本'
@@ -261,12 +261,12 @@ const {
 })
 
 const detailColumnMap: Record<string, DataTableColumns<transferApi.TransferDetailDto>[number]> = {
-  reelCode: {
-    title: createDraggableTitle('reelCode', '盘号'),
-    key: 'reelCode',
+  containerCode: {
+    title: createDraggableTitle('containerCode', '盘号'),
+    key: 'containerCode',
     minWidth: 160,
-    sorter: (a, b) => compareSortValue(a.reelCode, b.reelCode),
-    render: (row) => row.reelCode || '-',
+    sorter: (a, b) => compareSortValue(a.containerCode, b.containerCode),
+    render: (row) => row.containerCode || '-',
   },
   productCode: {
     title: createDraggableTitle('productCode', '物料编码'),
@@ -491,24 +491,24 @@ function confirmSourceWarehouseChange(): Promise<boolean> {
   })
 }
 
-function resolveMovableReelType(raw: unknown) {
-  if (raw === reelApi.ReelType.Turnover || raw === 'Turnover' || raw === '0' || raw === 0) return '周转盘'
-  if (raw === reelApi.ReelType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return '成品盘'
-  if (raw === reelApi.ReelType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return '虚拟盘'
+function resolveMovableContainerType(raw: unknown) {
+  if (raw === containerApi.ContainerType.Turnover || raw === 'Turnover' || raw === '0' || raw === 0) return '周转盘'
+  if (raw === containerApi.ContainerType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return '成品盘'
+  if (raw === containerApi.ContainerType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return '虚拟盘'
   return '-'
 }
 
 const movableRows = computed<MovableFlatRow[]>(() => {
   const keyword = movableQuery.keyword.trim().toLowerCase()
-  const flattened = movableReels.value.flatMap<MovableFlatRow>((reel) => {
-    const inventories = reel.inventories ?? []
+  const flattened = movableContainers.value.flatMap<MovableFlatRow>((container) => {
+    const inventories = container.inventories ?? []
     if (inventories.length === 0) {
       return [{
-        id: `${reel.reelId}-empty`,
-        reelId: reel.reelId,
-        reelNo: reel.reelNo,
-        reelType: resolveMovableReelType(reel.reelType),
-        currentLocationCode: reel.currentLocationCode,
+        id: `${container.containerId}-empty`,
+        containerId: container.containerId,
+        containerNo: container.containerNo,
+        containerType: resolveMovableContainerType(container.containerType),
+        currentLocationCode: container.currentLocationCode,
         productCode: '',
         productName: '',
         craftVersion: '',
@@ -519,11 +519,11 @@ const movableRows = computed<MovableFlatRow[]>(() => {
     }
 
     return inventories.map((inventory) => ({
-      id: `${reel.reelId}-${inventory.inventoryId}`,
-      reelId: reel.reelId,
-      reelNo: reel.reelNo,
-      reelType: resolveMovableReelType(reel.reelType),
-      currentLocationCode: reel.currentLocationCode,
+      id: `${container.containerId}-${inventory.inventoryId}`,
+      containerId: container.containerId,
+      containerNo: container.containerNo,
+      containerType: resolveMovableContainerType(container.containerType),
+      currentLocationCode: container.currentLocationCode,
       productCode: inventory.productCode,
       productName: inventory.productName,
       craftVersion: inventory.craftVersion ?? '',
@@ -536,8 +536,8 @@ const movableRows = computed<MovableFlatRow[]>(() => {
   return flattened.filter((row) => {
     if (!keyword) return true
     return [
-      row.reelNo,
-      row.reelType,
+      row.containerNo,
+      row.containerType,
       row.currentLocationCode,
       row.productCode,
       row.productName,
@@ -547,12 +547,12 @@ const movableRows = computed<MovableFlatRow[]>(() => {
   })
 })
 
-const reelGroupMeta = computed(() => {
+const containerGroupMeta = computed(() => {
   const map = new Map<string, { start: number; rowSpan: number }>()
   movableRows.value.forEach((row, index) => {
-    const current = map.get(row.reelId)
+    const current = map.get(row.containerId)
     if (!current) {
-      map.set(row.reelId, { start: index, rowSpan: 1 })
+      map.set(row.containerId, { start: index, rowSpan: 1 })
     } else {
       current.rowSpan += 1
     }
@@ -560,28 +560,28 @@ const reelGroupMeta = computed(() => {
   return map
 })
 
-const selectedReelRows = computed<reelApi.MovableReelDto[]>(() => {
-  const keySet = new Set(checkedMovableReelIds.value)
-  return movableReels.value.filter((item) => keySet.has(item.reelId))
+const selectedContainerRows = computed<containerApi.MovableContainerDto[]>(() => {
+  const keySet = new Set(checkedMovableContainerIds.value)
+  return movableContainers.value.filter((item) => keySet.has(item.containerId))
 })
 
 function isGroupStart(row: MovableFlatRow, rowIndex: number) {
-  const group = reelGroupMeta.value.get(row.reelId)
+  const group = containerGroupMeta.value.get(row.containerId)
   return Boolean(group && group.start === rowIndex)
 }
 
-function getReelRowSpan(reelId: string) {
-  const group = reelGroupMeta.value.get(reelId)
+function getContainerRowSpan(containerId: string) {
+  const group = containerGroupMeta.value.get(containerId)
   return group?.rowSpan ?? 1
 }
 
-function reelColRowSpan(row: MovableFlatRow, rowIndex: number) {
-  if (isGroupStart(row, rowIndex)) return getReelRowSpan(row.reelId)
+function containerColRowSpan(row: MovableFlatRow, rowIndex: number) {
+  if (isGroupStart(row, rowIndex)) return getContainerRowSpan(row.containerId)
   return 0
 }
 
 function isGroupEnd(row: MovableFlatRow, rowIndex: number) {
-  const group = reelGroupMeta.value.get(row.reelId)
+  const group = containerGroupMeta.value.get(row.containerId)
   if (!group) return false
   return rowIndex === group.start + group.rowSpan - 1
 }
@@ -594,14 +594,14 @@ function getMovableRowClass(row: MovableFlatRow, rowIndex: number) {
   return classes.join(' ')
 }
 
-function toggleReelChecked(reelId: string, checked: boolean) {
+function toggleContainerChecked(containerId: string, checked: boolean) {
   if (checked) {
-    if (!checkedMovableReelIds.value.includes(reelId)) {
-      checkedMovableReelIds.value = [...checkedMovableReelIds.value, reelId]
+    if (!checkedMovableContainerIds.value.includes(containerId)) {
+      checkedMovableContainerIds.value = [...checkedMovableContainerIds.value, containerId]
     }
     return
   }
-  checkedMovableReelIds.value = checkedMovableReelIds.value.filter((id) => id !== reelId)
+  checkedMovableContainerIds.value = checkedMovableContainerIds.value.filter((id) => id !== containerId)
 }
 
 const movableColumns = computed<DataTableColumns<MovableFlatRow>>(() => [
@@ -610,32 +610,32 @@ const movableColumns = computed<DataTableColumns<MovableFlatRow>>(() => [
     key: 'checkbox',
     width: 50,
     align: 'center',
-    rowSpan: reelColRowSpan,
+    rowSpan: containerColRowSpan,
     render: (row) =>
       h(NCheckbox, {
-        checked: checkedMovableReelIds.value.includes(row.reelId),
-        'onUpdate:checked': (value: boolean) => toggleReelChecked(row.reelId, value),
+        checked: checkedMovableContainerIds.value.includes(row.containerId),
+        'onUpdate:checked': (value: boolean) => toggleContainerChecked(row.containerId, value),
       }),
   },
   {
     title: '盘号',
-    key: 'reelNo',
+    key: 'containerNo',
     minWidth: 140,
-    rowSpan: reelColRowSpan,
-    render: (row) => row.reelNo || '-',
+    rowSpan: containerColRowSpan,
+    render: (row) => row.containerNo || '-',
   },
   {
     title: '盘具类型',
-    key: 'reelType',
+    key: 'containerType',
     width: 100,
-    rowSpan: reelColRowSpan,
-    render: (row) => row.reelType || '-',
+    rowSpan: containerColRowSpan,
+    render: (row) => row.containerType || '-',
   },
   {
     title: '当前库位',
     key: 'currentLocationCode',
     minWidth: 140,
-    rowSpan: reelColRowSpan,
+    rowSpan: containerColRowSpan,
     render: (row) => row.currentLocationCode || '-',
   },
   {
@@ -701,16 +701,16 @@ async function loadDetail() {
   }
 }
 
-async function loadMovableReels() {
+async function loadMovableContainers() {
   const sourceWarehouseId = selectedSourceWarehouseId.value
   if (!sourceWarehouseId) {
-    movableReels.value = []
+    movableContainers.value = []
     return
   }
   movableLoading.value = true
   try {
-    const data = await reelApi.getMovableReels(sourceWarehouseId)
-    movableReels.value = data ?? []
+    const data = await containerApi.getMovableContainers(sourceWarehouseId)
+    movableContainers.value = data ?? []
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载可调拨库存失败')
   } finally {
@@ -901,9 +901,9 @@ function handleLocationReset() {
 function handlePickLocation(location: locationApi.LocationDto) {
   if (!activeDetailRowId.value) return
   const activeRow = detailDraftRows.value.find((item) => item.id === activeDetailRowId.value)
-  if (!activeRow?.reelId) return
+  if (!activeRow?.containerId) return
   detailDraftRows.value = detailDraftRows.value.map((item) => {
-    if (item.reelId !== activeRow.reelId) return item
+    if (item.containerId !== activeRow.containerId) return item
     return {
       ...item,
       targetLocationId: location.id,
@@ -991,20 +991,20 @@ function handleDeleteSelectedDetails() {
   }
 
   const selectedSet = new Set(checkedDetailRowIds.value)
-  const selectedReelIdSet = new Set(
+  const selectedContainerIdSet = new Set(
     detailDraftRows.value
       .filter((item) => selectedSet.has(item.id))
-      .map((item) => item.reelId)
-      .filter((reelId) => Boolean(reelId)),
+      .map((item) => item.containerId)
+      .filter((containerId) => Boolean(containerId)),
   )
 
-  if (selectedReelIdSet.size === 0) {
+  if (selectedContainerIdSet.size === 0) {
     message.warning('未找到可删除的明细')
     return
   }
 
   const beforeCount = detailDraftRows.value.length
-  detailDraftRows.value = detailDraftRows.value.filter((item) => !selectedReelIdSet.has(item.reelId))
+  detailDraftRows.value = detailDraftRows.value.filter((item) => !selectedContainerIdSet.has(item.containerId))
   const removedCount = beforeCount - detailDraftRows.value.length
   checkedDetailRowIds.value = []
 
@@ -1024,8 +1024,8 @@ async function handleOpenMovableModal() {
   }
   movableVisible.value = true
   movableQuery.keyword = ''
-  checkedMovableReelIds.value = []
-  await loadMovableReels()
+  checkedMovableContainerIds.value = []
+  await loadMovableContainers()
 }
 
 function handleCloseMovableModal() {
@@ -1033,36 +1033,36 @@ function handleCloseMovableModal() {
 }
 
 function handleMovableQuery() {
-  checkedMovableReelIds.value = checkedMovableReelIds.value.filter((reelId) =>
-    movableRows.value.some((row) => row.reelId === reelId),
+  checkedMovableContainerIds.value = checkedMovableContainerIds.value.filter((containerId) =>
+    movableRows.value.some((row) => row.containerId === containerId),
   )
 }
 
 function handleMovableReset() {
   movableQuery.keyword = ''
-  checkedMovableReelIds.value = []
+  checkedMovableContainerIds.value = []
 }
 
 function handleConfirmAddMovable() {
-  if (selectedReelRows.value.length === 0) {
+  if (selectedContainerRows.value.length === 0) {
     message.warning('请至少选择一个盘具')
     return
   }
 
-  const mappedRows = selectedReelRows.value.flatMap<transferApi.TransferDetailDto>((reel) => {
-    const inventories = reel.inventories ?? []
+  const mappedRows = selectedContainerRows.value.flatMap<transferApi.TransferDetailDto>((container) => {
+    const inventories = container.inventories ?? []
     return inventories.map((inventory) => ({
-      id: `local-${reel.reelId}-${inventory.inventoryId}`,
-      reelId: reel.reelId,
-      reelCode: reel.reelNo,
+      id: `local-${container.containerId}-${inventory.inventoryId}`,
+      containerId: container.containerId,
+      containerCode: container.containerNo,
       inventoryId: inventory.inventoryId,
       productId: inventory.productId,
       productCode: inventory.productCode,
       productName: inventory.productName,
       craftVersion: inventory.craftVersion ?? '',
       qty: Number(inventory.quantity ?? 0),
-      sourceLocationId: reel.currentLocationId,
-      sourceLocationCode: reel.currentLocationCode,
+      sourceLocationId: container.currentLocationId,
+      sourceLocationCode: container.currentLocationCode,
       targetLocationId: '',
       targetLocationCode: '',
       sourceWarehouseId: selectedSourceWarehouseId.value || undefined,
@@ -1189,7 +1189,7 @@ async function handleSaveCreate() {
     sourceWarehouseId,
     targetWarehouseId,
     details: details.map((item) => ({
-      reelId: item.reelId,
+      containerId: item.containerId,
       inventoryId: item.inventoryId,
       productId: item.productId,
       qty: Number(item.qty ?? 0),
@@ -1429,7 +1429,7 @@ watch(
           <n-button @click="handleMovableReset">重置</n-button>
         </n-form-item>
         <n-form-item>
-          <n-text depth="3">已选 {{ selectedReelRows.length }} 个盘具</n-text>
+          <n-text depth="3">已选 {{ selectedContainerRows.length }} 个盘具</n-text>
         </n-form-item>
       </n-form>
 

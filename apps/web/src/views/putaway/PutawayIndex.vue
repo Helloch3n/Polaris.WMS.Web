@@ -23,7 +23,7 @@ import { useColumnConfig } from '../../composables/useColumnConfig'
 import { withResizable } from '../../utils/table'
 import { compareSortValue } from '../../utils/tableColumn'
 
-type AvailableReelRow = PutawayService.AvailableReelDto
+type AvailableContainerRow = PutawayService.AvailableContainerDto
 
 type TaskRow = PutawayService.PutawayTaskDto
 
@@ -34,7 +34,7 @@ const activeTab = ref<'source' | 'tasks'>('source')
 
 const sourceLoading = ref(false)
 const sourceFilter = ref('')
-const sourceRows = ref<AvailableReelRow[]>([])
+const sourceRows = ref<AvailableContainerRow[]>([])
 
 const taskLoading = ref(false)
 const taskRows = ref<TaskRow[]>([])
@@ -49,9 +49,9 @@ const taskStatusOptions: SelectOption[] = [
 
 const sourceColumnConfig = useColumnConfig({
   storageKey: 'putaway-source-column-settings-v1',
-  preferredKeys: ['reelNo', 'displayProductName', 'locationCode', 'displayQuantity'],
+  preferredKeys: ['containerNo', 'displayProductName', 'locationCode', 'displayQuantity'],
   resolveTitle: (key) => {
-    if (key === 'reelNo') return '盘号'
+    if (key === 'containerNo') return '盘号'
     if (key === 'displayProductName') return '物料名称'
     if (key === 'locationCode') return '当前位置'
     if (key === 'displayQuantity') return '数量'
@@ -61,10 +61,10 @@ const sourceColumnConfig = useColumnConfig({
 
 const taskColumnConfig = useColumnConfig({
   storageKey: 'putaway-task-column-settings-v1',
-  preferredKeys: ['taskNo', 'reelNo', 'fromLocationCode', 'status', 'creationTime'],
+  preferredKeys: ['taskNo', 'containerNo', 'fromLocationCode', 'status', 'creationTime'],
   resolveTitle: (key) => {
     if (key === 'taskNo') return '任务号'
-    if (key === 'reelNo') return '盘号'
+    if (key === 'containerNo') return '盘号'
     if (key === 'fromLocationCode') return '源库位'
     if (key === 'status') return '状态'
     if (key === 'creationTime') return '创建时间'
@@ -78,7 +78,7 @@ const completeFormRef = ref<FormInst | null>(null)
 const completeForm = reactive({
   taskId: '',
   taskNo: '',
-  reelNo: '',
+  containerNo: '',
   targetLocationCode: '',
 })
 
@@ -127,7 +127,7 @@ function parseDisplayQuantity(v: unknown): { quantity?: number; unit?: string } 
 async function loadSource() {
   sourceLoading.value = true
   try {
-    const res = await PutawayService.getAvailableReels({
+    const res = await PutawayService.getAvailableContainers({
       filter: sourceFilter.value.trim() || undefined,
     })
     sourceRows.value = res.items ?? []
@@ -138,22 +138,22 @@ async function loadSource() {
   }
 }
 
-async function createTask(row: AvailableReelRow) {
-  const reelNo = row.reelNo
-  if (!reelNo) {
+async function createTask(row: AvailableContainerRow) {
+  const containerNo = row.containerNo
+  if (!containerNo) {
     message.error('盘号为空，无法生成任务')
     return
   }
 
   dialog.warning({
     title: '确认',
-    content: `确认生成盘号 ${reelNo} 的上架任务吗？`,
+    content: `确认生成盘号 ${containerNo} 的上架任务吗？`,
     positiveText: '确认',
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
         await PutawayService.create({
-          reelNo,
+          containerNo,
         })
         message.success('任务生成成功')
         await Promise.all([loadSource(), loadTasks()])
@@ -181,7 +181,7 @@ async function loadTasks() {
 function openCompleteModal(row: TaskRow) {
   completeForm.taskId = row.id ?? ''
   completeForm.taskNo = row.taskNo ?? ''
-  completeForm.reelNo = row.reelNo ?? ''
+  completeForm.containerNo = row.containerNo ?? ''
   completeForm.targetLocationCode = ''
   completeModalVisible.value = true
 }
@@ -248,51 +248,51 @@ function switchTab(tab: 'source' | 'tasks') {
   onTabChange(tab)
 }
 
-const sourceColumnMap: Record<string, DataTableColumns<AvailableReelRow>[number]> = {
-  reelNo: {
-    title: sourceColumnConfig.createDraggableTitle('reelNo', '盘号'),
-    key: 'reelNo',
+const sourceColumnMap: Record<string, DataTableColumns<AvailableContainerRow>[number]> = {
+  containerNo: {
+    title: sourceColumnConfig.createDraggableTitle('containerNo', '盘号'),
+    key: 'containerNo',
     minWidth: 160,
-    sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo),
-    render: (row: AvailableReelRow) => row.reelNo || '-',
+    sorter: (a, b) => compareSortValue(a.containerNo, b.containerNo),
+    render: (row: AvailableContainerRow) => row.containerNo || '-',
   },
   displayProductName: {
     title: sourceColumnConfig.createDraggableTitle('displayProductName', '物料名称'),
     key: 'displayProductName',
     minWidth: 220,
     sorter: (a, b) => compareSortValue(a.displayProductName, b.displayProductName),
-    render: (row: AvailableReelRow) => row.displayProductName || '-',
+    render: (row: AvailableContainerRow) => row.displayProductName || '-',
   },
   locationCode: {
     title: sourceColumnConfig.createDraggableTitle('locationCode', '当前位置'),
     key: 'locationCode',
     minWidth: 160,
     sorter: (a, b) => compareSortValue(a.locationCode, b.locationCode),
-    render: (row: AvailableReelRow) => row.locationCode || '-',
+    render: (row: AvailableContainerRow) => row.locationCode || '-',
   },
   displayQuantity: {
     title: sourceColumnConfig.createDraggableTitle('displayQuantity', '数量'),
     key: 'displayQuantity',
     width: 140,
     sorter: (a, b) => compareSortValue(a.displayQuantity, b.displayQuantity),
-    render: (row: AvailableReelRow) => {
+    render: (row: AvailableContainerRow) => {
       const parsed = parseDisplayQuantity(row.displayQuantity)
       return parsed.quantity ?? row.displayQuantity ?? '-'
     },
   },
 }
 
-const sourceColumns = computed<DataTableColumns<AvailableReelRow>>(() => withResizable([
+const sourceColumns = computed<DataTableColumns<AvailableContainerRow>>(() => withResizable([
   ...sourceColumnConfig.columnSettings.value
     .filter((item) => item.visible)
     .map((item) => sourceColumnMap[item.key])
-    .filter((item): item is DataTableColumns<AvailableReelRow>[number] => Boolean(item)),
+    .filter((item): item is DataTableColumns<AvailableContainerRow>[number] => Boolean(item)),
   {
     title: '操作',
     key: 'actions',
     width: 140,
     align: 'center',
-    render: (row: AvailableReelRow) =>
+    render: (row: AvailableContainerRow) =>
       h(
         NButton,
         { size: 'small', type: 'primary', onClick: () => createTask(row) },
@@ -309,12 +309,12 @@ const taskColumnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
     sorter: (a, b) => compareSortValue(a.taskNo, b.taskNo),
     render: (row: TaskRow) => row.taskNo || '-',
   },
-  reelNo: {
-    title: taskColumnConfig.createDraggableTitle('reelNo', '盘号'),
-    key: 'reelNo',
+  containerNo: {
+    title: taskColumnConfig.createDraggableTitle('containerNo', '盘号'),
+    key: 'containerNo',
     minWidth: 160,
-    sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo),
-    render: (row: TaskRow) => row.reelNo || '-',
+    sorter: (a, b) => compareSortValue(a.containerNo, b.containerNo),
+    render: (row: TaskRow) => row.containerNo || '-',
   },
   fromLocationCode: {
     title: taskColumnConfig.createDraggableTitle('fromLocationCode', '源库位'),
@@ -486,7 +486,7 @@ onMounted(async () => {
           <n-input :value="completeForm.taskNo" disabled />
         </n-form-item>
         <n-form-item>
-          <n-input :value="completeForm.reelNo" disabled />
+          <n-input :value="completeForm.containerNo" disabled />
         </n-form-item>
         <n-form-item path="targetLocationCode">
           <n-input

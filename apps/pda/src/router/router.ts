@@ -31,6 +31,18 @@ const router = createRouter({
           meta: { title: '库存管理' }
         },
         {
+          path: 'inbound/purchase-receipt/create',
+          name: 'PurchaseReceiptCreate',
+          component: () => import('@/views/inbound/purchaseReceipt/PurchaseReceiptCreateView.vue'),
+          meta: { title: '采购收货', hideTabbar: true }
+        },
+        {
+          path: 'inbound/purchase-receipt/receive/:receiptId',
+          name: 'PurchaseReceiptReceive',
+          component: () => import('@/views/inbound/purchaseReceipt/PurchaseReceiptReceiveView.vue'),
+          meta: { title: '采购收货执行', hideTabbar: true }
+        },
+        {
           path: 'task',
           name: 'Task',
           component: () => import('@/views/task/TaskView.vue'),

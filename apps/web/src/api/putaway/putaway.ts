@@ -13,14 +13,14 @@ export interface PagedRequestDto {
 }
 
 /** 绾跨洏鐘舵€?*/
-export const ReelStatus = {
+export const ContainerStatus = {
   Empty: 'Empty',
   Occupied: 'Occupied',
   Damaged: 'Damaged',
   Maintenance: 'Maintenance',
 } as const
 
-export type ReelStatus = (typeof ReelStatus)[keyof typeof ReelStatus]
+export type ContainerStatus = (typeof ContainerStatus)[keyof typeof ContainerStatus]
 
 /** 涓婃灦浠诲姟鐘舵€?*/
 export const PutawayTaskStatus = {
@@ -32,16 +32,16 @@ export const PutawayTaskStatus = {
 
 export type PutawayTaskStatus = (typeof PutawayTaskStatus)[keyof typeof PutawayTaskStatus]
 
-export interface ReelDto {
-  reelNo: string
+export interface ContainerDto {
+  containerNo: string
   materialName?: string
   locationCode: string
   quantity: number
-  status: ReelStatus
+  status: ContainerStatus
   isLocked: boolean
 }
 
-export interface AvailableReelItemDto {
+export interface AvailableContainerItemDto {
   productCode: string
   productName: string
   batchNo: string
@@ -49,21 +49,21 @@ export interface AvailableReelItemDto {
   unit: string
 }
 
-export interface AvailableReelDto {
-  reelNo: string
+export interface AvailableContainerDto {
+  containerNo: string
   locationCode: string
-  reelStatus: number
+  containerStatus: number
   isLocked: boolean
   isMixed: boolean
   displayProductName: string
   displayQuantity: string
-  items: AvailableReelItemDto[]
+  items: AvailableContainerItemDto[]
 }
 
 export interface PutawayTaskDto {
   id: string
   taskNo: string
-  reelNo: string
+  containerNo: string
   fromLocationCode: string
   toLocationCode?: string
   status: PutawayTaskStatus
@@ -71,13 +71,13 @@ export interface PutawayTaskDto {
   creatorId: string
 }
 
-export interface GetAvailableReelsInput extends PagedRequestDto {
+export interface GetAvailableContainersInput extends PagedRequestDto {
   filter?: string
   warehouseId?: string
 }
 
 export interface CreatePutawayTaskInput {
-  reelNo: string
+  containerNo: string
   targetLocationCode?: string
 }
 
@@ -98,9 +98,9 @@ function toAbpPaging(input?: PagedRequestDto) {
   }
 }
 
-/** GET /api/app/putaway/available-reels */
-export async function getAvailableReels(params: GetAvailableReelsInput) {
-  const res = await request.get<PagedResultDto<AvailableReelDto>>(`${baseUrl}/available-reels`, {
+/** GET /api/app/putaway/available-containers */
+export async function getAvailableContainers(params: GetAvailableContainersInput) {
+  const res = await request.get<PagedResultDto<AvailableContainerDto>>(`${baseUrl}/available-containers`, {
     params: {
       ...toAbpPaging(params),
       filter: params.filter,
@@ -134,7 +134,7 @@ export async function completePutawayTask(id: string, data: CompletePutawayTaskI
 }
 
 /** POST /api/app/putaway */
-export function create(data: { reelNo: string }) {
+export function create(data: { containerNo: string }) {
   return createPutawayTask(data)
 }
 

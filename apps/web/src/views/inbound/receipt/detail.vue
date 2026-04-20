@@ -22,7 +22,7 @@ import type { DataTableColumns, FormInst, FormRules, InputInst, SelectOption } f
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 import * as receiptApi from '../../../api/inbound/receipt'
-import { getList as getReelList } from '../../../api/masterData/reel'
+import { getList as getContainerList } from '../../../api/masterData/container'
 import { getList, getWithDetails } from '../../../api/masterData/warehouse'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
@@ -38,7 +38,7 @@ const loading = ref(false)
 
 type ReceiptDetailRow = receiptApi.ReceiptDetail & {
   id?: string
-  reelNo?: string
+  containerNo?: string
   productName?: string
   planQuantity?: number
   actualQuantity?: number
@@ -178,7 +178,7 @@ async function refreshData() {
 }
 
 /* ---------- 扏执 ---------- */
-async function handleScanReel() {
+async function handleScanContainer() {
   const code = scanCode.value.trim()
   if (!code) {
     message.warning('请先输入/扫描托盘号或线盘号')
@@ -195,17 +195,17 @@ async function handleScanReel() {
   }
 
   try {
-    const reelData = await getReelList({ filter: code, maxResultCount: 10 })
-    const targetReel = (reelData.items ?? []).find((r) => r.reelNo === code)
+    const containerData = await getContainerList({ filter: code, maxResultCount: 10 })
+    const targetContainer = (containerData.items ?? []).find((r) => r.containerCode === code)
 
-    if (!targetReel || !targetReel.id) {
+    if (!targetContainer || !targetContainer.id) {
       throw new Error(`有到编号为 ${code} 的线盘信息`)
     }
 
     const locationOption = locationOptions.value.find(
       (option) => String(option.value) === String(defaultLocationId.value),
     )
-    const targetDetail = details.value.find((d) => (d.reelNo ?? '') === code)
+    const targetDetail = details.value.find((d) => (d.containerNo ?? '') === code)
     if (!targetDetail) {
       message.error('有到应明细，无法执入库')
       scanInputRef.value?.select()
@@ -238,11 +238,11 @@ async function handleScanReel() {
     targetDetail.actualQuantity = submitQty
 
     // 校验同一载具(线盘)上的明细库位昐?
-    const sameReelDetails = details.value.filter(
-      (d) => (d.reelNo ?? '') === code && d.isReceived && d.locationId,
+    const sameContainerDetails = details.value.filter(
+      (d) => (d.containerNo ?? '') === code && d.isReceived && d.locationId,
     )
-    if (sameReelDetails.length > 0) {
-      const first = sameReelDetails[0]!
+    if (sameContainerDetails.length > 0) {
+      const first = sameContainerDetails[0]!
       const existingLocationId = first.locationId
       if (existingLocationId && String(existingLocationId) !== String(defaultLocationId.value)) {
         message.error(
@@ -406,24 +406,24 @@ async function handleConfirmExecute() {
   // 校验同一载具库位一致性
   const row = currentRow.value
   if (row) {
-    const reelNo = row.reelNo ?? ''
-    if (reelNo) {
-      const sameReelDetails = details.value.filter(
+    const containerNo = row.containerNo ?? ''
+    if (containerNo) {
+      const sameContainerDetails = details.value.filter(
         (d) =>
-          (d.reelNo ?? '') === reelNo &&
+          (d.containerNo ?? '') === containerNo &&
           d.id !== row.id &&
           d.isReceived &&
           d.locationId,
       )
-      if (sameReelDetails.length > 0) {
-        const first = sameReelDetails[0]!
+      if (sameContainerDetails.length > 0) {
+        const first = sameContainerDetails[0]!
         const existingLocationId = first.locationId
         if (
           existingLocationId &&
           String(existingLocationId) !== String(executeForm.locationId)
         ) {
           message.error(
-            `同一线盘 ${reelNo} 已有明细入库到库位 ${first.locationCode ?? existingLocationId}，请保持一致`,
+            `同一线盘 ${containerNo} 已有明细入库到库位 ${first.locationCode ?? existingLocationId}，请保持一致`,
           )
           return
         }
@@ -463,10 +463,10 @@ const {
   createDraggableTitle,
 } = useColumnConfig({
   storageKey: 'receipt-detail-column-settings-v1',
-  preferredKeys: ['isReceived', 'reelNo', 'productName', 'planQuantity', 'actualQuantity', 'locationCode'],
+  preferredKeys: ['isReceived', 'containerNo', 'productName', 'planQuantity', 'actualQuantity', 'locationCode'],
   resolveTitle: (key) => {
     if (key === 'isReceived') return '状态'
-    if (key === 'reelNo') return '线盘号'
+    if (key === 'containerNo') return '线盘号'
     if (key === 'productName') return '产品'
     if (key === 'planQuantity') return '计划数量'
     if (key === 'actualQuantity') return '实收数量'
@@ -489,11 +489,11 @@ const columnMap: Record<string, DataTableColumns<ReceiptDetailRow>[number]> = {
         { default: () => (row.isReceived ? '已完成' : '待收货') },
       ),
   },
-  reelNo: {
-    title: createDraggableTitle('reelNo', '线盘号'),
-    key: 'reelNo',
+  containerNo: {
+    title: createDraggableTitle('containerNo', '线盘号'),
+    key: 'containerNo',
     minWidth: 160,
-    sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo),
+    sorter: (a, b) => compareSortValue(a.containerNo, b.containerNo),
   },
   productName: {
     title: createDraggableTitle('productName', '产品'),
@@ -606,7 +606,7 @@ onMounted(async () => {
           size="large"
           placeholder="请扫描托盘号/线盘号（Enter 执行）"
           @update:value="(value) => (scanCode = value)"
-          @keydown.enter="handleScanReel"
+          @keydown.enter="handleScanContainer"
         />
         <n-select
           :value="defaultWarehouseId"

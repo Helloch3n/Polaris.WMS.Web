@@ -106,7 +106,10 @@ defineSlots<{
 .crud-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .search-card,
@@ -115,12 +118,32 @@ defineSlots<{
   width: 100%;
 }
 
+.data-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-card :deep(.n-card__content) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .slot-shell {
   width: 100%;
 }
 
+.slot-data {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
 .slot-search {
-  min-height: 36px;
+  min-height: 32px;
   display: flex;
   align-items: center;
 }
@@ -189,11 +212,10 @@ defineSlots<{
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: 28px;
   width: 100%;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 :deep(.crud-search-form) {
@@ -214,11 +236,11 @@ defineSlots<{
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-base-selection),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-input-number),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-date-picker) {
-  min-width: 180px;
+  min-width: 130px;
 }
 
 :deep(.crud-search-form .n-form-item .n-button) {
-  min-width: 72px;
+  min-width: 60px;
 }
 
 :deep(.crud-search-form .n-form-item.crud-page-spacer) {
@@ -229,30 +251,30 @@ defineSlots<{
 :deep(.crud-action-row) {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 36px;
+  gap: 6px;
+  min-height: 32px;
 }
 
 .crud-action-split {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-height: 36px;
+  gap: 6px;
+  min-height: 32px;
 }
 
 .crud-action-left,
 .crud-action-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 :deep(.crud-action-main),
 :deep(.crud-action-tools) {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 :deep(.crud-page-spacer) {
@@ -264,12 +286,17 @@ defineSlots<{
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  min-height: 40px;
-  padding-top: 12px;
+  min-height: 32px;
+  padding-top: 6px;
 }
 
 .slot-pager {
-  padding-top: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--n-border-color);
+  background: var(--n-color);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .crud-pager-split {
@@ -285,7 +312,37 @@ defineSlots<{
 :deep(.crud-selection-summary) {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+:deep(.search-card .n-card__content),
+:deep(.action-card .n-card__content),
+:deep(.data-card .n-card__content) {
+  padding: 10px 12px;
+}
+
+:deep(.crud-table-flat .n-data-table-wrapper) {
+  min-height: 0;
+}
+
+:deep(.slot-data .n-data-table) {
+  font-size: 12px;
+}
+
+:deep(.slot-data .n-data-table-th),
+:deep(.slot-data .n-data-table-td) {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+:deep(.slot-data .n-data-table-base-table-header) {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+:deep(.slot-data .n-data-table-base-table-header .n-data-table-th) {
+  background: var(--n-color);
 }
 
 :deep(.crud-table-flat),
@@ -364,23 +421,45 @@ defineSlots<{
 }
 
 :deep(.n-card) {
-  --n-padding-top: 12px;
-  --n-padding-bottom: 12px;
+  --n-padding-top: 10px;
+  --n-padding-bottom: 10px;
 }
 
 :deep(.n-button) {
-  --n-height: 30px;
+  --n-height: 28px;
 }
 
 :deep(.n-input),
 :deep(.n-base-selection),
 :deep(.n-input-number) {
-  --n-height: 30px;
+  --n-height: 28px;
 }
 
 :deep(.n-data-table-th),
 :deep(.n-data-table-td) {
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.data-card {
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.data-card > .n-card__content) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.slot-data {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+:deep(.slot-data .n-data-table .n-data-table-wrapper) {
+  max-height: calc(100vh - 360px);
+  overflow: auto;
 }
 </style>

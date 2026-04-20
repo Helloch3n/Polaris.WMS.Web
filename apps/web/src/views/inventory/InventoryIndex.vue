@@ -22,7 +22,8 @@ import { withResizable } from '../../utils/table'
 type InventoryRow = inventoryApi.Inventory
 
 type InventoryQueryParams = inventoryApi.GetInventoryListParams & {
-  reelNo?: string
+  containerNo?: string
+  containerCode?: string
   productId?: string
   relatedOrderNo?: string
   warehouseCode?: string
@@ -34,7 +35,7 @@ const rows = ref<InventoryRow[]>([])
 const message = useMessage()
 
 const query = reactive({
-  reelNo: '',
+  containerNo: '',
   productId: '',
   relatedOrderNo: '',
   warehouseCode: '',
@@ -48,7 +49,8 @@ const listParams = computed<InventoryQueryParams>(() => {
   return {
     maxResultCount: query.pageSize,
     skipCount: (query.page - 1) * query.pageSize,
-    reelNo: query.reelNo || undefined,
+    containerNo: query.containerNo || undefined,
+    containerCode: query.containerNo || undefined,
     productId: query.productId || undefined,
     relatedOrderNo: query.relatedOrderNo || undefined,
     warehouseCode: query.warehouseCode || undefined,
@@ -68,6 +70,14 @@ function normalizeSn(row: InventoryRow): string {
   return typeof raw === 'string' ? raw : ''
 }
 
+function normalizeContainerNo(row: InventoryRow): string {
+  const anyRow = row as InventoryRow & { containerCode?: unknown; ContainerNo?: unknown; ContainerCode?: unknown }
+  const raw = row.containerNo ?? anyRow.containerCode ?? anyRow.ContainerNo ?? anyRow.ContainerCode
+  if (typeof raw === 'string') return raw
+  if (typeof raw === 'number' && Number.isFinite(raw)) return String(raw)
+  return ''
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -75,6 +85,7 @@ async function loadData() {
     const items = data.items ?? []
     rows.value = items.map((row) => ({
       ...row,
+      containerNo: normalizeContainerNo(row),
       layerIndex: normalizeLayerIndex(row),
       sn: normalizeSn(row),
     }))
@@ -92,7 +103,7 @@ function onQuery() {
 }
 
 function onReset() {
-  query.reelNo = ''
+  query.containerNo = ''
   query.productId = ''
   query.relatedOrderNo = ''
   query.warehouseCode = ''
@@ -149,13 +160,13 @@ function resolveType(raw: unknown) {
   if (typeof raw === 'string') {
     if (raw === 'SemiFinished' || raw === '0') return '半成品'
     if (raw === 'Finished' || raw === '1') return '成品'
-    if (raw === 'ProcessReel' || raw === '2') return '工序盘'
+    if (raw === 'ProcessContainer' || raw === '2') return '工序盘'
     return '-'
   }
   if (typeof raw === 'number') {
     if (raw === inventoryApi.InventoryType.SemiFinished) return '半成品'
     if (raw === inventoryApi.InventoryType.Finished) return '成品'
-    if (raw === inventoryApi.InventoryType.ProcessReel) return '工序盘'
+    if (raw === inventoryApi.InventoryType.ProcessContainer) return '工序盘'
   }
   return '-'
 }
@@ -172,24 +183,24 @@ function resolveLayer(row: InventoryRow) {
   return typeof v === 'number' ? v : Number(v ?? 0)
 }
 
-const maxLayerByReel = computed(() => {
+const maxLayerByContainer = computed(() => {
   const map = new Map<string, number>()
   for (const row of rows.value) {
-    const reelNo = row.reelNo
-    if (!reelNo) continue
+    const containerNo = normalizeContainerNo(row)
+    if (!containerNo) continue
     const layer = resolveLayer(row)
-    const current = map.get(reelNo)
+    const current = map.get(containerNo)
     if (current === undefined || layer > current) {
-      map.set(reelNo, layer)
+      map.set(containerNo, layer)
     }
   }
   return map
 })
 
 function isMaxLayer(row: InventoryRow) {
-  const reelNo = row.reelNo
-  if (!reelNo) return false
-  const maxLayer = maxLayerByReel.value.get(reelNo)
+  const containerNo = normalizeContainerNo(row)
+  if (!containerNo) return false
+  const maxLayer = maxLayerByContainer.value.get(containerNo)
   return typeof maxLayer === 'number' && resolveLayer(row) === maxLayer
 }
 
@@ -197,13 +208,14 @@ const {
   showColumnConfig,
   columnSettings,
   loadColumnSettings,
+  syncColumnSettingsByKeys,
   handleVisibleChange,
   createDraggableTitle,
 } = useColumnConfig({
-  storageKey: 'inventory-column-settings-v3',
+  storageKey: 'inventory-column-settings-v5',
   preferredKeys: [
     'sequence',
-    'reelNo',
+    'containerNo',
     'warehouseCode',
     'warehouseName',
     'zoneCode',
@@ -228,7 +240,7 @@ const {
   ],
   resolveTitle: (key) => {
     if (key === 'sequence') return '序号'
-    if (key === 'reelNo') return '盘号'
+    if (key === 'containerNo') return '盘号'
     if (key === 'warehouseCode') return '仓库编码'
     if (key === 'warehouseName') return '仓库名称'
     if (key === 'zoneCode') return '库区编码'
@@ -263,7 +275,13 @@ const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
     sorter: (a, b) => compareSortValue((a as any).sequence, (b as any).sequence),
     render: (row) => (row.sequence !== undefined && row.sequence !== null) ? String((row as any).sequence) : '-',
   },
-  reelNo: { title: createDraggableTitle('reelNo', '盘号'), key: 'reelNo', minWidth: 160, sorter: (a, b) => compareSortValue(a.reelNo, b.reelNo), render: (row) => h('strong', row.reelNo ?? '-') },
+  containerNo: {
+    title: createDraggableTitle('containerNo', '盘号'),
+    key: 'containerNo',
+    minWidth: 160,
+    sorter: (a, b) => compareSortValue(normalizeContainerNo(a), normalizeContainerNo(b)),
+    render: (row) => h('strong', normalizeContainerNo(row) || '-'),
+  },
   warehouseCode: { title: createDraggableTitle('warehouseCode', '仓库编码'), key: 'warehouseCode', minWidth: 140, sorter: (a, b) => compareSortValue(a.warehouseCode, b.warehouseCode), render: (row) => row.warehouseCode ?? '-' },
   warehouseName: { title: createDraggableTitle('warehouseName', '仓库名称'), key: 'warehouseName', minWidth: 160, sorter: (a, b) => compareSortValue(a.warehouseName, b.warehouseName), render: (row) => row.warehouseName ?? '-' },
   zoneCode: { title: createDraggableTitle('zoneCode', '库区编码'), key: 'zoneCode', minWidth: 140, sorter: (a, b) => compareSortValue(a.zoneCode, b.zoneCode), render: (row) => row.zoneCode ?? '-' },
@@ -340,6 +358,7 @@ function handleColumnConfigShowChange(value: boolean) {
 
 onMounted(() => {
   loadColumnSettings()
+  syncColumnSettingsByKeys(Object.keys(columnMap))
   loadData()
 })
 </script>
@@ -349,7 +368,7 @@ onMounted(() => {
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item>
-          <n-input :value="query.reelNo" placeholder="请输入盘号" clearable @update:value="(value) => { query.reelNo = value }" />
+          <n-input :value="query.containerNo" placeholder="请输入盘号/容器编号" clearable @update:value="(value) => { query.containerNo = value }" />
         </n-form-item>
         <n-form-item>
           <n-input :value="query.productId" placeholder="请输入物料Id" clearable @update:value="(value) => { query.productId = value }" />
@@ -385,12 +404,14 @@ onMounted(() => {
     </template>
 
     <template #data>
-      <div style="overflow-x: auto;">
+      <div class="inventory-table-shell">
         <n-data-table
-          class="crud-table-flat"
+          class="crud-table-flat inventory-table"
           :loading="loading"
           :columns="columns"
           :data="rows"
+          :scroll-x="2600"
+          max-height="calc(100vh - 290px)"
           :bordered="false"
         />
       </div>
@@ -411,4 +432,35 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.inventory-table-shell {
+  width: 100%;
+}
+
+:deep(.inventory-table) {
+  width: 100%;
+}
+
+:deep(.inventory-table .n-data-table-base-table-body) {
+  overflow-x: scroll !important;
+}
+
+:deep(.inventory-table .n-data-table-th),
+:deep(.inventory-table .n-data-table-td) {
+  height: 42px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+:deep(.inventory-table .n-scrollbar-rail--horizontal) {
+  opacity: 1 !important;
+}
+
+:deep(.slot-pager) {
+  padding-top: 0;
+}
+
+:deep(.crud-pager) {
+  min-height: 24px;
+  padding-top: 0;
+}
 </style>

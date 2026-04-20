@@ -43,7 +43,7 @@ export interface LocationDto {
   bin: string
   maxWeight: number
   maxVolume: number
-  maxReelCount: number
+  maxContainerCount: number
   type: number
   status: number
   allowMixedProducts: boolean
@@ -66,7 +66,7 @@ export interface CreateUpdateLocationDto {
   bin: string
   maxWeight: number
   maxVolume: number
-  maxReelCount: number
+  maxContainerCount: number
   type: number
   allowMixedProducts: boolean
   allowMixedBatches: boolean

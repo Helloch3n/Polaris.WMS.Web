@@ -25,7 +25,7 @@ export type InventoryStatus = (typeof InventoryStatus)[keyof typeof InventorySta
 export interface ReceiptDetail {
   id?: string
   receiptId?: string
-  reelNo?: string
+  containerNo?: string
   productId?: string
   productName?: string
   planQuantity?: number
@@ -74,8 +74,8 @@ export interface CreateReceiptDto {
   sourceBillNo?: string
   warehouseId?: string | null
   details?: Array<{
-    reelId?: string
-    reelNo?: string
+    containerId?: string
+    containerNo?: string
     productId?: string
     productName?: string
     unit?: string
@@ -105,9 +105,9 @@ export interface ExecuteReceiptInput {
 }
 
 /** 整盘执 */
-export interface ExecuteByReelInput {
+export interface ExecuteByContainerInput {
   receiptId: string
-  reelId: string
+  containerId: string
   locationId: string
   craftVersion: string
 }
@@ -146,8 +146,8 @@ export async function execute(input: ExecuteReceiptInput) {
   return res.data
 }
 
-export async function executeByReel(input: ExecuteByReelInput) {
-  const res = await request.post<void>(`${baseUrl}/execute-by-reel`, input)
+export async function executeByContainer(input: ExecuteByContainerInput) {
+  const res = await request.post<void>(`${baseUrl}/execute-by-container`, input)
   return res.data
 }
 

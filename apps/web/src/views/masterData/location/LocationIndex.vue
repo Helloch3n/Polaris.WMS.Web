@@ -129,7 +129,7 @@ const defaultColumnKeys = [
   'bin',
   'maxWeight',
   'maxVolume',
-  'maxReelCount',
+  'maxContainerCount',
   'type',
   'status',
   'allowMixedProducts',
@@ -166,7 +166,7 @@ function normalizeLocation(item: unknown, index: number): LocationDto & { __rowK
     bin: String(data.bin ?? data.Bin ?? data.locationBin ?? data.LocationBin ?? ''),
     maxWeight: toNumber(data.maxWeight ?? data.MaxWeight),
     maxVolume: toNumber(data.maxVolume ?? data.MaxVolume),
-    maxReelCount: toNumber(data.maxReelCount ?? data.MaxReelCount, 1),
+    maxContainerCount: toNumber(data.maxContainerCount ?? data.MaxContainerCount, 1),
     type: toNumber(data.type ?? data.Type),
     status: toNumber(data.status ?? data.Status),
     allowMixedProducts: Boolean(data.allowMixedProducts ?? data.AllowMixedProducts),
@@ -375,7 +375,7 @@ const {
     if (key === 'bin') return '位'
     if (key === 'maxWeight') return '最大承重'
     if (key === 'maxVolume') return '最大体积'
-    if (key === 'maxReelCount') return '最大容器数'
+    if (key === 'maxContainerCount') return '最大容器数'
     if (key === 'type') return '类型'
     if (key === 'status') return '状态'
     if (key === 'allowMixedProducts') return '允许混放物料'
@@ -394,7 +394,7 @@ const columnMap: Record<string, DataTableColumns<LocationDto>[number]> = {
   bin: { title: createDraggableTitle('bin', '位'), key: 'bin', width: 90, align: 'center', sorter: 'default' },
   maxWeight: { title: createDraggableTitle('maxWeight', '最大承重'), key: 'maxWeight', width: 120, align: 'center', sorter: 'default' },
   maxVolume: { title: createDraggableTitle('maxVolume', '最大体积'), key: 'maxVolume', width: 120, align: 'center', sorter: 'default' },
-  maxReelCount: { title: createDraggableTitle('maxReelCount', '最大容器数'), key: 'maxReelCount', width: 120, align: 'center', sorter: 'default' },
+  maxContainerCount: { title: createDraggableTitle('maxContainerCount', '最大容器数'), key: 'maxContainerCount', width: 120, align: 'center', sorter: 'default' },
   type: {
     title: createDraggableTitle('type', '类型'),
     key: 'type',

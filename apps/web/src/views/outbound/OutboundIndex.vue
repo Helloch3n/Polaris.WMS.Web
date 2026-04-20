@@ -336,7 +336,7 @@ function getPickTaskStatusTagType(status: string): 'default' | 'info' | 'success
 }
 
 const taskColumns: DataTableColumns<pickTaskApi.PickTaskDto> = [
-  { title: '盘号', key: 'reelNo', minWidth: 140, render: (row) => row.reelNo || '-' },
+  { title: '盘号', key: 'containerNo', minWidth: 140, render: (row) => row.containerNo || '-' },
   { title: '源库位', key: 'fromLocationCode', minWidth: 140, render: (row) => row.fromLocationCode || '-' },
   {
     title: '目标长度',

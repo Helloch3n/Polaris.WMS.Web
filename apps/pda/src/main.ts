@@ -5,7 +5,28 @@ import router from './router/router'
 
 import './style.css'
 import 'vant/lib/index.css'
-import { ConfigProvider, Button, Field, CellGroup, Empty, Tabbar, TabbarItem, Icon, NavBar, Tag, Grid, GridItem, Tab, Tabs, List, PullRefresh } from 'vant'
+import {
+   ConfigProvider,
+   Button,
+   Field,
+   CellGroup,
+   Empty,
+   Tabbar,
+   TabbarItem,
+   Icon,
+   NavBar,
+   Tag,
+   Grid,
+   GridItem,
+   Tab,
+   Tabs,
+   List,
+   PullRefresh,
+   NumberKeyboard,
+   ActionSheet,
+   Dialog,
+   Popup,
+} from 'vant'
 
 const app = createApp(App)
 
@@ -16,5 +37,6 @@ app.use(router)
 app.use(ConfigProvider).use(Button).use(Field).use(CellGroup).use(Empty)
    .use(Tabbar).use(TabbarItem).use(Icon).use(NavBar).use(Tag)
    .use(Grid).use(GridItem).use(Tab).use(Tabs).use(List).use(PullRefresh)
+   .use(NumberKeyboard).use(ActionSheet).use(Dialog).use(Popup)
 
 app.mount('#app')

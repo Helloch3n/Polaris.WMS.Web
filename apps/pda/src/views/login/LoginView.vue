@@ -203,7 +203,7 @@ async function handleLogin() {
 .login-glow-blue {
   top: -84px;
   right: -84px;
-  background: #3b82f6;
+  background: var(--color-primary-hover);
 }
 
 .login-glow-emerald {
@@ -276,7 +276,7 @@ async function handleLogin() {
 }
 
 .remember-dot-active {
-  background: #3b82f6;
+  background: var(--color-primary);
 }
 
 .remember-dot-inactive {
@@ -386,8 +386,8 @@ async function handleLogin() {
   margin-top: 12px;
   border: none;
   border-radius: 9999px;
-  background: linear-gradient(90deg, #2563eb, #256cf3);
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover));
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.36);
 }
 
 :deep(.login-submit.van-button .van-button__text) {
@@ -398,7 +398,7 @@ async function handleLogin() {
 }
 
 :deep(.login-submit.van-button:active) {
-  background: linear-gradient(90deg, #1d4ed8, #1f5fe3);
+  background: linear-gradient(90deg, var(--color-primary-pressed), var(--color-primary));
 }
 
 /* checkbox styles removed — using text-only remember control */

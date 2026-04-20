@@ -19,14 +19,14 @@ import {
 import type { FormInst, FormRules, SelectOption } from 'naive-ui'
 
 import * as inventoryApi from '../../../api/masterData/inventory'
-import { getList as getReelList, type GetReelListParams } from '../../../api/masterData/reel'
+import { getList as getContainerList, type GetContainerListParams } from '../../../api/masterData/container'
 import { getList as getLocationList, type GetLocationListParams } from '../../../api/masterData/location'
 import { getProductList, type GetProductListParams } from '../../../api/masterData/product'
 
 type FormModel = {
   sourceWo: string
   batchNo: string
-  reelId: string | null
+  containerId: string | null
   locationId: string | null
   productId: string | null
   quantity: number | null
@@ -45,7 +45,7 @@ const message = useMessage()
 const form = reactive<FormModel>({
   sourceWo: '',
   batchNo: '',
-  reelId: null,
+  containerId: null,
   locationId: null,
   productId: null,
   quantity: null,
@@ -55,7 +55,7 @@ const form = reactive<FormModel>({
 const rules = computed<FormRules>(() => ({
   sourceWo: [{ required: true, message: '请输入来源工单', trigger: ['input', 'blur'] }],
   batchNo: [{ required: true, message: '请输入批次号', trigger: ['input', 'blur'] }],
-  reelId: [{ required: true, message: '请选择线盘', trigger: ['change', 'blur'] }],
+  containerId: [{ required: true, message: '请选择线盘', trigger: ['change', 'blur'] }],
   locationId: [{ required: true, message: '请选择目标库位', trigger: ['change', 'blur'] }],
   productId: [{ required: true, message: '请选择物料', trigger: ['change', 'blur'] }],
   quantity: [{ required: true, type: 'number', message: '请输入长度', trigger: ['input', 'blur'] }],
@@ -73,7 +73,7 @@ function getDefaultBatchNo() {
 function resetForm() {
   form.sourceWo = ''
   form.batchNo = getDefaultBatchNo()
-  form.reelId = null
+  form.containerId = null
   form.locationId = null
   form.productId = null
   form.quantity = null
@@ -83,38 +83,38 @@ function resetForm() {
 function open() {
   resetForm()
   visible.value = true
-  loadReelOptions()
+  loadContainerOptions()
   loadLocationOptions()
   loadProductOptions()
 }
 
 defineExpose({ open })
 
-const reelOptions = ref<SelectOption[]>([])
-const reelLoading = ref(false)
+const containerOptions = ref<SelectOption[]>([])
+const containerLoading = ref(false)
 
-async function loadReelOptions(keyword?: string) {
-  reelLoading.value = true
+async function loadContainerOptions(keyword?: string) {
+  containerLoading.value = true
   try {
-    const params: GetReelListParams = {
+    const params: GetContainerListParams = {
       maxResultCount: 20,
       skipCount: 0,
       filter: keyword?.trim() || undefined,
     }
-    const data = await getReelList(params)
+    const data = await getContainerList(params)
     const items = data.items ?? []
     const filtered = items.filter((item) => (item.status ?? 0) === 0)
-    reelOptions.value = filtered.map((item) => ({
-      label: item.reelNo,
-      value: item.id ?? item.reelNo,
+    containerOptions.value = filtered.map((item) => ({
+      label: item.containerCode,
+      value: item.id ?? item.containerCode,
     }))
   } finally {
-    reelLoading.value = false
+    containerLoading.value = false
   }
 }
 
-function handleReelSearch(keyword: string) {
-  loadReelOptions(keyword)
+function handleContainerSearch(keyword: string) {
+  loadContainerOptions(keyword)
 }
 
 const locationOptions = ref<SelectOption[]>([])
@@ -179,7 +179,7 @@ async function handleSubmit() {
   loading.value = true
   try {
     const payload: inventoryApi.ProductionReceiveInput = {
-      reelId: String(form.reelId ?? ''),
+      containerId: String(form.containerId ?? ''),
       productId: String(form.productId ?? ''),
       quantity: Number(form.quantity ?? 0),
       weight: Number(form.weight ?? 0),
@@ -211,16 +211,16 @@ async function handleSubmit() {
         <n-input :value="form.batchNo" placeholder="例 BATCH-yyyymmdd" @update:value="(value) => (form.batchNo = value)" />
       </n-form-item>
 
-      <n-form-item label="线盘" path="reelId">
+      <n-form-item label="线盘" path="containerId">
         <n-select
-          :value="form.reelId"
+          :value="form.containerId"
           filterable
           remote
-          :loading="reelLoading"
+          :loading="containerLoading"
           placeholder="搜索线盘（仅空闲）"
-          :options="reelOptions"
-          @update:value="(value) => (form.reelId = value)"
-          @search="handleReelSearch"
+          :options="containerOptions"
+          @update:value="(value) => (form.containerId = value)"
+          @search="handleContainerSearch"
         />
       </n-form-item>
 

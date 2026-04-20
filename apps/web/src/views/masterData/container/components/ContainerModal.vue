@@ -1,6 +1,6 @@
 <script lang="ts">
 export default {
-  name: 'ReelModal',
+  name: 'ContainerModal',
 }
 </script>
 
@@ -18,15 +18,15 @@ import {
 } from 'naive-ui'
 import type { FormInst, FormRules, SelectOption } from 'naive-ui'
 
-import { ReelType, create, update, type CreateUpdateReelDto } from '../../../../api/masterData/reel'
+import { ContainerType, create, update, type CreateUpdateContainerDto } from '../../../../api/masterData/container'
 import { getList, type GetLocationListParams } from '../../../../api/masterData/location'
 
-type ReelRow = {
+type ContainerRow = {
   id?: string
-  reelNo?: string
+  containerCode?: string
   name?: string
   size?: string
-  reelType?: ReelType | string | number
+  containerType?: ContainerType | string | number
   selfWeight?: number
   currentLocationId?: string
   currentLocationCode?: string
@@ -38,11 +38,11 @@ type ReelRow = {
   isLocked?: boolean
 }
 
-type ReelFormModel = {
-  reelNo: string
+type ContainerFormModel = {
+  containerCode: string
   name: string
   size: string
-  reelType: ReelType | number | null
+  containerType: ContainerType | number | null
   selfWeight: number | null
   currentLocationId: string | null
 }
@@ -58,18 +58,19 @@ const loading = ref(false)
 const message = useMessage()
 const formRef = ref<FormInst | null>(null)
 
-const form = reactive<ReelFormModel>({
-  reelNo: '',
+const form = reactive<ContainerFormModel>({
+  containerCode: '',
   name: '',
   size: '',
-  reelType: ReelType.Turnover,
+  containerType: ContainerType.Turnover,
   selfWeight: null,
   currentLocationId: null,
 })
 
 const rules = computed<FormRules>(() => ({
+  containerCode: [{ required: true, message: '请输入盘号', trigger: ['input', 'blur'] }],
   name: [{ required: true, message: '请输入名称', trigger: ['input', 'blur'] }],
-  reelType: [{ required: true, type: 'number', message: '请选择盘具类型', trigger: ['change', 'blur'] }],
+  containerType: [{ required: true, type: 'number', message: '请选择盘具类型', trigger: ['change', 'blur'] }],
   selfWeight: [{ required: true, type: 'number', message: '请输入皮重', trigger: ['input', 'blur'] }],
   currentLocationId: [
     {
@@ -86,23 +87,23 @@ const rules = computed<FormRules>(() => ({
 
 const locationOptions = ref<SelectOption[]>([])
 const locationLoading = ref(false)
-const reelTypeOptions: SelectOption[] = [
-  { label: '周转盘', value: ReelType.Turnover },
-  { label: '成品盘', value: ReelType.FinishedGoods },
-  { label: '虚拟盘', value: ReelType.Virtual },
+const containerTypeOptions: SelectOption[] = [
+  { label: '周转盘', value: ContainerType.Turnover },
+  { label: '成品盘', value: ContainerType.FinishedGoods },
+  { label: '虚拟盘', value: ContainerType.Virtual },
 ]
 
-function normalizeReelType(raw: unknown): ReelType {
-  if (raw === ReelType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return ReelType.FinishedGoods
-  if (raw === ReelType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return ReelType.Virtual
-  return ReelType.Turnover
+function normalizeContainerType(raw: unknown): ContainerType {
+  if (raw === ContainerType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return ContainerType.FinishedGoods
+  if (raw === ContainerType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return ContainerType.Virtual
+  return ContainerType.Turnover
 }
 
 async function resetForm() {
-  form.reelNo = ''
+  form.containerCode = ''
   form.name = ''
   form.size = ''
-  form.reelType = ReelType.Turnover
+  form.containerType = ContainerType.Turnover
   form.selfWeight = null
   form.currentLocationId = null
   locationOptions.value = []
@@ -127,14 +128,14 @@ async function loadLocationOptions(keyword?: string) {
   }
 }
 
-function open(row?: ReelRow) {
+function open(row?: ContainerRow) {
   if (row?.id) {
     mode.value = 'edit'
     editingId.value = row.id
-    form.reelNo = row.reelNo ?? ''
+    form.containerCode = row.containerCode ?? ''
     form.name = row.name ?? ''
     form.size = row.size ?? ''
-    form.reelType = normalizeReelType(row.reelType)
+    form.containerType = normalizeContainerType(row.containerType)
     form.selfWeight = typeof row.selfWeight === 'number' ? row.selfWeight : null
     form.currentLocationId = row.currentLocationId ?? null
   } else {
@@ -150,12 +151,12 @@ function handleLocationSearch(keyword: string) {
   loadLocationOptions(keyword)
 }
 
-function handleReelTypeChange(value: string | number | null) {
+function handleContainerTypeChange(value: string | number | null) {
   if (typeof value === 'number') {
-    form.reelType = value
+    form.containerType = value
     return
   }
-  form.reelType = ReelType.Turnover
+  form.containerType = ContainerType.Turnover
 }
 
 function handleCurrentLocationChange(value: string | number | null) {
@@ -175,11 +176,11 @@ async function handleSubmit() {
 
   loading.value = true
   try {
-    const payload: CreateUpdateReelDto = {
-      reelNo: form.reelNo || undefined,
+    const payload: CreateUpdateContainerDto = {
+      containerCode: form.containerCode.trim(),
       name: form.name,
       size: form.size || undefined,
-      reelType: form.reelType ?? ReelType.Turnover,
+      containerType: form.containerType ?? ContainerType.Turnover,
       selfWeight: form.selfWeight ?? 0,
       currentLocationId: form.currentLocationId ?? undefined,
     }
@@ -214,11 +215,11 @@ const showLocation = computed(() => mode.value === 'create')
 <template>
   <n-modal :show="visible" preset="card" :title="title" style="width: 720px" @update:show="(value) => { visible = value }">
     <n-form ref="formRef" :model="form" :rules="rules" label-width="110">
-      <n-form-item label="盘号" path="reelNo">
+      <n-form-item label="盘号" path="containerCode">
         <n-input
-          :value="form.reelNo"
-          placeholder="留空自动生成"
-          @update:value="(value) => { form.reelNo = value }"
+          :value="form.containerCode"
+          placeholder="请输入盘号"
+          @update:value="(value) => { form.containerCode = value }"
         />
       </n-form-item>
 
@@ -230,12 +231,12 @@ const showLocation = computed(() => mode.value === 'create')
         <n-input :value="form.size" placeholder="请输入规格" @update:value="(value) => { form.size = value }" />
       </n-form-item>
 
-      <n-form-item label="盘具类型" path="reelType">
+      <n-form-item label="盘具类型" path="containerType">
         <n-select
-          :value="form.reelType"
-          :options="reelTypeOptions"
+          :value="form.containerType"
+          :options="containerTypeOptions"
           placeholder="请选择盘具类型"
-          @update:value="handleReelTypeChange"
+          @update:value="handleContainerTypeChange"
         />
       </n-form-item>
 
