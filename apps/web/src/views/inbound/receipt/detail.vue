@@ -650,7 +650,7 @@ onMounted(async () => {
     </n-card>
 
     <!-- Modal -->
-    <n-modal :show="modalVisible" preset="card" title="单条收货" style="width: 640px" @update:show="(value) => (modalVisible = value)">
+    <n-modal :show="modalVisible" preset="card" title="单条收货" style="width: var(--modal-width-md)" @update:show="(value) => (modalVisible = value)">
       <n-form ref="formRef" :model="executeForm" :rules="rules" label-width="120">
         <n-form-item label="仓库">
           <n-select

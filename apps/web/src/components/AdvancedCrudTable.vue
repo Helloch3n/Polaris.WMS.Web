@@ -295,6 +295,8 @@ function handleSorterChange(sorter: DataTableSortState | DataTableSortState[] | 
 
     <n-data-table
       class="crud-table-flat"
+      flex-height
+      style="flex: 1 1 auto; min-height: 0"
       :loading="props.loading"
       :columns="tableColumns"
       :data="props.data"
@@ -306,7 +308,7 @@ function handleSorterChange(sorter: DataTableSortState | DataTableSortState[] | 
       @update:sorter="handleSorterChange"
     />
 
-    <n-modal v-model:show="showConfigModal" preset="card" title="列配置" style="width: 640px">
+    <n-modal v-model:show="showConfigModal" preset="card" title="列配置" style="width: var(--modal-width-md)">
       <div class="column-config-list">
         <div
           v-for="item in columnSettings"
@@ -333,12 +335,17 @@ function handleSorterChange(sorter: DataTableSortState | DataTableSortState[] | 
 <style scoped>
 .advanced-crud-table {
   width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .advanced-tools {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
 }
 
 .column-config-list {

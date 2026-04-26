@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, nextTick, onMounted } from 'vue'
+import { computed, h, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { RouteMeta, RouteRecordRaw } from 'vue-router'
 import {
@@ -13,7 +13,7 @@ import {
   NDropdown,
   NSelect,
 } from 'naive-ui'
-import { MenuOutline as MenuIcon, CloseOutline as CloseIcon, LogOutOutline as LogoutIcon } from '@vicons/ionicons5'
+import { MenuOutline as MenuIcon, CloseOutline as CloseIcon, LogOutOutline as LogoutIcon, ChevronBackOutline, ChevronForwardOutline } from '@vicons/ionicons5'
 import type { MenuOption, SelectOption } from 'naive-ui'
 import { useAuthStore } from '../stores/auth'
 import { useTabsStore } from '../stores/tabs'
@@ -375,6 +375,37 @@ function handleContextMenuClickOutside() {
   showContextMenu.value = false
 }
 
+// ---- 标签页滚动 ----
+const tabsScrollRef = ref<HTMLElement | null>(null)
+const showScrollLeft = ref(false)
+const showScrollRight = ref(false)
+
+function checkTabsOverflow() {
+  const el = tabsScrollRef.value
+  if (!el) return
+  showScrollLeft.value = el.scrollLeft > 2
+  showScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
+}
+
+function scrollTabs(direction: 'left' | 'right') {
+  const el = tabsScrollRef.value
+  if (!el) return
+  el.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' })
+}
+
+let tabsResizeObserver: ResizeObserver | null = null
+
+// ---- 用户下拉菜单 ----
+const userDropdownOptions = [
+  { label: '退出登录', key: 'logout', icon: () => h(NIcon, { size: 14 }, { default: () => h(LogoutIcon) }) },
+]
+
+function handleUserDropdownSelect(key: string) {
+  if (key === 'logout') {
+    onLogout()
+  }
+}
+
 function toggleSider() {
   isCollapsed.value = !isCollapsed.value
 }
@@ -382,6 +413,21 @@ function toggleSider() {
 onMounted(() => {
   loadRealWarehouses()
   loadCurrentUserDepartments()
+  nextTick(() => {
+    checkTabsOverflow()
+    const el = tabsScrollRef.value
+    if (el) {
+      el.addEventListener('scroll', checkTabsOverflow, { passive: true })
+      tabsResizeObserver = new ResizeObserver(checkTabsOverflow)
+      tabsResizeObserver.observe(el)
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  const el = tabsScrollRef.value
+  if (el) el.removeEventListener('scroll', checkTabsOverflow)
+  tabsResizeObserver?.disconnect()
 })
 </script>
 
@@ -394,36 +440,16 @@ onMounted(() => {
         <div class="logo-icon">
           <svg class="brand-warehouse" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <defs>
-              <linearGradient id="polaris-gem-bg" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#1D4ED8" />
-                <stop offset="0.55" stop-color="#5B6CFF" />
-                <stop offset="1" stop-color="#8B5CF6" />
-              </linearGradient>
-              <linearGradient id="polaris-gem-star" x1="7" y1="6" x2="17" y2="18" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#F8FAFF" />
-                <stop offset="1" stop-color="#DDE7FF" />
-              </linearGradient>
-              <linearGradient id="polaris-gem-trail" x1="16" y1="2" x2="7" y2="16" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#ffffff" stop-opacity="0.9" />
-                <stop offset="1" stop-color="#c7d2fe" stop-opacity="0" />
+              <linearGradient id="polaris-bg" x1="1" y1="1" x2="23" y2="23" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#3B82F6" />
+                <stop offset="1" stop-color="#1E40AF" />
               </linearGradient>
             </defs>
-
-            <rect x="0" y="0" width="24" height="24" rx="6.8" fill="url(#polaris-gem-bg)" />
-            <path d="M12 4.9L13.9 10.1L19.1 12L13.9 13.9L12 19.1L10.1 13.9L4.9 12L10.1 10.1L12 4.9Z"
-              fill="url(#polaris-gem-star)" />
-            <path class="warehouse-scan" d="M8.4 12H15.6" stroke="#EEF2FF" stroke-width="1" stroke-linecap="round" />
-            <circle class="warehouse-beacon" cx="16.7" cy="7.5" r="1" fill="#EAF0FF" />
-            <circle class="warehouse-beacon-ring" cx="16.7" cy="7.5" r="1" stroke="#C7D2FE" stroke-width="0.85"
-              fill="none" />
-            <g class="star-fall-group">
-              <path class="star-trail" d="M16.8 4.4L12.8 8.8" stroke="url(#polaris-gem-trail)" stroke-width="1"
-                stroke-linecap="round" />
-              <circle class="star-fall" cx="16.8" cy="4.4" r="0.85" fill="#ffffff" />
-            </g>
+            <rect x="0" y="0" width="24" height="24" rx="5.2" fill="url(#polaris-bg)" />
+            <path d="M12 3.8C12.4 9.8,15 11.2,18.8 12C15 12.8,12.4 15,12 20.2C11.6 15,9 12.8,5.2 12C9 11.2,11.6 9.8,12 3.8Z" fill="white" fill-opacity="0.95" />
           </svg>
         </div>
-        <span class="logo-text" :class="{ hidden: isCollapsed }">Polaris WMS</span>
+        <span class="logo-text" :class="{ hidden: isCollapsed }">极星仓储</span>
       </div>
 
       <n-menu class="menu" :options="menuOptions" :collapsed="isCollapsed" :value="route.path"
@@ -444,7 +470,10 @@ onMounted(() => {
           </n-button>
 
           <div class="header-tabs">
-            <div class="tabs-scroll">
+            <n-button v-show="showScrollLeft" class="tab-scroll-btn tab-scroll-left" text size="tiny" @click="scrollTabs('left')">
+              <n-icon size="14"><ChevronBackOutline /></n-icon>
+            </n-button>
+            <div ref="tabsScrollRef" class="tabs-scroll" @scroll="checkTabsOverflow">
               <div v-for="tab in tabsStore.tabList" :key="tab.path" class="tab-item"
                 :class="{ active: tab.path === route.path }" @click="handleTabClick(tab.path)"
                 @contextmenu="handleTabContextMenu($event, tab.path)">
@@ -456,50 +485,45 @@ onMounted(() => {
                 </span>
               </div>
             </div>
+            <n-button v-show="showScrollRight" class="tab-scroll-btn tab-scroll-right" text size="tiny" @click="scrollTabs('right')">
+              <n-icon size="14"><ChevronForwardOutline /></n-icon>
+            </n-button>
           </div>
         </div>
 
         <div class="header-right">
           <div class="warehouse-switch">
-            <span class="warehouse-label">当前作业仓库</span>
             <n-select
               class="warehouse-select"
-              size="small"
+              size="tiny"
               :value="currentWarehouseId"
               :options="warehouseOptions"
               :loading="warehouseLoading"
               clearable
-              placeholder="请选择仓库"
+              placeholder="仓库"
               @update:value="handleWarehouseChange"
             />
           </div>
 
           <div class="department-switch">
-            <span class="department-label">当前作业部门</span>
             <n-select
               class="department-select"
-              size="small"
+              size="tiny"
               :value="currentDepartmentId"
               :options="departmentOptions"
               :loading="departmentLoading"
               clearable
-              placeholder="请选择部门"
+              placeholder="部门"
               @update:value="handleDepartmentChange"
             />
           </div>
 
-          <div class="user-badge">
-            <div class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
-            <span class="user-name">{{ username }}</span>
-          </div>
-          <n-button size="small" quaternary type="error" @click="onLogout">
-            <template #icon>
-              <n-icon size="14" aria-hidden="true">
-                <LogoutIcon />
-              </n-icon>
-            </template>
-            退出
-          </n-button>
+          <n-dropdown :options="userDropdownOptions" trigger="click" @select="handleUserDropdownSelect">
+            <div class="user-badge" style="cursor: pointer;">
+              <div class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
+              <span class="user-name">{{ username }}</span>
+            </div>
+          </n-dropdown>
         </div>
       </n-layout-header>
 
@@ -568,7 +592,7 @@ onMounted(() => {
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  background: linear-gradient(145deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.1));
+  background: linear-gradient(145deg, rgba(37, 99, 235, 0.15), rgba(29, 78, 216, 0.08));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -583,179 +607,31 @@ onMounted(() => {
   position: absolute;
   inset: 3px;
   border-radius: 10px;
-  border: 1px solid rgba(129, 140, 248, 0.4);
+  border: 1px solid rgba(37, 99, 235, 0.3);
   transform: scale(0.84);
   opacity: 0;
   pointer-events: none;
   z-index: 0;
 }
 
-.logo-icon::before {
-  animation: logo-ripple 3s ease-out infinite;
-}
-
+.logo-icon::before,
 .logo-icon::after {
-  animation: logo-ripple 3s ease-out 1.5s infinite;
+  display: none;
 }
 
 .brand-warehouse {
   position: relative;
   z-index: 1;
-  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.28));
-  transform-origin: center;
-  animation: warehouse-float 4.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.3));
   width: 100%;
   height: 100%;
 }
 
-.warehouse-scan {
-  animation: warehouse-scan-move 2.4s ease-in-out infinite;
-}
-
-.warehouse-beacon {
-  animation: warehouse-beacon-pulse 2.2s ease-in-out infinite;
-}
-
-.warehouse-beacon-ring {
-  animation: warehouse-ring-pulse 2.2s ease-out infinite;
-}
-
-.star-fall-group {
-  transform-origin: center;
-}
-
-.star-fall {
-  animation: star-fall-drop 2.8s ease-in-out infinite;
-}
-
-.star-trail {
-  animation: star-fall-trail 2.8s ease-in-out infinite;
-}
-
-@keyframes logo-ripple {
-  0% {
-    transform: scale(0.82);
-    opacity: 0;
-  }
-
-  20% {
-    opacity: 0.52;
-  }
-
-  72% {
-    opacity: 0.12;
-  }
-
-  100% {
-    transform: scale(1.38);
-    opacity: 0;
-  }
-}
-
-@keyframes warehouse-float {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-1px);
-  }
-}
-
-@keyframes warehouse-scan-move {
-
-  0%,
-  20% {
-    opacity: 0;
-    transform: translateY(-0.5px);
-  }
-
-  50% {
-    opacity: 0.92;
-    transform: translateY(5px);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(9px);
-  }
-}
-
-@keyframes warehouse-beacon-pulse {
-
-  0%,
-  100% {
-    opacity: 0.72;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.12);
-  }
-}
-
-@keyframes warehouse-ring-pulse {
-  0% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.85);
-  }
-}
-
-@keyframes star-fall-drop {
-  0% {
-    transform: translate(0, 0) scale(0.7);
-    opacity: 0;
-  }
-
-  15% {
-    opacity: 1;
-  }
-
-  55% {
-    transform: translate(-3.9px, 5px) scale(1);
-    opacity: 0.95;
-  }
-
-  100% {
-    transform: translate(-5.8px, 7px) scale(0.7);
-    opacity: 0;
-  }
-}
-
-@keyframes star-fall-trail {
-  0% {
-    transform: translate(0, 0);
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 0.65;
-  }
-
-  60% {
-    transform: translate(-3.9px, 5px);
-    opacity: 0.4;
-  }
-
-  100% {
-    transform: translate(-5.8px, 7px);
-    opacity: 0;
-  }
-}
-
 .logo-text {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 700;
   color: #0f172a;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .logo-text.hidden {
@@ -801,6 +677,21 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.tab-scroll-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: #94a3b8;
+  z-index: 1;
+}
+
+.tab-scroll-btn:hover {
+  color: #2563eb;
 }
 
 .tabs-scroll {
@@ -840,10 +731,10 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  color: #4f46e5;
-  background: #eef2ff;
+  color: #2563eb;
+  background: #eff6ff;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
 }
 
 .tab-label {
@@ -868,7 +759,7 @@ onMounted(() => {
 }
 
 .tab-item.active .tab-close {
-  color: #a5b4fc;
+  color: #93c5fd;
 }
 
 .tab-item.active .tab-close:hover {
@@ -880,40 +771,22 @@ onMounted(() => {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.warehouse-switch {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+.warehouse-switch,
 .department-switch {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.warehouse-label {
-  font-size: 11px;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.department-label {
-  font-size: 11px;
-  color: #64748b;
-  white-space: nowrap;
 }
 
 .warehouse-select {
-  width: 170px;
+  width: 130px;
 }
 
 .department-select {
-  width: 150px;
+  width: 120px;
 }
 
 .user-badge {
@@ -945,7 +818,7 @@ onMounted(() => {
    主内容区
    ============================ */
 .main {
-  padding: 12px 14px;
+  padding: 8px 10px;
   height: calc(100vh - 48px);
   min-height: 0;
   overflow: hidden;

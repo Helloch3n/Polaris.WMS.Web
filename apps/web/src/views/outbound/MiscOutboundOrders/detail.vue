@@ -9,6 +9,7 @@ import {
   NEmpty,
   NSpin,
   NTag,
+  useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -19,9 +20,11 @@ import { withResizable } from '../../../utils/table'
 
 const route = useRoute()
 const router = useRouter()
+const dialog = useDialog()
 const message = useMessage()
 
 const loading = ref(false)
+const approveAndExecuteLoading = ref(false)
 const detail = ref<miscOutboundOrderApi.MiscOutboundOrderDto | null>(null)
 
 const detailId = computed(() => String(route.params.id ?? ''))
@@ -42,6 +45,10 @@ function normalizeStatusValue(value: miscOutboundOrderApi.MiscOrderStatus) {
 
   if (typeof value === 'number') return value
   return null
+}
+
+function isDraftStatus(value: miscOutboundOrderApi.MiscOrderStatus) {
+  return normalizeStatusValue(value) === miscOutboundOrderApi.MiscOrderStatus.Draft
 }
 
 function resolveStatusLabel(value: miscOutboundOrderApi.MiscOrderStatus) {
@@ -183,6 +190,50 @@ async function loadDetail() {
   }
 }
 
+function handleApproveAndExecute() {
+  if (approveAndExecuteLoading.value) {
+    return
+  }
+
+  const current = detail.value
+  if (!current?.id) {
+    message.warning('缺少单据 Id，无法审核执行')
+    return
+  }
+
+  if (!isDraftStatus(current.status)) {
+    message.warning('仅草稿状态的其他出库单允许审核执行')
+    return
+  }
+
+  const orderNo = String(current.orderNo ?? '').trim()
+  dialog.warning({
+    title: '确认审核执行',
+    content: `确认审核执行其他出库单${orderNo ? `：${orderNo}` : ''}？`,
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      if (approveAndExecuteLoading.value) {
+        return false
+      }
+
+      approveAndExecuteLoading.value = true
+      try {
+        await miscOutboundOrderApi.approveAndExecute(current.id)
+        message.success('其他出库单审核执行成功')
+        await loadDetail()
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '其他出库单审核执行失败')
+        return false
+      } finally {
+        approveAndExecuteLoading.value = false
+      }
+
+      return true
+    },
+  })
+}
+
 function handleBack() {
   router.push({ name: 'MiscOutboundOrdersManagement' })
 }
@@ -198,6 +249,16 @@ onMounted(() => {
       <div class="detail-header-wrap">
         <div class="header-action-bar">
           <n-button @click="handleBack">返回列表</n-button>
+          <n-button
+            v-if="detail && isDraftStatus(detail.status)"
+            type="primary"
+            secondary
+            :loading="approveAndExecuteLoading"
+            :disabled="loading || approveAndExecuteLoading"
+            @click="handleApproveAndExecute"
+          >
+            审核执行
+          </n-button>
           <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
         </div>
 

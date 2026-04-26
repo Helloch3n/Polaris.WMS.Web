@@ -11,6 +11,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* 标准 Modal 宽度档位 */
+  --modal-width-sm: 480px;
+  --modal-width-md: 640px;
+  --modal-width-lg: 880px;
+  --modal-width-xl: calc(100vw - 80px);
 }
 
 *,
@@ -20,12 +26,12 @@
 }
 
 a {
-  color: #4f46e5;
+  color: #2563eb;
   text-decoration: none;
 }
 
 a:hover {
-  color: #4338ca;
+  color: #1d4ed8;
 }
 
 html,

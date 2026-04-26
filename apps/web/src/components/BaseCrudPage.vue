@@ -9,15 +9,21 @@ export default defineComponent({
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
-import { NButton, NCard, NIcon } from 'naive-ui'
+import { NButton, NCard, NIcon, NTag } from 'naive-ui'
 
 const props = withDefaults(defineProps<{
   searchCollapsible?: boolean
   defaultSearchCollapsed?: boolean
+  selectedCount?: number
 }>(), {
   searchCollapsible: true,
   defaultSearchCollapsed: false,
+  selectedCount: 0,
 })
+
+const emit = defineEmits<{
+  (e: 'clear-selection'): void
+}>()
 
 const searchCollapsed = ref(props.defaultSearchCollapsed)
 
@@ -88,10 +94,15 @@ defineSlots<{
       <div class="slot-shell slot-data">
         <slot name="data" />
       </div>
-      <div v-if="$slots['pager-left'] || $slots['pager-right']" class="slot-shell slot-pager">
+      <div v-if="$slots['pager-left'] || $slots['pager-right'] || props.selectedCount > 0" class="slot-shell slot-pager">
         <div class="crud-pager crud-pager-split">
           <div class="crud-pager-left">
-            <slot name="pager-left" />
+            <slot name="pager-left">
+              <div v-if="props.selectedCount > 0" class="crud-selection-summary">
+                <n-tag size="small" type="info">已选 {{ props.selectedCount }} 条</n-tag>
+                <n-button text @click="emit('clear-selection')">清空选择</n-button>
+              </div>
+            </slot>
           </div>
           <div class="crud-pager-right">
             <slot name="pager-right" />
@@ -139,7 +150,9 @@ defineSlots<{
 .slot-data {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .slot-search {
@@ -318,7 +331,7 @@ defineSlots<{
 :deep(.search-card .n-card__content),
 :deep(.action-card .n-card__content),
 :deep(.data-card .n-card__content) {
-  padding: 10px 12px;
+  padding: 8px 12px;
 }
 
 :deep(.crud-table-flat .n-data-table-wrapper) {
@@ -345,6 +358,31 @@ defineSlots<{
   background: var(--n-color);
 }
 
+/* ── 表格自动 flex-height：撑满数据区并内部滚动 ── */
+:deep(.slot-data > *) {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.slot-data .n-data-table) {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+:deep(.slot-data .n-data-table > .n-data-table-wrapper) {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+}
+
+:deep(.slot-data .n-data-table .n-data-table-base-table) {
+  height: auto !important;
+}
+
 :deep(.crud-table-flat),
 :deep(.crud-table-flat .n-data-table-wrapper),
 :deep(.crud-table-flat .n-data-table-base-table),
@@ -356,6 +394,12 @@ defineSlots<{
 :deep(.crud-table-flat .n-data-table-th),
 :deep(.crud-table-flat .n-data-table-td) {
   background: transparent !important;
+}
+
+:deep(.slot-data .n-data-table-td) {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 :deep(.slot-data .n-data-table-td),
@@ -421,17 +465,17 @@ defineSlots<{
 }
 
 :deep(.n-card) {
-  --n-padding-top: 10px;
-  --n-padding-bottom: 10px;
+  --n-padding-top: 8px;
+  --n-padding-bottom: 8px;
 }
 
 :deep(.n-button) {
   --n-height: 28px;
 }
 
-:deep(.n-input),
-:deep(.n-base-selection),
-:deep(.n-input-number) {
+:deep(.crud-search-form .n-input),
+:deep(.crud-search-form .n-base-selection),
+:deep(.crud-search-form .n-input-number) {
   --n-height: 28px;
 }
 
@@ -455,11 +499,21 @@ defineSlots<{
 .slot-data {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:deep(.slot-data .n-data-table) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.slot-data .n-data-table .n-data-table-wrapper) {
-  max-height: calc(100vh - 360px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 </style>

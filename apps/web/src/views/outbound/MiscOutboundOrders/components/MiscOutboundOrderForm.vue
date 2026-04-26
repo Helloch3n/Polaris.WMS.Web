@@ -174,6 +174,10 @@ function normalizeStatusValue(value: miscOutboundOrderApi.MiscOrderStatus) {
   return null
 }
 
+function isDraftStatus(value: miscOutboundOrderApi.MiscOrderStatus) {
+  return normalizeStatusValue(value) === miscOutboundOrderApi.MiscOrderStatus.Draft
+}
+
 function resolveStatusLabel(value: miscOutboundOrderApi.MiscOrderStatus) {
   const normalized = normalizeStatusValue(value)
   if (normalized === miscOutboundOrderApi.MiscOrderStatus.Draft) return '草稿'
@@ -1094,6 +1098,12 @@ async function loadDetail() {
   loading.value = true
   try {
     const data = await miscOutboundOrderApi.get(id)
+    if (!isDraftStatus(data.status ?? miscOutboundOrderApi.MiscOrderStatus.Draft)) {
+      message.warning('当前其他出库单不是草稿状态，无法编辑')
+      await router.replace({ name: 'MiscOutboundOrdersDetail', params: { id } })
+      return
+    }
+
     formModel.id = normalizeGuid(data.id)
     formModel.orderNo = String(data.orderNo ?? '')
     formModel.accountAliasId = String(data.accountAliasId ?? '')

@@ -144,6 +144,11 @@ export async function update(id: string, data: UpdateMiscOutboundOrderDto) {
   return res.data
 }
 
+export async function approveAndExecute(id: string) {
+  const res = await request.post<void>(`${baseUrl}/${id}/approve-and-execute`)
+  return res.data
+}
+
 export async function remove(id: string) {
   const res = await request.delete<void>(`${baseUrl}/${id}`)
   return res.data
@@ -154,5 +159,6 @@ export default {
   get,
   create,
   update,
+  approveAndExecute,
   remove,
 }

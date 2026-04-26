@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NCheckbox, NForm, NFormItem, NIcon, NInput, useMessage } from 'naive-ui'
-import { HelpCircleOutline, LockClosedOutline, PersonOutline } from '@vicons/ionicons5'
+import { NButton, NCheckbox, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
 import { useAuthStore } from '../stores/auth'
 
@@ -69,111 +68,64 @@ onMounted(async () => {
 
 <template>
   <div class="login-shell">
+    <!-- 左侧品牌区 -->
     <div class="login-brand-panel">
-      <div class="brand-motion-layer" aria-hidden="true">
-        <span class="data-grid grid-a" />
-        <span class="data-grid grid-b" />
-        <span class="geo-outline outline-a" />
-        <span class="geo-outline outline-b" />
-        <span class="data-node node-a" />
-        <span class="data-node node-b" />
-        <span class="data-node node-c" />
-        <span class="polar-halo halo-a" />
-        <span class="polar-halo halo-b" />
-        <span class="orbit-ring" />
-        <span class="orbit-dot dot-a" />
-        <span class="orbit-dot dot-b" />
-        <span class="star-line line-a" />
-        <span class="star-line line-b" />
+      <div class="brand-bg-layer" aria-hidden="true">
+        <span class="bg-grid" />
+        <span class="bg-glow glow-a" />
+        <span class="bg-glow glow-b" />
+        <span class="polar-star" />
       </div>
 
       <div class="brand-content">
-        <div class="brand-header">
-          <img class="brand-logo" src="/polaris-favicon.svg" alt="Polaris" />
-          <div>
-            <div class="brand-name">Polaris WMS</div>
-            <div class="brand-tagline">Internal Operations Platform</div>
-          </div>
-        </div>
-        <p class="brand-subline">WAREHOUSE EXECUTION SYSTEM</p>
-        <h1 class="brand-title">Simple · Stable · Efficient</h1>
+        <svg class="brand-logo-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M24 7.5C24.8 19.5,30 22.5,36.8 24C30 25.5,24.8 30,24 40.5C23.2 30,18 25.5,11.2 24C18 22.5,23.2 19.5,24 7.5Z" fill="white" fill-opacity="0.95" />
+        </svg>
+        <h1 class="brand-name">极星仓储</h1>
+        <p class="brand-slogan">简洁 · 稳定 · 高效</p>
       </div>
     </div>
 
-    <div class="login-seam" aria-hidden="true" />
-
+    <!-- 右侧登录区 -->
     <div class="login-form-panel">
-      <div class="login-panel-stack">
-        <div class="login-panel-meta">
-          <div class="meta-left">
-            <button class="meta-btn active" type="button">CN</button>
-            <span class="meta-split">/</span>
-            <button class="meta-btn" type="button">EN</button>
-          </div>
-          <div class="meta-right">
-            <button class="meta-btn" type="button">
-              <n-icon size="13" aria-hidden="true">
-                <HelpCircleOutline />
-              </n-icon>
-              帮助中心
-            </button>
-            <span class="meta-version">v2.6.0</span>
-          </div>
+      <div class="login-card">
+        <div class="login-card-header">
+          <h2 class="title">欢迎登录</h2>
+          <p class="subtitle">极星仓储管理系统</p>
         </div>
 
-        <div class="login-card">
-          <div class="login-card-header">
-            <img class="login-logo" src="/polaris-favicon.svg" alt="Polaris" />
-            <h2 class="title">账号登录</h2>
-          </div>
+        <n-form ref="formRef" :model="form" :rules="rules" label-placement="top" autocomplete="off">
+          <n-form-item label="账号" path="username">
+            <n-input
+              :value="form.username"
+              placeholder="请输入账号"
+              :input-props="{ autocomplete: 'off' }"
+              @update:value="(value) => (form.username = value)"
+            />
+          </n-form-item>
 
-          <n-form ref="formRef" :model="form" :rules="rules" label-placement="top" autocomplete="off">
-            <n-form-item label="账号" path="username">
-              <n-input
-                class="login-input"
-                :value="form.username"
-                placeholder="请输入账号"
-                :input-props="{ autocomplete: 'off' }"
-                @update:value="(value) => (form.username = value)"
-              >
-                <template #prefix>
-                  <n-icon size="16" class="login-input-icon" aria-hidden="true">
-                    <PersonOutline />
-                  </n-icon>
-                </template>
-              </n-input>
-            </n-form-item>
+          <n-form-item label="密码" path="password">
+            <n-input
+              :value="form.password"
+              placeholder="请输入密码"
+              type="password"
+              :input-props="{ autocomplete: 'new-password' }"
+              show-password-on="click"
+              @update:value="(value) => (form.password = value)"
+              @keyup.enter="onLogin"
+            />
+          </n-form-item>
 
-            <n-form-item label="密码" path="password">
-              <n-input
-                class="login-input"
-                :value="form.password"
-                placeholder="请输入密码"
-                type="password"
-                :input-props="{ autocomplete: 'new-password' }"
-                show-password-on="click"
-                @update:value="(value) => (form.password = value)"
-                @keyup.enter="onLogin"
-              >
-                <template #prefix>
-                  <n-icon size="16" class="login-input-icon" aria-hidden="true">
-                    <LockClosedOutline />
-                  </n-icon>
-                </template>
-              </n-input>
-            </n-form-item>
+          <n-form-item class="remember-item">
+            <n-checkbox :checked="rememberPassword" @update:checked="(value) => { rememberPassword = value }">记住密码</n-checkbox>
+          </n-form-item>
 
-            <n-form-item class="remember-item">
-              <n-checkbox :checked="rememberPassword" @update:checked="(value) => { rememberPassword = value }">记住密码</n-checkbox>
-            </n-form-item>
+          <n-button type="primary" class="login-btn" :loading="loading" @click="onLogin">
+            登 录
+          </n-button>
+        </n-form>
 
-            <n-button type="primary" class="login-btn" :loading="loading" @click="onLogin">
-              登录
-            </n-button>
-          </n-form>
-
-          <div class="login-footer">© {{ new Date().getFullYear() }} Polaris WMS · Internal Use Only</div>
-        </div>
+        <div class="login-footer">© {{ new Date().getFullYear() }} 极星仓储 · 仅限内部使用</div>
       </div>
     </div>
   </div>
@@ -182,521 +134,164 @@ onMounted(async () => {
 <style scoped>
 .login-shell {
   min-height: 100vh;
-  position: relative;
   display: flex;
   overflow: hidden;
-  background:
-    radial-gradient(1200px 520px at -10% -20%, rgba(99, 102, 241, 0.14), transparent 60%),
-    radial-gradient(1100px 520px at 110% 0%, rgba(56, 189, 248, 0.1), transparent 60%),
-    #f5f7fb;
+  background: #f5f7fb;
 }
 
+/* ===== 左侧品牌面板 ===== */
 .login-brand-panel {
-  flex: 0 0 58%;
+  flex: 0 0 50%;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(145deg, #1e3a8a 0%, #2563eb 54%, #4f46e5 100%);
+  background: linear-gradient(155deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #eef4ff;
+  color: #ffffff;
 }
 
-.login-seam {
-  position: absolute;
-  top: -10%;
-  bottom: -10%;
-  left: calc(58% - 44px);
-  width: 120px;
-  pointer-events: none;
-  background:
-    linear-gradient(140deg, rgba(37, 99, 235, 0.24) 0%, rgba(37, 99, 235, 0.08) 42%, rgba(255, 255, 255, 0) 100%);
-  transform: skewX(-10deg);
-  filter: blur(0.5px);
-  z-index: 2;
-}
-
-.brand-motion-layer {
+.brand-bg-layer {
   position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
 }
 
-.data-grid {
+.bg-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.22;
+  opacity: 0.08;
   background-image:
-    linear-gradient(rgba(238, 244, 255, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(238, 244, 255, 0.12) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
-.grid-a {
-  transform: perspective(540px) rotateX(56deg) translateY(24%);
-  transform-origin: center bottom;
-  animation: gridDriftA 18s linear infinite;
-}
-
-.grid-b {
-  opacity: 0.16;
-  background-size: 64px 64px;
-  transform: perspective(540px) rotateX(56deg) translateY(30%);
-  animation: gridDriftB 24s linear infinite;
-}
-
-.geo-outline {
-  position: absolute;
-  border: 1px solid rgba(238, 244, 255, 0.18);
-  border-radius: 16px;
-  opacity: 0.36;
-}
-
-.outline-a {
-  width: 220px;
-  height: 120px;
-  left: 14%;
-  top: 22%;
-  transform: rotate(-8deg);
-}
-
-.outline-b {
-  width: 200px;
-  height: 110px;
-  right: 12%;
-  bottom: 20%;
-  transform: rotate(10deg);
-}
-
-.data-node {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 0 0 6px rgba(191, 219, 254, 0.16), 0 0 14px rgba(255, 255, 255, 0.6);
-  animation: nodePulse 4s ease-in-out infinite;
-}
-
-.node-a {
-  top: 28%;
-  left: 30%;
-}
-
-.node-b {
-  top: 58%;
-  right: 24%;
-  animation-delay: 1.2s;
-}
-
-.node-c {
-  bottom: 24%;
-  left: 42%;
-  animation-delay: 2.1s;
-}
-
-.login-brand-panel::before,
-.login-brand-panel::after {
-  content: '';
-  position: absolute;
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.login-brand-panel::before {
-  width: 420px;
-  height: 420px;
-  right: -160px;
-  top: -160px;
-  background: rgba(255, 255, 255, 0.08);
-  animation: haloPulse 8s ease-in-out infinite;
-}
-
-.login-brand-panel::after {
-  width: 380px;
-  height: 380px;
-  left: -150px;
-  bottom: -170px;
-  background: rgba(248, 250, 255, 0.12);
-  animation: haloPulse 10s ease-in-out infinite reverse;
-}
-
-.polar-halo {
+.bg-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(1px);
-  opacity: 0.4;
+  filter: blur(60px);
 }
 
-.halo-a {
-  width: 220px;
-  height: 220px;
-  top: 20%;
-  left: 18%;
-  background: radial-gradient(circle at 35% 35%, rgba(191, 219, 254, 0.48), rgba(191, 219, 254, 0));
-  animation: floatHaloA 11s ease-in-out infinite;
+.glow-a {
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  right: -80px;
+  background: rgba(96, 165, 250, 0.25);
 }
 
-.halo-b {
-  width: 200px;
-  height: 200px;
-  bottom: 14%;
-  right: 16%;
-  background: radial-gradient(circle at 35% 35%, rgba(196, 181, 253, 0.45), rgba(196, 181, 253, 0));
-  animation: floatHaloB 12s ease-in-out infinite;
+.glow-b {
+  width: 300px;
+  height: 300px;
+  bottom: -60px;
+  left: -40px;
+  background: rgba(147, 197, 253, 0.2);
 }
 
-.orbit-ring {
+.polar-star {
   position: absolute;
-  width: 500px;
-  height: 500px;
+  top: 15%;
+  right: 20%;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  border: 1px solid rgba(238, 244, 255, 0.2);
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  animation: spinRing 24s linear infinite;
-}
-
-.orbit-dot {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.75);
-}
-
-.dot-a {
-  left: calc(50% + 246px);
-  top: 50%;
-  animation: orbitDotA 12s linear infinite;
-}
-
-.dot-b {
-  left: calc(50% - 210px);
-  top: calc(50% + 120px);
-  animation: orbitDotB 16s linear infinite;
-}
-
-.star-line {
-  position: absolute;
-  width: 52%;
-  height: 1px;
-  left: -6%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 52%, transparent 100%);
-  opacity: 0;
-}
-
-.line-a {
-  top: 32%;
-  transform: rotate(-10deg);
-  animation: starSweep 8s ease-in-out infinite;
-}
-
-.line-b {
-  top: 66%;
-  transform: rotate(8deg);
-  animation: starSweep 9s ease-in-out infinite 2s;
+  background: #ffffff;
+  box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.6);
+  animation: starTwinkle 3s ease-in-out infinite;
 }
 
 .brand-content {
-  width: min(540px, 84%);
   position: relative;
   z-index: 1;
+  text-align: center;
 }
 
-.brand-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 26px;
-}
-
-.brand-logo {
-  width: 44px;
-  height: 44px;
+.brand-logo-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 28px;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+  animation: logoBreath 5s ease-in-out infinite;
 }
 
 .brand-name {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.brand-tagline {
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  color: rgba(238, 244, 255, 0.78);
-  text-transform: uppercase;
-}
-
-.brand-title {
-  margin: 0 0 10px;
-  font-size: 12px;
-  letter-spacing: 0.22em;
-  color: rgba(238, 244, 255, 0.72);
-  text-transform: uppercase;
-}
-
-.brand-title {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.35;
+  font-size: 36px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  max-width: 460px;
+  letter-spacing: 4px;
+  line-height: 1.3;
 }
 
+.brand-slogan {
+  margin: 12px 0 0;
+  font-size: 15px;
+  letter-spacing: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+/* ===== 右侧登录面板 ===== */
 .login-form-panel {
-  flex: 0 0 42%;
-  background:
-    radial-gradient(640px 300px at 0% 0%, rgba(37, 99, 235, 0.06), transparent 70%),
-    #ffffff;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28px;
-  position: relative;
-  z-index: 3;
-}
-
-.login-panel-stack {
-  width: min(440px, 100%);
-}
-
-.login-panel-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-  padding: 0 2px;
-}
-
-.meta-left,
-.meta-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.meta-btn {
-  border: none;
-  background: transparent;
-  color: #64748b;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.meta-btn:hover,
-.meta-btn.active {
-  color: #2563eb;
-}
-
-.meta-split,
-.meta-version {
-  color: #94a3b8;
-  font-size: 12px;
+  padding: 40px;
+  background: #ffffff;
 }
 
 .login-card {
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #e6edf7;
-  border-radius: 20px;
-  padding: 30px 28px 24px;
-  box-shadow:
-    0 24px 50px rgba(15, 23, 42, 0.09),
-    0 6px 18px rgba(15, 23, 42, 0.06);
-}
-
-.login-card::before {
-  content: '';
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  right: -60px;
-  top: -60px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.16), rgba(59, 130, 246, 0));
-  pointer-events: none;
+  width: 380px;
+  max-width: 100%;
 }
 
 .login-card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.login-logo {
-  width: 36px;
-  height: 36px;
+  margin-bottom: 28px;
 }
 
 .title {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: #0f172a;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #94a3b8;
 }
 
 .remember-item {
   margin-top: 2px;
 }
 
-:deep(.login-input .n-input-wrapper) {
-  border-radius: 12px;
-  border: 1px solid #dbe5f3;
-  transition: border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
-}
-
-:deep(.login-input .n-input__input-el) {
-  font-size: 14px;
-}
-
-:deep(.login-input .n-input__prefix) {
-  margin-right: 6px;
-}
-
-.login-input-icon {
-  color: #94a3b8;
-  transition: color 0.2s ease;
-}
-
-:deep(.login-input.n-input--focus .n-input-wrapper) {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 0 14px rgba(59, 130, 246, 0.12);
-  animation: inputBreath 1.8s ease-in-out infinite;
-}
-
-:deep(.login-input.n-input--focus .login-input-icon) {
-  color: #2563eb;
-}
-
 .login-btn {
   width: 100%;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 10px;
   margin-top: 6px;
   font-size: 15px;
   font-weight: 600;
-  border: 1px solid rgba(37, 99, 235, 0.3);
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 56%, #4f46e5 100%) !important;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-.login-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 24px rgba(37, 99, 235, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  letter-spacing: 4px;
 }
 
 .login-footer {
-  margin-top: 18px;
+  margin-top: 24px;
   text-align: center;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 12px;
 }
 
-@keyframes haloPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.62;
-  }
-  50% {
-    transform: scale(1.07);
-    opacity: 0.85;
-  }
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
 }
 
-@keyframes floatHaloA {
-  0%,
-  100% { transform: translate(0, 0); }
-  50% { transform: translate(14px, -12px); }
-}
-
-@keyframes floatHaloB {
-  0%,
-  100% { transform: translate(0, 0); }
-  50% { transform: translate(-12px, 16px); }
-}
-
-@keyframes gridDriftA {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 0 32px, 32px 0; }
-}
-
-@keyframes gridDriftB {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 0 48px, -48px 0; }
-}
-
-@keyframes nodePulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-}
-
-@keyframes spinRing {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-@keyframes orbitDotA {
-  from { transform: rotate(0deg) translateX(-246px) rotate(0deg); }
-  to { transform: rotate(360deg) translateX(-246px) rotate(-360deg); }
-}
-
-@keyframes orbitDotB {
-  from { transform: rotate(0deg) translateX(210px) rotate(0deg); }
-  to { transform: rotate(-360deg) translateX(210px) rotate(360deg); }
-}
-
-@keyframes starSweep {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translateX(-6%) scaleX(0.88) rotate(var(--line-rotate, 0deg));
-  }
-  40%,
-  60% {
-    opacity: 0.78;
-    transform: translateX(18%) scaleX(1) rotate(var(--line-rotate, 0deg));
-  }
-}
-
-@keyframes inputBreath {
-  0%,
-  100% {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 0 12px rgba(59, 130, 246, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18), 0 0 16px rgba(59, 130, 246, 0.16);
-  }
-}
-
-.line-a {
-  --line-rotate: -10deg;
-}
-
-.line-b {
-  --line-rotate: 8deg;
+@keyframes logoBreath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
 }
 
 @media (max-width: 1200px) {
