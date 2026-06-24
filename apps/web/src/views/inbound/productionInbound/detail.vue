@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
@@ -18,6 +18,8 @@ import type { DataTableColumns } from 'naive-ui'
 import * as productionInboundApi from '../../../api/inbound/productionInbound'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import { withResizable } from '../../../utils/table'
+import { usePermission } from '../../../composables/usePermission'
+import { formatQuantity } from '../../../utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -134,13 +136,23 @@ const detailColumns = computed<DataTableColumns<productionInboundApi.ProductionI
     title: '数量',
     key: 'qty',
     width: 120,
-    render: (row) => row.qty ?? '-',
+    render: (row) => row.qty !== undefined && row.qty !== null ? formatQuantity(row.qty) : '-',
   },
   {
     title: '单位',
     key: 'unit',
     width: 100,
     render: (row) => row.unit || '-',
+  },
+  {
+    title: '是否需要检验',
+    key: 'needInspection',
+    width: 140,
+    render: (row) => h(
+      NTag,
+      { type: row.needInspection ? 'warning' : 'success', bordered: false, size: 'small' },
+      { default: () => row.needInspection ? '是' : '否' }
+    ),
   },
   {
     title: '实际库位编码',
@@ -180,6 +192,37 @@ function handleBack() {
   router.push({ name: 'ProductionInboundManagement' })
 }
 
+const { hasPermission } = usePermission()
+
+const canUpdate = computed(() => hasPermission('WMS.InboundOps.ProductionInbounds.Update'))
+const canApprove = computed(() => hasPermission('WMS.InboundOps.ProductionInbounds.Approve'))
+
+const isDraftStatus = computed(() => {
+  if (!detail.value) return false
+  const status = normalizeStatusValue(detail.value.status)
+  return status === productionInboundApi.ProductionInboundStatus.Draft
+})
+
+function handleEdit() {
+  if (!detailId.value) return
+  router.push({ name: 'ProductionInboundEdit', params: { orderId: detailId.value } })
+}
+
+const approving = ref(false)
+async function handleApproveAndExecute() {
+  if (!detailId.value) return
+  approving.value = true
+  try {
+    await productionInboundApi.approveAndExecute(detailId.value)
+    message.success('审核并执行成功')
+    await loadDetail()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '审核并执行失败')
+  } finally {
+    approving.value = false
+  }
+}
+
 onMounted(() => {
   loadDetail()
 })
@@ -192,6 +235,8 @@ onMounted(() => {
         <div class="header-action-bar">
           <n-button @click="handleBack">返回列表</n-button>
           <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+          <n-button v-if="canUpdate && isDraftStatus" type="warning" secondary @click="handleEdit">编辑</n-button>
+          <n-button v-if="canApprove && isDraftStatus" type="success" :loading="approving" @click="handleApproveAndExecute">审核并执行</n-button>
         </div>
 
         <n-spin :show="loading">

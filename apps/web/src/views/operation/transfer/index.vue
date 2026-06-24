@@ -18,7 +18,7 @@ import * as transferApi from '../../../api/transfer/transfer'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
-import { useAuthStore } from '../../../stores/auth'
+
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
@@ -30,10 +30,7 @@ const rows = ref<TransferRow[]>([])
 const message = useMessage()
 const dialog = useDialog()
 const router = useRouter()
-const authStore = useAuthStore()
 
-const currentWarehouseText = computed(() => authStore.currentWarehouseId.trim() || '未设置')
-const currentDepartmentText = computed(() => authStore.currentDepartmentId.trim() || '未设置')
 
 const query = reactive({
   orderNo: '',
@@ -48,7 +45,7 @@ const pagination = reactive<PaginationProps>({
 const listParams = computed<transferApi.TransferSearchDto>(() => ({
   maxResultCount: pagination.pageSize ?? 10,
   skipCount: ((pagination.page ?? 1) - 1) * (pagination.pageSize ?? 10),
-  orderNo: query.orderNo.trim() || undefined,
+  orderNo: query.orderNo?.trim() || undefined,
 }))
 
 function getRowKey(row: TransferRow) {
@@ -131,7 +128,7 @@ const {
   handleVisibleChange,
   createDraggableTitle,
 } = useColumnConfig({
-  storageKey: 'transfer-order-column-settings-v4',
+  storageKey: 'transfer-order-column-settings-v5',
   preferredKeys: ['orderNo', 'departmentCode', 'departmentName', 'warehouseCode', 'warehouseName', 'status', 'creationTime'],
   resolveTitle: (key) => {
     if (key === 'orderNo') return '调拨单号'
@@ -331,9 +328,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <BaseCrudPage>
-      <template #search>
+  <BaseCrudPage>
+    <template #search>
         <n-form inline class="crud-search-form">
           <n-form-item>
             <n-input :value="query.orderNo" placeholder="请输入调拨单号" clearable @update:value="(value) => { query.orderNo = value }" />
@@ -359,16 +355,6 @@ onMounted(() => {
 
       <template #actions-right>
         <div class="crud-action-tools transfer-toolbar-tools">
-          <div class="transfer-context-info" aria-label="当前作业上下文">
-            <div class="transfer-context-item" title="当前作业仓库">
-              <span class="transfer-context-label">当前作业仓库</span>
-              <span class="transfer-context-value">{{ currentWarehouseText }}</span>
-            </div>
-            <div class="transfer-context-item" title="当前作业部门">
-              <span class="transfer-context-label">当前作业部门</span>
-              <span class="transfer-context-value">{{ currentDepartmentText }}</span>
-            </div>
-          </div>
           <TableColumnManager
             :show="showColumnConfig"
             :settings="columnSettings"
@@ -411,8 +397,6 @@ onMounted(() => {
         />
       </template>
     </BaseCrudPage>
-
-  </div>
 </template>
 
 <style scoped>
@@ -420,42 +404,4 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.transfer-context-info {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: 2px;
-}
-
-.transfer-context-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 220px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--n-border-color);
-  background-color: var(--n-color);
-}
-
-.transfer-context-label {
-  font-size: 11px;
-  color: var(--n-text-color-3);
-  white-space: nowrap;
-}
-
-.transfer-context-value {
-  color: var(--n-text-color-1);
-  font-size: 12px;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 1440px) {
-  .transfer-context-info {
-    display: none;
-  }
-}
 </style>

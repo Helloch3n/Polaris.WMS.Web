@@ -8,8 +8,6 @@ import {
   NInput,
   NModal,
   NSelect,
-  NTabPane,
-  NTabs,
   NTag,
   useDialog,
   useMessage,
@@ -30,7 +28,7 @@ type TaskRow = PutawayService.PutawayTaskDto
 const message = useMessage()
 const dialog = useDialog()
 
-const activeTab = ref<'source' | 'tasks'>('source')
+const activeTab = ref<'source' | 'tasks' | 'all'>('source')
 
 const sourceLoading = ref(false)
 const sourceFilter = ref('')
@@ -38,14 +36,31 @@ const sourceRows = ref<AvailableContainerRow[]>([])
 
 const taskLoading = ref(false)
 const taskRows = ref<TaskRow[]>([])
-const taskStatus = ref<string | null>(null)
-const taskStatusOptions: SelectOption[] = [
-  { label: '全部', value: null as unknown as string },
-  { label: '待执行', value: 'Pending' },
-  { label: '执行中', value: 'InProgress' },
-  { label: '已完成', value: 'Completed' },
-  { label: '已取消', value: 'Cancelled' },
-]
+const taskStatusOptions = computed<SelectOption[]>(() => {
+  if (activeTab.value === 'tasks') {
+    return [
+      { label: '全部', value: null as unknown as string },
+      { label: '待执行', value: 'Pending' },
+      { label: '执行中', value: 'InProgress' },
+    ]
+  }
+  return [
+    { label: '全部', value: null as unknown as string },
+    { label: '待执行', value: 'Pending' },
+    { label: '执行中', value: 'InProgress' },
+    { label: '已完成', value: 'Completed' },
+    { label: '已取消', value: 'Cancelled' },
+  ]
+})
+
+const taskQuery = reactive({
+  taskNo: '',
+  containerNo: '',
+  status: null as string | null,
+  page: 1,
+  pageSize: 10,
+  total: 0,
+})
 
 const sourceColumnConfig = useColumnConfig({
   storageKey: 'putaway-source-column-settings-v1',
@@ -61,11 +76,12 @@ const sourceColumnConfig = useColumnConfig({
 
 const taskColumnConfig = useColumnConfig({
   storageKey: 'putaway-task-column-settings-v1',
-  preferredKeys: ['taskNo', 'containerNo', 'fromLocationCode', 'status', 'creationTime'],
+  preferredKeys: ['taskNo', 'containerNo', 'fromLocationCode', 'toLocationCode', 'status', 'creationTime'],
   resolveTitle: (key) => {
     if (key === 'taskNo') return '任务号'
     if (key === 'containerNo') return '盘号'
     if (key === 'fromLocationCode') return '源库位'
+    if (key === 'toLocationCode') return '目标库位'
     if (key === 'status') return '状态'
     if (key === 'creationTime') return '创建时间'
     return key
@@ -167,10 +183,22 @@ async function createTask(row: AvailableContainerRow) {
 async function loadTasks() {
   taskLoading.value = true
   try {
+    let statuses: string[] | undefined = undefined
+    if (activeTab.value === 'tasks') {
+      if (!taskQuery.status) {
+        statuses = ['Pending', 'InProgress']
+      }
+    }
     const res = await PutawayService.getList({
-      status: taskStatus.value || undefined,
+      skipCount: (taskQuery.page - 1) * taskQuery.pageSize,
+      maxResultCount: taskQuery.pageSize,
+      status: taskQuery.status || undefined,
+      statuses,
+      taskNo: taskQuery.taskNo.trim() || undefined,
+      containerNo: taskQuery.containerNo.trim() || undefined,
     })
     taskRows.value = res.items ?? []
+    taskQuery.total = res.totalCount ?? 0
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载任务失败')
   } finally {
@@ -224,26 +252,50 @@ function onResetSource() {
 }
 
 function onRefreshTasks() {
+  taskQuery.page = 1
   loadTasks()
 }
 
 function onQueryTasks() {
+  taskQuery.page = 1
   loadTasks()
 }
 
 function onResetTasks() {
-  taskStatus.value = null
+  taskQuery.taskNo = ''
+  taskQuery.containerNo = ''
+  taskQuery.status = null
+  taskQuery.page = 1
+  loadTasks()
+}
+
+function handleTaskPageChange(page: number) {
+  taskQuery.page = page
+  loadTasks()
+}
+
+function handleTaskPageSizeChange(size: number) {
+  taskQuery.pageSize = size
+  taskQuery.page = 1
   loadTasks()
 }
 
 function onTabChange(name: string) {
-  activeTab.value = name as 'source' | 'tasks'
-  if (activeTab.value === 'tasks' && taskRows.value.length === 0) {
+  activeTab.value = name as 'source' | 'tasks' | 'all'
+  if (activeTab.value !== 'source') {
+    taskQuery.page = 1
+    if (activeTab.value === 'tasks') {
+      if (taskQuery.status && taskQuery.status !== 'Pending' && taskQuery.status !== 'InProgress') {
+        taskQuery.status = null
+      }
+    }
     loadTasks()
+  } else {
+    loadSource()
   }
 }
 
-function switchTab(tab: 'source' | 'tasks') {
+function switchTab(tab: 'source' | 'tasks' | 'all') {
   if (activeTab.value === tab) return
   onTabChange(tab)
 }
@@ -323,6 +375,13 @@ const taskColumnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
     sorter: (a, b) => compareSortValue(a.fromLocationCode, b.fromLocationCode),
     render: (row: TaskRow) => row.fromLocationCode || '-',
   },
+  toLocationCode: {
+    title: taskColumnConfig.createDraggableTitle('toLocationCode', '目标库位'),
+    key: 'toLocationCode',
+    minWidth: 160,
+    sorter: (a, b) => compareSortValue(a.toLocationCode, b.toLocationCode),
+    render: (row: TaskRow) => row.toLocationCode || '-',
+  },
   status: {
     title: taskColumnConfig.createDraggableTitle('status', '状态'),
     key: 'status',
@@ -400,14 +459,14 @@ onMounted(async () => {
 <template>
   <BaseCrudPage>
     <template #search>
-      <n-form inline class="crud-search-form">
+      <n-form inline label-placement="left" class="crud-search-form" @submit.prevent="onQueryTasks">
         <template v-if="activeTab === 'source'">
-          <n-form-item>
+          <n-form-item label="盘号/物料">
             <n-input
               :value="sourceFilter"
               placeholder="请输入盘号或物料"
               clearable
-              style="width: 320px"
+              style="width: 240px"
               @update:value="(value) => (sourceFilter = value)"
               @keyup.enter="onQuerySource"
             />
@@ -421,14 +480,32 @@ onMounted(async () => {
           </n-form-item>
         </template>
         <template v-else>
-          <n-form-item>
+          <n-form-item label="任务号">
+            <n-input
+              :value="taskQuery.taskNo"
+              clearable
+              placeholder="请输入任务号"
+              @update:value="(value) => (taskQuery.taskNo = value)"
+              @keyup.enter="onQueryTasks"
+            />
+          </n-form-item>
+          <n-form-item label="盘号">
+            <n-input
+              :value="taskQuery.containerNo"
+              clearable
+              placeholder="请输入盘号"
+              @update:value="(value) => (taskQuery.containerNo = value)"
+              @keyup.enter="onQueryTasks"
+            />
+          </n-form-item>
+          <n-form-item label="状态">
             <n-select
-              :value="taskStatus"
+              :value="taskQuery.status"
               :options="taskStatusOptions"
               clearable
-              placeholder="状态"
-              style="width: 180px"
-              @update:value="(value) => { taskStatus = value; onRefreshTasks() }"
+              placeholder="请选择状态"
+              style="width: 160px"
+              @update:value="(value) => { taskQuery.status = value; onRefreshTasks() }"
             />
           </n-form-item>
           <n-form-item class="crud-page-spacer" />
@@ -436,7 +513,7 @@ onMounted(async () => {
             <n-button type="primary" :loading="taskLoading" @click="onQueryTasks">查询</n-button>
           </n-form-item>
           <n-form-item>
-            <n-button :loading="taskLoading" @click="onResetTasks">重置</n-button>
+            <n-button :disabled="taskLoading" @click="onResetTasks">重置</n-button>
           </n-form-item>
         </template>
       </n-form>
@@ -446,6 +523,7 @@ onMounted(async () => {
       <div class="crud-action-main">
         <n-button :type="activeTab === 'source' ? 'primary' : 'default'" @click="switchTab('source')">待上架资源</n-button>
         <n-button :type="activeTab === 'tasks' ? 'primary' : 'default'" @click="switchTab('tasks')">执行任务</n-button>
+        <n-button :type="activeTab === 'all' ? 'primary' : 'default'" @click="switchTab('all')">全部</n-button>
       </div>
     </template>
 
@@ -469,15 +547,34 @@ onMounted(async () => {
     </template>
 
     <template #data>
-      <n-tabs type="line" :value="activeTab" @update:value="onTabChange">
-      <n-tab-pane name="source" tab="待上架资源">
-        <n-data-table class="crud-table-flat" :loading="sourceLoading" :columns="sourceColumns" :data="sourceRows" :bordered="false" />
-      </n-tab-pane>
+      <n-data-table
+        v-if="activeTab === 'source'"
+        class="crud-table-flat"
+        :loading="sourceLoading"
+        :columns="sourceColumns"
+        :data="sourceRows"
+        :bordered="false"
+      />
+      <n-data-table
+        v-else
+        class="crud-table-flat"
+        :loading="taskLoading"
+        :columns="taskColumns"
+        :data="taskRows"
+        :bordered="false"
+      />
+    </template>
 
-      <n-tab-pane name="tasks" tab="执行任务">
-        <n-data-table class="crud-table-flat" :loading="taskLoading" :columns="taskColumns" :data="taskRows" :bordered="false" />
-      </n-tab-pane>
-      </n-tabs>
+    <template #pager-right v-if="activeTab !== 'source'">
+      <n-pagination
+        :page="taskQuery.page"
+        :page-size="taskQuery.pageSize"
+        :item-count="taskQuery.total"
+        :page-sizes="[10,20,50,100]"
+        show-size-picker
+        @update:page="handleTaskPageChange"
+        @update:page-size="handleTaskPageSizeChange"
+      />
     </template>
 
     <n-modal :show="completeModalVisible" preset="card" title="完成上架" style="width: var(--modal-width-md)" @update:show="(value) => (completeModalVisible = value)">

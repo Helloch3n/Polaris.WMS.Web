@@ -20,6 +20,7 @@ import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { useTableSelection } from '../../../composables/useTableSelection'
+import { usePermission } from '../../../composables/usePermission'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 
@@ -31,6 +32,13 @@ const router = useRouter()
 const loading = ref(false)
 const approveAndExecuteLoading = ref(false)
 const rows = ref<RowItem[]>([])
+
+const { hasPermission } = usePermission()
+
+const canCreate = computed(() => hasPermission('WMS.OutboundOps.MiscOutboundOrders.Create'))
+const canUpdate = computed(() => hasPermission('WMS.OutboundOps.MiscOutboundOrders.Update'))
+const canDeletePermission = computed(() => hasPermission('WMS.OutboundOps.MiscOutboundOrders.Delete'))
+const canApprove = computed(() => hasPermission('WMS.OutboundOps.MiscOutboundOrders.Approve'))
 
 const query = reactive({
   orderNo: '',
@@ -70,7 +78,7 @@ const {
 } = useTableSelection(rows, getRowKey)
 
 const canSelectOne = computed(() => selectedCount.value === 1)
-const canDelete = computed(() => selectedCount.value > 0)
+const canDelete = computed(() => selectedCount.value > 0 && selectedRows.value.every(row => isDraftStatus(row.status)))
 
 function normalizeStatusValue(value: miscOutboundOrderApi.MiscOrderStatus) {
   if (typeof value === 'string') {
@@ -470,10 +478,11 @@ onMounted(() => {
 
     <template #actions-left>
       <div class="crud-action-main">
-        <n-button type="primary" @click="handleCreate">新增</n-button>
+        <n-button v-if="canCreate" type="primary" @click="handleCreate">新增</n-button>
         <n-button :disabled="!canSelectOne || loading" @click="handleViewSelected">查看</n-button>
-        <n-button :disabled="!canSelectOne || loading" @click="handleEditSelected">编辑</n-button>
+        <n-button v-if="canUpdate" :disabled="!canSelectOne || loading || !selectedRows[0] || !isDraftStatus(selectedRows[0].status)" @click="handleEditSelected">编辑</n-button>
         <n-button
+          v-if="canApprove"
           type="primary"
           secondary
           :loading="approveAndExecuteLoading"
@@ -482,7 +491,7 @@ onMounted(() => {
         >
           审核执行
         </n-button>
-        <n-button type="error" :disabled="!canDelete || loading" @click="handleDeleteSelected">删除</n-button>
+        <n-button v-if="canDeletePermission" type="error" :disabled="!canDelete || loading" @click="handleDeleteSelected">删除</n-button>
       </div>
     </template>
 

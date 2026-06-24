@@ -54,6 +54,8 @@ export interface CreateUpdateContainerDto {
   containerType: ContainerType | number
   selfWeight: number
   currentLocationId?: string
+  status?: number
+  isLocked?: boolean
 }
 
 export interface UpdateContainerLocationDto {
@@ -74,6 +76,7 @@ export interface InventoryBriefDto {
 export interface MovableContainerDto {
   containerId: string
   containerNo: string
+  containerCode: string
   containerType: string
   currentLocationId: string
   currentLocationCode: string
@@ -195,6 +198,12 @@ export async function updateLocation(id: string, data: UpdateContainerLocationDt
 }
 
 export async function getMovableContainers(sourceWarehouseId: string) {
-  const res = await request.get<MovableContainerDto[]>(`${baseUrl}/movable-containers/${sourceWarehouseId}`)
+  const res = await request.get<MovableContainerDto[]>(`${baseUrl}/movable-reels/${sourceWarehouseId}`)
+  if (Array.isArray(res.data)) {
+    res.data.forEach((item) => {
+      item.containerNo = item.containerNo || item.containerCode
+      item.containerCode = item.containerCode || item.containerNo
+    })
+  }
   return res.data
 }

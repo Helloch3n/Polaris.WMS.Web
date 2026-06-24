@@ -54,6 +54,7 @@ const typeOptions: SelectOption[] = [
   { label: '盘点', value: 'Check' },
   { label: '材料投入', value: 'Feed' },
   { label: '材料退回', value: 'Return' },
+  { label: '质检判定', value: 'QcInspect' },
 ]
 
 function toIso(v?: number | null) {
@@ -77,6 +78,7 @@ function resolveType(raw: unknown) {
     if (raw === 'Check') return '盘点'
     if (raw === 'Feed') return '材料投入'
     if (raw === 'Return') return '材料退回'
+    if (raw === 'QcInspect') return '质检判定'
     return raw
   }
   if (typeof raw === 'number') {
@@ -86,6 +88,7 @@ function resolveType(raw: unknown) {
     if (raw === 3) return '盘点'
     if (raw === 4) return '材料投入'
     if (raw === 5) return '材料退回'
+    if (raw === 6) return '质检判定'
   }
   return '-'
 }
@@ -97,6 +100,7 @@ function getTypeTagType(label: string) {
   if (label === '盘点') return 'warning'
   if (label === '材料投入') return 'primary'
   if (label === '材料退回') return 'warning'
+  if (label === '质检判定') return 'info'
   return 'default'
 }
 

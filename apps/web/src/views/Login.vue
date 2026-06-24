@@ -3,6 +3,7 @@ import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { NButton, NCheckbox, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
+import polarisLogoUrl from '../assets/polaris-logo.svg'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
@@ -69,18 +70,19 @@ onMounted(async () => {
 <template>
   <div class="login-shell">
     <!-- 左侧品牌区 -->
-    <div class="login-brand-panel">
-      <div class="brand-bg-layer" aria-hidden="true">
-        <span class="bg-grid" />
-        <span class="bg-glow glow-a" />
-        <span class="bg-glow glow-b" />
-        <span class="polar-star" />
-      </div>
+    <div class="login-brand-panel text-white">
+      <div
+        aria-hidden="true"
+        class="brand-halo brand-halo-primary"
+      />
+
+      <div
+        aria-hidden="true"
+        class="brand-halo brand-halo-secondary"
+      />
 
       <div class="brand-content">
-        <svg class="brand-logo-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-          <path d="M24 7.5C24.8 19.5,30 22.5,36.8 24C30 25.5,24.8 30,24 40.5C23.2 30,18 25.5,11.2 24C18 22.5,23.2 19.5,24 7.5Z" fill="white" fill-opacity="0.95" />
-        </svg>
+        <img class="brand-logo-icon" :src="polarisLogoUrl" alt="" />
         <h1 class="brand-name">极星仓储</h1>
         <p class="brand-slogan">简洁 · 稳定 · 高效</p>
       </div>
@@ -90,30 +92,38 @@ onMounted(async () => {
     <div class="login-form-panel">
       <div class="login-card">
         <div class="login-card-header">
-          <h2 class="title">欢迎登录</h2>
-          <p class="subtitle">极星仓储管理系统</p>
+          <h2 class="text-2xl font-extrabold text-slate-900">欢迎登录</h2>
+          <p class="mt-1.5 text-sm text-gray-400">极星仓储管理系统</p>
         </div>
 
-        <n-form ref="formRef" :model="form" :rules="rules" label-placement="top" autocomplete="off">
+        <n-form ref="formRef" :model="form" :rules="rules" label-placement="top" autocomplete="off" class="space-y-1">
           <n-form-item label="账号" path="username">
-            <n-input
-              :value="form.username"
-              placeholder="请输入账号"
-              :input-props="{ autocomplete: 'off' }"
-              @update:value="(value) => (form.username = value)"
-            />
+            <div class="login-field-shell">
+              <n-input
+                :value="form.username"
+                size="large"
+                class="login-input"
+                placeholder="请输入账号"
+                :input-props="{ autocomplete: 'off' }"
+                @update:value="(value) => (form.username = value)"
+              />
+            </div>
           </n-form-item>
 
           <n-form-item label="密码" path="password">
-            <n-input
-              :value="form.password"
-              placeholder="请输入密码"
-              type="password"
-              :input-props="{ autocomplete: 'new-password' }"
-              show-password-on="click"
-              @update:value="(value) => (form.password = value)"
-              @keyup.enter="onLogin"
-            />
+            <div class="login-field-shell">
+              <n-input
+                :value="form.password"
+                size="large"
+                class="login-input"
+                placeholder="请输入密码"
+                type="password"
+                :input-props="{ autocomplete: 'new-password' }"
+                show-password-on="click"
+                @update:value="(value) => (form.password = value)"
+                @keyup.enter="onLogin"
+              />
+            </div>
           </n-form-item>
 
           <n-form-item class="remember-item">
@@ -139,184 +149,234 @@ onMounted(async () => {
   background: #f5f7fb;
 }
 
-/* ===== 左侧品牌面板 ===== */
 .login-brand-panel {
   flex: 0 0 50%;
+  min-width: 0;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(155deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  padding: 40px;
+  background:
+    radial-gradient(circle at 44% 34%, rgba(255, 255, 255, 0.16), transparent 0 24%),
+    linear-gradient(145deg, #0f2f78 0%, #1550c9 48%, #3b82f6 100%);
 }
 
-.brand-bg-layer {
+.brand-halo {
   position: absolute;
-  inset: 0;
+  border-radius: 9999px;
+  filter: blur(60px);
   pointer-events: none;
 }
 
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  opacity: 0.08;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
-  background-size: 48px 48px;
+.brand-halo-primary {
+  width: 320px;
+  height: 320px;
+  top: 8%;
+  left: 18%;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.bg-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-}
-
-.glow-a {
-  width: 400px;
-  height: 400px;
-  top: -100px;
-  right: -80px;
-  background: rgba(96, 165, 250, 0.25);
-}
-
-.glow-b {
-  width: 300px;
-  height: 300px;
-  bottom: -60px;
-  left: -40px;
-  background: rgba(147, 197, 253, 0.2);
-}
-
-.polar-star {
-  position: absolute;
-  top: 15%;
-  right: 20%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.6);
-  animation: starTwinkle 3s ease-in-out infinite;
+.brand-halo-secondary {
+  width: 260px;
+  height: 260px;
+  right: 10%;
+  bottom: 12%;
+  background: rgba(56, 189, 248, 0.16);
 }
 
 .brand-content {
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
 .brand-logo-icon {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 28px;
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
-  animation: logoBreath 5s ease-in-out infinite;
+  width: 132px;
+  height: 132px;
+  filter: drop-shadow(0 22px 56px rgba(56, 189, 248, 0.22));
 }
 
 .brand-name {
-  margin: 0;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 4px;
-  line-height: 1.3;
+  margin: 44px 0 0;
+  font-size: 3rem;
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffffff;
 }
 
 .brand-slogan {
-  margin: 12px 0 0;
-  font-size: 15px;
-  letter-spacing: 6px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 400;
+  margin: 18px 0 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  letter-spacing: 0.32em;
+  color: rgba(219, 234, 254, 0.88);
 }
 
 /* ===== 右侧登录面板 ===== */
 .login-form-panel {
-  flex: 1;
+  flex: 0 0 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  background: #ffffff;
+  padding: 48px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
 .login-card {
-  width: 380px;
+  width: 440px;
   max-width: 100%;
+  padding: 40px 36px 28px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(14px);
 }
 
 .login-card-header {
-  margin-bottom: 28px;
-}
-
-.title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: #94a3b8;
+  margin-bottom: 26px;
 }
 
 .remember-item {
   margin-top: 2px;
 }
 
+.login-field-shell {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f8fafc;
+  transition: background-color 0.2s ease;
+}
+
+.login-field-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-field-shell:focus-within {
+  background: #ffffff;
+}
+
+.login-field-shell:focus-within::after {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.3);
+}
+
 .login-btn {
   width: 100%;
-  height: 42px;
-  border-radius: 10px;
-  margin-top: 6px;
+  height: 48px !important;
+  border-radius: 16px !important;
+  padding: 0 18px !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.16);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  --n-height: 48px;
+  --n-padding: 0 18px;
+  --n-border-radius: 16px;
+  --n-font-size: 15px;
+  --n-border: none;
+  --n-border-hover: none;
+  --n-border-pressed: none;
+  --n-border-focus: none;
+  --n-border-disabled: none;
+}
+
+.login-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+}
+
+:deep(.n-form-item-label__asterisk) {
+  display: none !important;
+}
+
+:deep(.login-field-shell .n-input) {
+  width: 100%;
+}
+
+:deep(.login-input .n-input-wrapper) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+:deep(.login-input .n-input__input) {
+  height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.login-input .n-input__input-el) {
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+
+:deep(.login-input .n-input__border),
+:deep(.login-input .n-input__state-border) {
+  display: none !important;
+}
+
+:deep(.login-input .n-input__input-el),
+:deep(.login-input .n-input__placeholder) {
   font-size: 15px;
+}
+
+:deep(.login-btn .n-button__content) {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.3em;
   font-weight: 600;
-  letter-spacing: 4px;
+}
+
+:deep(.login-btn .n-button__border),
+:deep(.login-btn .n-button__state-border) {
+  display: none !important;
 }
 
 .login-footer {
-  margin-top: 24px;
+  margin-top: 26px;
   text-align: center;
   color: #cbd5e1;
   font-size: 12px;
 }
 
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.3); }
-}
-
-@keyframes logoBreath {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-}
-
 @media (max-width: 1200px) {
   .login-brand-panel {
-    flex-basis: 52%;
+    flex-basis: 50%;
+    padding: 32px;
   }
 
-  .login-seam {
-    left: calc(52% - 40px);
-  }
-
-  .brand-title {
-    font-size: 28px;
+  .login-form-panel {
+    flex-basis: 50%;
+    padding: 32px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-brand-panel::before,
-  .login-brand-panel::after,
-  .data-grid,
-  .data-node,
-  .polar-halo,
-  .orbit-ring,
-  .orbit-dot,
-  .star-line,
   .login-input.n-input--focus .n-input-wrapper {
     animation: none !important;
   }
@@ -327,10 +387,6 @@ onMounted(async () => {
     flex-direction: column;
   }
 
-  .login-seam {
-    display: none;
-  }
-
   .login-brand-panel,
   .login-form-panel {
     flex: none;
@@ -338,6 +394,7 @@ onMounted(async () => {
   }
 
   .login-brand-panel {
+    min-height: 42vh;
     padding: 40px 24px;
   }
 
@@ -345,29 +402,27 @@ onMounted(async () => {
     padding: 24px;
   }
 
-  .login-panel-meta {
-    margin-bottom: 8px;
+  .brand-logo-icon {
+    width: 112px;
+    height: 112px;
+  }
+
+  .brand-name {
+    margin-top: 32px;
+    font-size: 2.25rem;
+  }
+
+  .brand-slogan {
+    font-size: 0.92rem;
+    letter-spacing: 0.22em;
   }
 }
 
 @media (max-width: 640px) {
-  .brand-content {
-    width: 100%;
-  }
-
-  .brand-title {
-    font-size: 24px;
-  }
-
   .login-card {
-    border-radius: 16px;
-    padding: 24px 20px 18px;
-  }
-
-  .login-panel-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    width: 100%;
+    border-radius: 22px;
+    padding: 28px 20px 20px;
   }
 }
 </style>

@@ -52,7 +52,7 @@ const form = reactive({
   type: 20 as number,
   maxWeight: 0,
   maxVolume: 0,
-  maxContainerCount: 1,
+  maxReelCount: 1,
   allowMixedProducts: true,
   allowMixedBatches: true,
 })
@@ -83,7 +83,7 @@ function resetForm() {
   form.type = 20
   form.maxWeight = 0
   form.maxVolume = 0
-  form.maxContainerCount = 1
+  form.maxReelCount = 1
   form.allowMixedProducts = true
   form.allowMixedBatches = true
 }
@@ -109,7 +109,7 @@ function open(params: OpenParams) {
     form.type = params.row.type
     form.maxWeight = params.row.maxWeight
     form.maxVolume = params.row.maxVolume
-    form.maxContainerCount = params.row.maxContainerCount
+    form.maxReelCount = params.row.maxReelCount
     form.allowMixedProducts = params.row.allowMixedProducts
     form.allowMixedBatches = params.row.allowMixedBatches
   } else {
@@ -175,7 +175,7 @@ async function onSubmit() {
     type: form.type,
     maxWeight: form.maxWeight,
     maxVolume: form.maxVolume,
-    maxContainerCount: form.maxContainerCount,
+    maxReelCount: form.maxReelCount,
     allowMixedProducts: form.allowMixedProducts,
     allowMixedBatches: form.allowMixedBatches,
   }
@@ -246,8 +246,8 @@ defineExpose({ open })
         <n-form-item label="最大体积 (m³)">
           <n-input-number :value="form.maxVolume" :min="0" style="width: 100%" @update:value="(value) => (form.maxVolume = value ?? 0)" />
         </n-form-item>
-        <n-form-item label="大器数">
-          <n-input-number :value="form.maxContainerCount" :min="1" style="width: 100%" @update:value="(value) => (form.maxContainerCount = value ?? 1)" />
+        <n-form-item label="最大容器数">
+          <n-input-number :value="form.maxReelCount" :min="1" style="width: 100%" @update:value="(value) => (form.maxReelCount = value ?? 1)" />
         </n-form-item>
         <n-form-item label="允混放物料">
           <n-switch :value="form.allowMixedProducts" @update:value="(value) => (form.allowMixedProducts = value)" />

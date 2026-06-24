@@ -20,6 +20,7 @@ import { useTabsStore } from '../stores/tabs'
 import { organizationUnitsApi } from '../api/identity'
 import * as warehouseApi from '../api/masterData/warehouse'
 import * as usersApi from '../api/identity/users'
+import polarisLogoUrl from '../assets/polaris-logo.svg'
 import request from '../utils/request'
 
 const route = useRoute()
@@ -275,12 +276,14 @@ function buildMenuFromRoutes(routes: RouteRecordRaw[], parentPath: string): AppM
     }
 
     if (hasConfiguredChildren) {
-      result.push({
-        label: title,
-        key: `group:${fullPath}`,
-        requiredPolicy,
-        children: children.length > 0 ? children : undefined,
-      })
+      if (children.length > 0) {
+        result.push({
+          label: title,
+          key: `group:${fullPath}`,
+          requiredPolicy,
+          children: children,
+        })
+      }
       continue
     }
 
@@ -438,16 +441,7 @@ onBeforeUnmount(() => {
       :class="{ collapsed: isCollapsed }" bordered>
       <div class="logo-wrap">
         <div class="logo-icon">
-          <svg class="brand-warehouse" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="polaris-bg" x1="1" y1="1" x2="23" y2="23" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#3B82F6" />
-                <stop offset="1" stop-color="#1E40AF" />
-              </linearGradient>
-            </defs>
-            <rect x="0" y="0" width="24" height="24" rx="5.2" fill="url(#polaris-bg)" />
-            <path d="M12 3.8C12.4 9.8,15 11.2,18.8 12C15 12.8,12.4 15,12 20.2C11.6 15,9 12.8,5.2 12C9 11.2,11.6 9.8,12 3.8Z" fill="white" fill-opacity="0.95" />
-          </svg>
+          <img class="brand-warehouse" :src="polarisLogoUrl" alt="" />
         </div>
         <span class="logo-text" :class="{ hidden: isCollapsed }">极星仓储</span>
       </div>
@@ -518,7 +512,7 @@ onBeforeUnmount(() => {
             />
           </div>
 
-          <n-dropdown :options="userDropdownOptions" trigger="click" @select="handleUserDropdownSelect">
+          <n-dropdown placement="bottom-end" :options="userDropdownOptions" trigger="click" @select="handleUserDropdownSelect">
             <div class="user-badge" style="cursor: pointer;">
               <div class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
               <span class="user-name">{{ username }}</span>
@@ -581,50 +575,26 @@ onBeforeUnmount(() => {
   height: 64px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 0 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
 .logo-icon {
-  position: relative;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: linear-gradient(145deg, rgba(37, 99, 235, 0.15), rgba(29, 78, 216, 0.08));
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.logo-icon::before,
-.logo-icon::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 10px;
-  border: 1px solid rgba(37, 99, 235, 0.3);
-  transform: scale(0.84);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.logo-icon::before,
-.logo-icon::after {
-  display: none;
 }
 
 .brand-warehouse {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.3));
   width: 100%;
   height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(37, 99, 235, 0.18));
 }
 
 .logo-text {

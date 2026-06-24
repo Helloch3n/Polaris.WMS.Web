@@ -10,6 +10,7 @@ import {
   NPagination,
   NSelect,
   NTag,
+  useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
@@ -19,6 +20,7 @@ import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { useTableSelection } from '../../../composables/useTableSelection'
+import { usePermission } from '../../../composables/usePermission'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 
@@ -26,8 +28,21 @@ type RowItem = miscInboundOrderApi.MiscInboundOrderDto
 
 const message = useMessage()
 const router = useRouter()
+const dialog = useDialog()
 const loading = ref(false)
+const approveAndExecuteLoading = ref(false)
 const rows = ref<RowItem[]>([])
+
+const { hasPermission } = usePermission()
+
+const canCreate = computed(() => hasPermission('WMS.InboundOps.MiscInboundOrders.Create'))
+const canUpdate = computed(() => hasPermission('WMS.InboundOps.MiscInboundOrders.Update'))
+const canDeletePermission = computed(() => hasPermission('WMS.InboundOps.MiscInboundOrders.Delete'))
+const canApprovePermission = computed(() => hasPermission('WMS.InboundOps.MiscInboundOrders.Approve'))
+
+function isDraftStatus(value: miscInboundOrderApi.MiscOrderStatus) {
+  return normalizeStatusValue(value) === miscInboundOrderApi.MiscOrderStatus.Draft
+}
 
 const query = reactive({
   orderNo: '',
@@ -67,7 +82,7 @@ const {
 } = useTableSelection(rows, getRowKey)
 
 const canSelectOne = computed(() => selectedCount.value === 1)
-const canDelete = computed(() => selectedCount.value > 0)
+const canDelete = computed(() => selectedCount.value > 0 && selectedRows.value.every(row => isDraftStatus(row.status)))
 
 function normalizeStatusValue(value: miscInboundOrderApi.MiscOrderStatus) {
   if (typeof value === 'string') {
@@ -305,8 +320,110 @@ function handleDeleteSelected() {
     message.warning('请至少选择一条数据进行删除')
     return
   }
+  const targets = selectedRows.value
+    .map((item) => ({
+      id: String(item.id ?? '').trim(),
+      orderNo: String(item.orderNo ?? '').trim(),
+    }))
+    .filter((item) => item.id)
+  if (targets.length === 0) {
+    message.warning('选中数据缺少单据 Id，无法删除')
+    return
+  }
 
-  message.info(`删除功能待接入，当前选中 ${selectedRows.value.length} 条`)
+  const preview = targets
+    .slice(0, 3)
+    .map((item) => item.orderNo || item.id)
+    .join('，')
+  const suffix = targets.length > 3 ? ' 等' : ''
+  dialog.warning({
+    title: '确认删除',
+    content: `确认删除 ${targets.length} 条其他入库单吗？${preview}${suffix}`,
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      loading.value = true
+      let successCount = 0
+      const errorMessages: string[] = []
+      try {
+        for (const target of targets) {
+          try {
+            await miscInboundOrderApi.remove(target.id)
+            successCount += 1
+          } catch (error) {
+            const fallback = `${target.orderNo || target.id} 删除失败`
+            errorMessages.push(error instanceof Error ? error.message : fallback)
+          }
+        }
+        if (successCount > 0) {
+          message.success(`成功删除 ${successCount} 条`)
+        }
+        if (errorMessages.length > 0) {
+          message.error(errorMessages[0] || '删除失败')
+        }
+        clearSelection()
+        if ((rows.value.length ?? 0) <= successCount && (pagination.page ?? 1) > 1) {
+          pagination.page = (pagination.page ?? 1) - 1
+        }
+        await loadData()
+      } finally {
+        loading.value = false
+      }
+    },
+  })
+}
+
+async function handleApproveAndExecute(order: RowItem) {
+  if (approveAndExecuteLoading.value) {
+    return
+  }
+
+  const orderId = String(order.id ?? '').trim()
+  if (!orderId) {
+    message.warning('缺少单据 Id，无法审核执行')
+    return
+  }
+
+  if (!isDraftStatus(order.status)) {
+    message.warning('仅草稿状态的其他入库单允许审核执行')
+    return
+  }
+
+  const orderNo = String(order.orderNo ?? '').trim()
+  dialog.warning({
+    title: '确认审核执行',
+    content: `确认审核执行其他入库单${orderNo ? `：${orderNo}` : ''}？`,
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      if (approveAndExecuteLoading.value) {
+        return false
+      }
+
+      approveAndExecuteLoading.value = true
+      try {
+        await miscInboundOrderApi.approveAndExecute(orderId)
+        message.success('其他入库单审核执行成功')
+        await loadData()
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '其他入库单审核执行失败')
+        return false
+      } finally {
+        approveAndExecuteLoading.value = false
+      }
+
+      return true
+    },
+  })
+}
+
+function handleApproveAndExecuteSelected() {
+  const selected = selectedRows.value[0]
+  if (!selected) {
+    message.warning('请选择一条数据进行审核执行')
+    return
+  }
+  handleApproveAndExecute(selected)
 }
 
 function handleColumnConfigShowChange(value: boolean) {
@@ -360,10 +477,20 @@ onMounted(() => {
 
     <template #actions-left>
       <div class="crud-action-main">
-        <n-button type="primary" @click="handleCreate">新增</n-button>
+        <n-button v-if="canCreate" type="primary" @click="handleCreate">新增</n-button>
         <n-button :disabled="!canSelectOne || loading" @click="handleViewSelected">查看</n-button>
-        <n-button :disabled="!canSelectOne || loading" @click="handleEditSelected">编辑</n-button>
-        <n-button type="error" :disabled="!canDelete || loading" @click="handleDeleteSelected">删除</n-button>
+        <n-button v-if="canUpdate" :disabled="!canSelectOne || loading || !selectedRows[0] || !isDraftStatus(selectedRows[0].status)" @click="handleEditSelected">编辑</n-button>
+        <n-button v-if="canDeletePermission" type="error" :disabled="!canDelete || loading" @click="handleDeleteSelected">删除</n-button>
+        <n-button
+          v-if="canApprovePermission"
+          type="primary"
+          secondary
+          :loading="approveAndExecuteLoading"
+          :disabled="!canSelectOne || loading || approveAndExecuteLoading || !selectedRows[0] || !isDraftStatus(selectedRows[0].status)"
+          @click="handleApproveAndExecuteSelected"
+        >
+          审核执行
+        </n-button>
       </div>
     </template>
 

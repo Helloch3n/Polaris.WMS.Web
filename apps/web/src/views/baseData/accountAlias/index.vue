@@ -6,6 +6,7 @@ import {
   NDataTable,
   NDescriptions,
   NDescriptionsItem,
+  NDatePicker,
   NForm,
   NFormItem,
   NInput,
@@ -13,6 +14,10 @@ import {
   NPagination,
   NSelect,
   NTag,
+  NSwitch,
+  NGrid,
+  NGi,
+  NSpace,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, SelectOption } from 'naive-ui'
@@ -20,12 +25,14 @@ import type { DataTableColumns, SelectOption } from 'naive-ui'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { usePermission } from '../../../composables/usePermission'
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 import {
   get,
   getList,
+  create,
   type AccountAliasDto,
   type AccountAliasSearchDto,
 } from '../../../api/masterData/accountAlias'
@@ -346,6 +353,91 @@ function handleColumnConfigShowChange(value: boolean) {
   showColumnConfig.value = value
 }
 
+const { hasPermission } = usePermission()
+const canCreate = computed(() => hasPermission('WMS.MasterData.AccountAliases.Create'))
+
+const createVisible = ref(false)
+const createFormRef = ref<any>(null)
+const createLoading = ref(false)
+
+const createForm = reactive({
+  alias: '',
+  description: '',
+  effectiveDate: null as number | null,
+  expireDate: null as number | null,
+  productionCostType: 0,
+  isUnitPriceRequired: false,
+  isProjectRequired: false,
+  isDepartmentRequired: false,
+  isProductionNoRequired: false,
+  isWorkOrderOperationRequired: false,
+  isSupplierRequired: false,
+  isCustomerRequired: false,
+  isWorkOrderAttributeRequired: false,
+})
+
+const createRules = {
+  alias: [{ required: true, message: '请输入账户别名', trigger: ['input', 'blur'] }],
+  effectiveDate: [{ required: true, type: 'number' as const, message: '请选择生效日期', trigger: ['change', 'blur'] }],
+}
+
+const productionCostTypeOptions: SelectOption[] = [
+  { label: '无', value: 0 },
+  { label: '材料', value: 1 },
+  { label: '人工', value: 2 },
+  { label: '制造费用', value: 3 },
+  { label: '委外', value: 4 },
+]
+
+function handleCreate() {
+  createForm.alias = ''
+  createForm.description = ''
+  createForm.effectiveDate = Date.now()
+  createForm.expireDate = null
+  createForm.productionCostType = 0
+  createForm.isUnitPriceRequired = false
+  createForm.isProjectRequired = false
+  createForm.isDepartmentRequired = false
+  createForm.isProductionNoRequired = false
+  createForm.isWorkOrderOperationRequired = false
+  createForm.isSupplierRequired = false
+  createForm.isCustomerRequired = false
+  createForm.isWorkOrderAttributeRequired = false
+  createVisible.value = true
+}
+
+async function submitCreate() {
+  createFormRef.value?.validate(async (errors: any) => {
+    if (errors) return
+
+    createLoading.value = true
+    try {
+      await create({
+        alias: createForm.alias,
+        description: createForm.description,
+        effectiveDate: new Date(createForm.effectiveDate!).toISOString(),
+        expireDate: createForm.expireDate ? new Date(createForm.expireDate).toISOString() : null,
+        productionCostType: createForm.productionCostType,
+        isUnitPriceRequired: createForm.isUnitPriceRequired,
+        isProjectRequired: createForm.isProjectRequired,
+        isDepartmentRequired: createForm.isDepartmentRequired,
+        isProductionNoRequired: createForm.isProductionNoRequired,
+        isWorkOrderOperationRequired: createForm.isWorkOrderOperationRequired,
+        isSupplierRequired: createForm.isSupplierRequired,
+        isCustomerRequired: createForm.isCustomerRequired,
+        isWorkOrderAttributeRequired: createForm.isWorkOrderAttributeRequired,
+      })
+      message.success('创建成功')
+      createVisible.value = false
+      fetchList()
+    } catch (e: any) {
+      message.error(e?.message ?? '创建失败')
+    } finally {
+      createLoading.value = false
+    }
+  })
+}
+
 onMounted(() => {
   loadColumnSettings()
   fetchList()
@@ -398,6 +490,7 @@ onMounted(() => {
 
     <template #actions-left>
       <div class="crud-action-main">
+        <n-button v-if="canCreate" type="primary" @click="handleCreate">新增</n-button>
         <n-button :disabled="!canViewSelected || loading" @click="handleViewSelected">查看</n-button>
       </div>
     </template>
@@ -452,6 +545,132 @@ onMounted(() => {
             <div class="modal-actions">
               <n-button :loading="detailLoading" @click="detailVisible = false">关闭</n-button>
             </div>
+          </template>
+        </n-card>
+      </n-modal>
+
+      <n-modal :show="createVisible" @update:show="(value) => (createVisible = value)">
+        <n-card
+          title="新建账户别名"
+          style="width: var(--modal-width-lg)"
+          closable
+          @close="createVisible = false"
+        >
+          <n-form
+            ref="createFormRef"
+            :model="createForm"
+            :rules="createRules"
+            label-placement="left"
+            label-width="120"
+          >
+            <n-grid :cols="2" :x-gap="24">
+              <n-gi>
+                <n-form-item label="账户别名" path="alias">
+                  <n-input
+                    :value="createForm.alias"
+                    placeholder="请输入账户别名，如 SCRAP"
+                    @update:value="(value) => (createForm.alias = value)"
+                  />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="描述" path="description">
+                  <n-input
+                    :value="createForm.description"
+                    placeholder="请输入描述，如 报废处理"
+                    @update:value="(value) => (createForm.description = value)"
+                  />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="生效日期" path="effectiveDate">
+                  <n-date-picker
+                    :value="createForm.effectiveDate"
+                    type="date"
+                    clearable
+                    placeholder="选择生效日期"
+                    style="width: 100%"
+                    @update:value="(value) => (createForm.effectiveDate = value)"
+                  />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="失效日期" path="expireDate">
+                  <n-date-picker
+                    :value="createForm.expireDate"
+                    type="date"
+                    clearable
+                    placeholder="选择失效日期（可选）"
+                    style="width: 100%"
+                    @update:value="(value) => (createForm.expireDate = value)"
+                  />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="生产成本类型" path="productionCostType">
+                  <n-select
+                    :value="createForm.productionCostType"
+                    :options="productionCostTypeOptions"
+                    placeholder="选择生产成本类型"
+                    @update:value="(value) => (createForm.productionCostType = value)"
+                  />
+                </n-form-item>
+              </n-gi>
+            </n-grid>
+
+            <div style="margin: 16px 0; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+              业务控制选项
+            </div>
+
+            <n-grid :cols="3" :x-gap="24" :y-gap="12">
+              <n-gi>
+                <n-form-item label="需要单价" label-width="100">
+                  <n-switch :value="createForm.isUnitPriceRequired" @update:value="(value) => (createForm.isUnitPriceRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要项目" label-width="100">
+                  <n-switch :value="createForm.isProjectRequired" @update:value="(value) => (createForm.isProjectRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要部门" label-width="100">
+                  <n-switch :value="createForm.isDepartmentRequired" @update:value="(value) => (createForm.isDepartmentRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要生产号" label-width="100">
+                  <n-switch :value="createForm.isProductionNoRequired" @update:value="(value) => (createForm.isProductionNoRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要工单工序" label-width="100">
+                  <n-switch :value="createForm.isWorkOrderOperationRequired" @update:value="(value) => (createForm.isWorkOrderOperationRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要供应商" label-width="100">
+                  <n-switch :value="createForm.isSupplierRequired" @update:value="(value) => (createForm.isSupplierRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要客户" label-width="100">
+                  <n-switch :value="createForm.isCustomerRequired" @update:value="(value) => (createForm.isCustomerRequired = value)" />
+                </n-form-item>
+              </n-gi>
+              <n-gi>
+                <n-form-item label="需要工单属性" label-width="100">
+                  <n-switch :value="createForm.isWorkOrderAttributeRequired" @update:value="(value) => (createForm.isWorkOrderAttributeRequired = value)" />
+                </n-form-item>
+              </n-gi>
+            </n-grid>
+          </n-form>
+
+          <template #action>
+            <n-space justify="end">
+              <n-button @click="createVisible = false">取消</n-button>
+              <n-button type="primary" :loading="createLoading" @click="submitCreate">确认</n-button>
+            </n-space>
           </template>
         </n-card>
       </n-modal>

@@ -43,9 +43,9 @@ const dialog = useDialog()
 
 const { hasPermission } = usePermission()
 
-const canCreate = computed(() => hasPermission('MasterData.Supplier.Create'))
-const canUpdate = computed(() => hasPermission('MasterData.Supplier.Update'))
-const canDelete = computed(() => hasPermission('MasterData.Supplier.Delete'))
+const canCreate = computed(() => hasPermission('WMS.MasterData.Suppliers.Create'))
+const canUpdate = computed(() => hasPermission('WMS.MasterData.Suppliers.Update'))
+const canDelete = computed(() => hasPermission('WMS.MasterData.Suppliers.Delete'))
 
 const query = reactive({
   supplierCode: '',

@@ -106,13 +106,29 @@ export async function addUsers(warehouseId: string, userIds: string[]) {
 }
 
 export async function getWarehousesByUser(userId: string) {
-  const res = await request.get<string[]>(`${userWarehouseBaseUrl}/warehouses-by-user/${userId}`)
-  return res.data ?? []
+  if (!userId) return []
+  try {
+    const res = await request.get<string[]>(`${userWarehouseBaseUrl}/warehouses-by-user`, {
+      params: { userId }
+    })
+    return res.data ?? []
+  } catch {
+    const res = await request.get<string[]>(`${userWarehouseBaseUrl}/warehouses-by-user/${userId}`)
+    return res.data ?? []
+  }
 }
 
 export async function getUsersByWarehouse(warehouseId: string) {
-  const res = await request.get<WarehouseUserDto[]>(`${userWarehouseBaseUrl}/users-by-warehouse/${warehouseId}`)
-  return res.data ?? []
+  if (!warehouseId) return []
+  try {
+    const res = await request.get<WarehouseUserDto[]>(`${userWarehouseBaseUrl}/users-by-warehouse`, {
+      params: { warehouseId }
+    })
+    return res.data ?? []
+  } catch {
+    const res = await request.get<WarehouseUserDto[]>(`${userWarehouseBaseUrl}/users-by-warehouse/${warehouseId}`)
+    return res.data ?? []
+  }
 }
 
 export async function removeUsers(warehouseId: string, userIds: string[]) {

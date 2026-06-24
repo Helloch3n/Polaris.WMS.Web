@@ -79,7 +79,6 @@ const checkedInventoryRowKeys = ref<string[]>([])
 const inventoryQuery = reactive({
   containerNo: '',
   productId: '',
-  relatedOrderNo: '',
   warehouseCode: '',
   zoneCode: '',
   page: 1,
@@ -105,7 +104,6 @@ const detailRows = ref<DetailRow[]>([])
 
 const isEditMode = computed(() => props.mode === 'edit')
 const isCreateMode = computed(() => props.mode === 'create')
-const pageTagText = computed(() => (isEditMode.value ? '编辑模式' : '新增模式'))
 
 const headerLabelStyle = {
   width: '120px',
@@ -128,7 +126,6 @@ const inventoryListParams = computed<inventoryApi.GetInventoryListParams>(() => 
   containerNo: inventoryQuery.containerNo.trim() || undefined,
   containerCode: inventoryQuery.containerNo.trim() || undefined,
   productId: inventoryQuery.productId.trim() || undefined,
-  relatedOrderNo: inventoryQuery.relatedOrderNo.trim() || undefined,
   warehouseCode: inventoryQuery.warehouseCode.trim() || undefined,
   zoneCode: inventoryQuery.zoneCode.trim() || undefined,
 }))
@@ -693,7 +690,7 @@ function handleAccountAliasChange(value: string) {
   const accountAliasId = String(value ?? '').trim()
   const target = accountAliasLookup.value[accountAliasId]
   formModel.accountAliasId = accountAliasId
-  formModel.accountAliasDescription = target?.description ?? ''
+  formModel.accountAliasDescription = target?.description || target?.alias || ''
 }
 
 function handleCostCenterChange(value: string) {
@@ -914,7 +911,6 @@ function handleInventoryQuery() {
 function handleInventoryReset() {
   inventoryQuery.containerNo = ''
   inventoryQuery.productId = ''
-  inventoryQuery.relatedOrderNo = ''
   inventoryQuery.warehouseCode = ''
   inventoryQuery.zoneCode = ''
   inventoryQuery.page = 1
@@ -990,7 +986,6 @@ function buildDetailPayload(): miscOutboundOrderApi.CreateMiscOutboundOrderDetai
 function buildCreatePayload(): miscOutboundOrderApi.CreateMiscOutboundOrderDto {
   const payloadDetails = buildDetailPayload()
   return {
-    orderNo: String(formModel.orderNo ?? '').trim(),
     accountAliasId: String(formModel.accountAliasId ?? '').trim(),
     accountAliasDescription: String(formModel.accountAliasDescription ?? '').trim(),
     costCenterId: String(formModel.costCenterId ?? '').trim(),
@@ -1014,15 +1009,9 @@ function buildUpdatePayload(): miscOutboundOrderApi.UpdateMiscOutboundOrderDto {
   }
 }
 
-function validatePayload(details: miscOutboundOrderApi.CreateMiscOutboundOrderDetailDto[], requireOrderNo: boolean) {
-  const orderNo = String(formModel.orderNo ?? '').trim()
+function validatePayload(details: miscOutboundOrderApi.CreateMiscOutboundOrderDetailDto[]) {
   const accountAliasId = String(formModel.accountAliasId ?? '').trim()
   const costCenterId = String(formModel.costCenterId ?? '').trim()
-  if (requireOrderNo && !orderNo) {
-    activeTab.value = 'header'
-    message.warning('请填写单据号')
-    return false
-  }
 
   if (!accountAliasId) {
     activeTab.value = 'header'
@@ -1060,14 +1049,14 @@ async function handleSave() {
   try {
     if (isEditMode.value) {
       const updatePayload = buildUpdatePayload()
-      if (!validatePayload(updatePayload.details, false)) {
+      if (!validatePayload(updatePayload.details)) {
         return
       }
       await miscOutboundOrderApi.update(normalizeGuid(formModel.id), updatePayload)
       message.success('编辑保存成功')
     } else {
       const createPayload = buildCreatePayload()
-      if (!validatePayload(createPayload.details, true)) {
+      if (!validatePayload(createPayload.details)) {
         return
       }
       await miscOutboundOrderApi.create(createPayload)
@@ -1426,7 +1415,7 @@ onMounted(async () => {
             style="margin-top: 10px;"
           >
             <n-descriptions-item label="单据号">
-              <n-input :value="formModel.orderNo" :disabled="isEditMode" placeholder="请输入单据号" @update:value="(value) => { formModel.orderNo = value }" />
+              <n-input :value="isEditMode ? formModel.orderNo : ''" :disabled="true" placeholder="系统自动生成" />
             </n-descriptions-item>
             <n-descriptions-item label="账户别名">
               <n-select
@@ -1499,11 +1488,7 @@ onMounted(async () => {
       </div>
     </template>
 
-    <template #actions-right>
-      <div class="crud-action-tools">
-        <n-tag size="small" type="info">{{ pageTagText }}</n-tag>
-      </div>
-    </template>
+
 
     <template #data>
       <n-data-table
@@ -1527,11 +1512,7 @@ onMounted(async () => {
       </div>
     </template>
 
-    <template #actions-right>
-      <div class="crud-action-tools">
-        <n-tag size="small" type="info">{{ pageTagText }}</n-tag>
-      </div>
-    </template>
+
 
     <template #data>
       <div v-if="loading" class="form-loading-wrap">正在加载表单数据...</div>
@@ -1540,7 +1521,7 @@ onMounted(async () => {
         <n-tab-pane name="header" tab="单头信息">
           <n-form :model="formModel" label-placement="left" label-width="140" class="form-tab-panel">
             <n-form-item label="单据号">
-              <n-input :value="formModel.orderNo" :disabled="isEditMode" placeholder="请输入单据号" @update:value="(value) => { formModel.orderNo = value }" />
+              <n-input :value="isEditMode ? formModel.orderNo : ''" :disabled="true" placeholder="系统自动生成" />
             </n-form-item>
             <n-form-item label="账户别名">
               <n-select
@@ -1647,14 +1628,7 @@ onMounted(async () => {
           @update:value="(value) => { inventoryQuery.productId = value }"
         />
       </n-form-item>
-      <n-form-item>
-        <n-input
-          :value="inventoryQuery.relatedOrderNo"
-          clearable
-          placeholder="请输入所属单据"
-          @update:value="(value) => { inventoryQuery.relatedOrderNo = value }"
-        />
-      </n-form-item>
+
       <n-form-item>
         <n-input
           :value="inventoryQuery.warehouseCode"

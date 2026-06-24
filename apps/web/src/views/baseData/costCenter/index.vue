@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
   NCard,
@@ -14,17 +14,20 @@ import {
   NTag,
   useMessage,
 } from 'naive-ui'
-import type { DataTableColumns } from 'naive-ui'
+import type { DataTableColumns, FormInst, FormRules } from 'naive-ui'
 
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { usePermission } from '../../../composables/usePermission'
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 import {
+  create,
   get,
   getList,
+  type CreateCostCenterDto,
   type CostCenterDto,
   type CostCenterSearchDto,
 } from '../../../api/masterData/costCenter'
@@ -34,6 +37,9 @@ type RowItem = CostCenterDto
 const message = useMessage()
 const loading = ref(false)
 const rows = ref<RowItem[]>([])
+
+const { hasPermission } = usePermission()
+const canCreate = computed(() => hasPermission('WMS.MasterData.CostCenters.Create'))
 
 const query = reactive({
   code: '',
@@ -49,6 +55,39 @@ const query = reactive({
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<CostCenterDto | null>(null)
+const createVisible = ref(false)
+const createLoading = ref(false)
+const createFormRef = ref<FormInst | null>(null)
+
+function createDefaultForm(): CreateCostCenterDto {
+  return {
+    code: '',
+    name: '',
+    departmentCode: '',
+    departmentName: '',
+    companyCode: '',
+  }
+}
+
+const createForm = reactive<CreateCostCenterDto>(createDefaultForm())
+
+const createRules: FormRules = {
+  code: [
+    { required: true, message: '请输入成本中心编码', trigger: ['input', 'blur'] },
+  ],
+  name: [
+    { required: true, message: '请输入成本中心名称', trigger: ['input', 'blur'] },
+  ],
+  departmentCode: [
+    { required: true, message: '请输入部门编码', trigger: ['input', 'blur'] },
+  ],
+  departmentName: [
+    { required: true, message: '请输入部门名称', trigger: ['input', 'blur'] },
+  ],
+  companyCode: [
+    { required: true, message: '请输入公司编码', trigger: ['input', 'blur'] },
+  ],
+}
 
 const listParams = computed<CostCenterSearchDto>(() => ({
   maxResultCount: query.pageSize,
@@ -121,6 +160,52 @@ function handlePageSizeChange(size: number) {
   query.pageSize = size
   query.page = 1
   fetchList()
+}
+
+function resetCreateForm() {
+  Object.assign(createForm, createDefaultForm())
+}
+
+function handleOpenCreate() {
+  resetCreateForm()
+  createVisible.value = true
+  nextTick(() => {
+    createFormRef.value?.restoreValidation()
+  })
+}
+
+function handleCreateVisibleChange(value: boolean) {
+  createVisible.value = value
+  if (!value) {
+    resetCreateForm()
+    nextTick(() => {
+      createFormRef.value?.restoreValidation()
+    })
+  }
+}
+
+async function handleCreateSubmit() {
+  await createFormRef.value?.validate()
+
+  createLoading.value = true
+  try {
+    await create({
+      code: createForm.code.trim(),
+      name: createForm.name.trim(),
+      departmentCode: createForm.departmentCode.trim(),
+      departmentName: createForm.departmentName.trim(),
+      companyCode: createForm.companyCode.trim(),
+    })
+
+    message.success('新增成本中心成功')
+    handleCreateVisibleChange(false)
+    query.page = 1
+    await fetchList()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '新增成本中心失败')
+  } finally {
+    createLoading.value = false
+  }
 }
 
 async function openDetail(row: RowItem) {
@@ -305,6 +390,7 @@ onMounted(() => {
 
     <template #actions-left>
       <div class="crud-action-main">
+        <n-button v-if="canCreate" type="primary" :disabled="loading" @click="handleOpenCreate">新增</n-button>
         <n-button :disabled="!canViewSelected || loading" @click="handleViewSelected">查看</n-button>
       </div>
     </template>
@@ -332,6 +418,65 @@ onMounted(() => {
         :row-props="(row) => ({ onClick: (event) => toggleSingleRow(row, event), onDblclick: () => openDetail(row) })"
         @update:checked-row-keys="handleCheckedRowKeysChange"
       />
+
+      <n-modal :show="createVisible" @update:show="handleCreateVisibleChange">
+        <n-card title="新增成本中心" style="width: var(--modal-width-md)" closable @close="handleCreateVisibleChange(false)">
+          <n-form ref="createFormRef" :model="createForm" :rules="createRules" label-placement="left" label-width="110">
+            <n-form-item label="成本中心编码" path="code">
+              <n-input
+                :value="createForm.code"
+                placeholder="请输入成本中心编码"
+                maxlength="50"
+                show-count
+                @update:value="(value) => { createForm.code = value }"
+              />
+            </n-form-item>
+            <n-form-item label="成本中心名称" path="name">
+              <n-input
+                :value="createForm.name"
+                placeholder="请输入成本中心名称"
+                maxlength="200"
+                show-count
+                @update:value="(value) => { createForm.name = value }"
+              />
+            </n-form-item>
+            <n-form-item label="部门编码" path="departmentCode">
+              <n-input
+                :value="createForm.departmentCode"
+                placeholder="请输入部门编码"
+                maxlength="50"
+                show-count
+                @update:value="(value) => { createForm.departmentCode = value }"
+              />
+            </n-form-item>
+            <n-form-item label="部门名称" path="departmentName">
+              <n-input
+                :value="createForm.departmentName"
+                placeholder="请输入部门名称"
+                maxlength="200"
+                show-count
+                @update:value="(value) => { createForm.departmentName = value }"
+              />
+            </n-form-item>
+            <n-form-item label="公司编码" path="companyCode">
+              <n-input
+                :value="createForm.companyCode"
+                placeholder="请输入公司编码"
+                maxlength="50"
+                show-count
+                @update:value="(value) => { createForm.companyCode = value }"
+              />
+            </n-form-item>
+          </n-form>
+
+          <template #footer>
+            <div class="modal-actions">
+              <n-button :disabled="createLoading" @click="handleCreateVisibleChange(false)">取消</n-button>
+              <n-button type="primary" :loading="createLoading" @click="handleCreateSubmit">保存</n-button>
+            </div>
+          </template>
+        </n-card>
+      </n-modal>
 
       <n-modal :show="detailVisible" @update:show="(value) => { detailVisible = value }">
         <n-card title="成本中心详情" style="width: var(--modal-width-lg)" closable @close="detailVisible = false">

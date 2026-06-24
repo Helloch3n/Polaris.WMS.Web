@@ -371,8 +371,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <BaseCrudPage>
+  <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item>
@@ -470,7 +469,6 @@ onMounted(() => {
         </template>
       </n-card>
     </n-modal>
-  </div>
 </template>
 
 <style scoped>

@@ -52,11 +52,12 @@ export async function getMoveTaskList(params: MoveTaskSearchDto): Promise<PagedR
 }
 
 export interface CompleteMoveTaskDto {
-  actualLocationCode: string;
+  taskId: string;
+  scannedLocationCode: string;
 }
 
-export async function completeMoveTask(id: string, data: CompleteMoveTaskDto) {
-  const res = await http.post(`/api/app/move-task/${id}/complete`, data)
+export async function completeMoveTask(data: CompleteMoveTaskDto) {
+  const res = await http.post('/api/app/move-task/complete', data)
   return res.data
 }
 

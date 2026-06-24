@@ -49,16 +49,112 @@ const router = createRouter({
           meta: { title: '任务大厅' }
         },
         {
+          path: 'task/pick',
+          name: 'PickTaskView',
+          component: () => import('@/views/task/PickTaskView.vue'),
+          meta: { title: '拣货作业' }
+        },
+        {
+          path: 'task/pick/:id',
+          name: 'PickTaskExecute',
+          component: () => import('@/views/task/PickTaskExecute.vue'),
+          meta: { title: '执行拣货', hideTabbar: true }
+        },
+        {
+          path: 'task/putaway',
+          name: 'PutawayTaskView',
+          component: () => import('@/views/task/PutawayTaskView.vue'),
+          meta: { title: '上架作业' }
+        },
+        {
+          path: 'task/putaway/:id',
+          name: 'PutawayTaskExecute',
+          component: () => import('@/views/task/PutawayTaskExecute.vue'),
+          meta: { title: '执行上架', hideTabbar: true }
+        },
+        {
           path: 'task/move/:id',
           name: 'MoveTaskExecute',
           component: () => import('@/views/task/MoveTaskExecute.vue'),
           meta: { title: '执行搬运', hideTabbar: true }
         },
         {
+          path: 'task/cycle-count',
+          name: 'CycleCountList',
+          component: () => import('@/views/task/CycleCountPlaceholderView.vue'),
+          meta: { title: '盘点作业' }
+        },
+        {
+          path: 'task/cycle-count/execute/:id',
+          name: 'CycleCountExecute',
+          component: () => import('@/views/task/CycleCountExecuteView.vue'),
+          meta: { title: '盘点执行', hideTabbar: true }
+        },
+        {
+          path: 'task/stocktake',
+          name: 'StocktakeCount',
+          component: () => import('@/views/task/StocktakeCount.vue'),
+          meta: { title: '库存盘点' }
+        },
+        {
+          path: 'task/transfer',
+          name: 'TransferList',
+          component: () => import('@/views/task/transfer/TransferListView.vue'),
+          meta: { title: '移库作业' }
+        },
+        {
+          path: 'task/transfer/execute/:id',
+          name: 'TransferExecute',
+          component: () => import('@/views/task/transfer/TransferExecuteView.vue'),
+          meta: { title: '移库执行', hideTabbar: true }
+        },
+        {
+          path: 'task/relocation',
+          name: 'Relocation',
+          component: () => import('@/views/task/relocation/RelocationView.vue'),
+          meta: { title: '理货作业', hideTabbar: true }
+        },
+        {
+          path: 'task/container-binding',
+          name: 'ContainerBinding',
+          component: () => import('@/views/task/containerBinding/ContainerBindingView.vue'),
+          meta: { title: '容器组盘拆托', hideTabbar: true }
+        },
+        {
+          path: 'exception-report',
+          name: 'ExceptionReport',
+          component: () => import('@/views/exception/ExceptionView.vue'),
+          meta: { title: '异常上报' }
+        },
+        {
           path: 'mine',
           name: 'Mine',
           component: () => import('@/views/mine/MineView.vue'),
           meta: { title: '个人中心' }
+        },
+        {
+          path: 'inbound/misc-inbound',
+          name: 'MiscInboundList',
+          component: () => import('@/views/inbound/miscInbound/MiscInboundListView.vue'),
+          meta: { title: '其他收货' }
+        },
+        {
+          path: 'inbound/misc-inbound/receive/:receiptId',
+          name: 'MiscInboundReceive',
+          component: () => import('@/views/inbound/miscInbound/MiscInboundReceiveView.vue'),
+          meta: { title: '其他收货执行', hideTabbar: true }
+        },
+        {
+          path: 'outbound/misc-outbound',
+          name: 'MiscOutboundList',
+          component: () => import('@/views/outbound/miscOutbound/MiscOutboundListView.vue'),
+          meta: { title: '其他发货' }
+        },
+        {
+          path: 'outbound/misc-outbound/execute/:shipmentId',
+          name: 'MiscOutboundExecute',
+          component: () => import('@/views/outbound/miscOutbound/MiscOutboundExecuteView.vue'),
+          meta: { title: '其他发货执行', hideTabbar: true }
         }
       ]
     },

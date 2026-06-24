@@ -95,33 +95,7 @@ async function handleLogin() {
     <div class="login-panel">
       <div class="login-header">
         <div class="logo-icon" aria-hidden="true">
-          <svg class="brand-warehouse" viewBox="0 0 24 24" fill="none">
-            <defs>
-              <linearGradient id="polaris-gem-bg" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#1D4ED8" />
-                <stop offset="0.55" stop-color="#5B6CFF" />
-                <stop offset="1" stop-color="#8B5CF6" />
-              </linearGradient>
-              <linearGradient id="polaris-gem-star" x1="7" y1="6" x2="17" y2="18" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#F8FAFF" />
-                <stop offset="1" stop-color="#DDE7FF" />
-              </linearGradient>
-              <linearGradient id="polaris-gem-trail" x1="16" y1="2" x2="7" y2="16" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#ffffff" stop-opacity="0.9" />
-                <stop offset="1" stop-color="#c7d2fe" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-
-            <rect x="0" y="0" width="24" height="24" rx="6.8" fill="url(#polaris-gem-bg)" />
-            <path d="M12 4.9L13.9 10.1L19.1 12L13.9 13.9L12 19.1L10.1 13.9L4.9 12L10.1 10.1L12 4.9Z" fill="url(#polaris-gem-star)" />
-            <path class="warehouse-scan" d="M8.4 12H15.6" stroke="#EEF2FF" stroke-width="1" stroke-linecap="round" />
-            <circle class="warehouse-beacon" cx="16.7" cy="7.5" r="1" fill="#EAF0FF" />
-            <circle class="warehouse-beacon-ring" cx="16.7" cy="7.5" r="1" stroke="#C7D2FE" stroke-width="0.85" fill="none" />
-            <g class="star-fall-group">
-              <path class="star-trail" d="M16.8 4.4L12.8 8.8" stroke="url(#polaris-gem-trail)" stroke-width="1" stroke-linecap="round" />
-              <circle class="star-fall" cx="16.8" cy="4.4" r="0.85" fill="#ffffff" />
-            </g>
-          </svg>
+            <img class="brand-warehouse" src="/polaris-favicon.svg" alt="" />
         </div>
         <h1 class="login-title">Polaris WMS</h1>
         <p class="login-subtitle">INDUSTRIAL PDA TERMINAL</p>

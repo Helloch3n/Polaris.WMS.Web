@@ -82,7 +82,7 @@ watch(activeTab, () => {
   tasks.value = []
   loading.value = true
   fetchTasks(true)
-})
+}, { immediate: true })
 
 // 工具函数：解析任务类型为前端展示的文字和颜色
 const getTaskTypeInfo = (type: MoveTaskType) => {
@@ -116,7 +116,7 @@ const navigateToTask = (id: string) => {
     </div>
 
       <van-tabs 
-      v-model="activeTab" 
+      v-model:active="activeTab" 
       sticky 
       swipeable 
       color="#4f46e5" 
@@ -155,7 +155,7 @@ const navigateToTask = (id: string) => {
           >
             <div class="flex justify-between items-start mb-3">
               <div>
-                <div class="font-black text-lg text-slate-800 font-mono">{{ task.taskNo.substring(0, 8) }}...</div>
+                <div class="font-black text-lg text-slate-800 font-mono">{{ task.taskNo || '-' }}</div>
                 <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(task.creationTime) }}</div>
               </div>
               
@@ -198,7 +198,7 @@ const navigateToTask = (id: string) => {
               <van-button 
                 block 
                 round 
-                class="!bg-slate-800 active:!bg-slate-700 !border-none font-bold text-white shadow-md shadow-slate-800/20"
+                class="!bg-slate-800 active:!bg-slate-700 !border-none font-bold !text-white shadow-md shadow-slate-800/20"
               >
                 {{ activeTab === MoveTaskStatus.Pending ? '领取任务' : '继续执行' }}
               </van-button>

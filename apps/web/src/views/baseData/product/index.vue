@@ -30,10 +30,13 @@ import {
   getProduct,
   getProductList,
   updateProduct,
+  getImportTemplate,
+  importData,
   type GetProductListParams,
   type ProductDto,
   type CreateUpdateProductDto,
 } from '../../../api/masterData/product'
+import ImportModal from '../../../components/ImportModal.vue'
 
 type ProductRow = ProductDto & { id?: string }
 
@@ -44,9 +47,10 @@ const dialog = useDialog()
 
 const { hasPermission } = usePermission()
 
-const canCreate = computed(() => hasPermission('MasterData.Product.Create'))
-const canUpdate = computed(() => hasPermission('MasterData.Product.Update'))
-const canDelete = computed(() => hasPermission('MasterData.Product.Delete'))
+const canCreate = computed(() => hasPermission('WMS.MasterData.Products.Create'))
+const canUpdate = computed(() => hasPermission('WMS.MasterData.Products.Update'))
+const canDelete = computed(() => hasPermission('WMS.MasterData.Products.Delete'))
+const canImport = computed(() => hasPermission('WMS.MasterData.Products.Import'))
 
 const query = reactive<{
   productCode: string
@@ -63,6 +67,7 @@ const query = reactive<{
 })
 
 const dialogVisible = ref(false)
+const importModalVisible = ref(false)
 const dialogTitle = ref('新增物料')
 const editingId = ref<string | null>(null)
 const formRef = ref<FormInst | null>(null)
@@ -358,6 +363,7 @@ onMounted(() => {
     <template #actions-left>
       <div class="crud-action-main">
         <n-button v-if="canCreate" type="primary" @click="onCreate">新增</n-button>
+        <n-button v-if="canImport" @click="importModalVisible = true">导入</n-button>
         <n-button v-if="canUpdate" :disabled="!canEditSelected" @click="handleToolbarEdit">编辑</n-button>
         <n-button v-if="canDelete" type="error" :disabled="!canDeleteSelected" @click="handleToolbarDelete">删除</n-button>
       </div>
@@ -442,6 +448,14 @@ onMounted(() => {
       />
     </template>
   </BaseCrudPage>
+  <ImportModal
+    v-model:show="importModalVisible"
+    title="导入物料数据"
+    template-name="物料导入模板.xlsx"
+    :download-template-api="getImportTemplate"
+    :import-api="importData"
+    @success="fetchList"
+  />
 </template>
 
 <style scoped>

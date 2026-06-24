@@ -12,6 +12,7 @@ import {
   NProgress,
   NSelect,
   NSpin,
+  NSwitch,
   NTag,
   NText,
   useMessage,
@@ -53,7 +54,7 @@ const containerOptions = ref<SelectOption[]>([])
 const containerLoading = ref(false)
 const locationOptions = ref<SelectOption[]>([])
 const locationLoading = ref(false)
-const productLookup = ref<Record<string, { id: string; code: string; name: string }>>({})
+const productLookup = ref<Record<string, { id: string; code: string; name: string; unit: string }>>({})
 const containerLookup = ref<Record<string, { id: string; containerCode: string }>>({})
 const locationLookup = ref<Record<string, { id: string; code: string }>>({})
 
@@ -204,6 +205,7 @@ function cloneDetailRow(row: DetailDraftRow): DetailDraftRow {
     ...row,
     actualLocationId: row.actualLocationId ?? '',
     weight: Number(row.weight ?? 0),
+    needInspection: !!row.needInspection,
   }
 }
 
@@ -300,11 +302,11 @@ async function loadProductOptions(keyword?: string) {
       filter: keyword?.trim() || undefined,
     })
     const items = data.items ?? []
-    const lookup: Record<string, { id: string; code: string; name: string }> = {}
+    const lookup: Record<string, { id: string; code: string; name: string; unit: string }> = {}
     productOptions.value = items.map((item) => {
       const id = String(item.id ?? '')
       if (id) {
-        lookup[id] = { id, code: item.code ?? '', name: item.name ?? '' }
+        lookup[id] = { id, code: item.code ?? '', name: item.name ?? '', unit: item.unit ?? '' }
       }
       return {
         label: item.code ? `${item.code}${item.name ? ` - ${item.name}` : ''}` : (item.name || '-'),
@@ -411,6 +413,7 @@ function createEmptyDetailRow(): DetailDraftRow {
     actualLocationId: '',
     actualLocationCode: '',
     status: productionInboundApi.ProductionInboundDetailStatus.Pending,
+    needInspection: false,
   }
 }
 
@@ -477,6 +480,63 @@ function validateSameContainerLocationConsistency() {
   return true
 }
 
+function updateDetailRowWithSameReelInspection(row: DetailDraftRow, value: boolean) {
+  const currentContainerId = String(row.containerId ?? '').trim()
+  const currentContainerCode = String(row.containerCode ?? '').trim()
+
+  detailRows.value = detailRows.value.map((item) => {
+    const isSame = currentContainerId 
+      ? String(item.containerId ?? '').trim() === currentContainerId
+      : Boolean(currentContainerCode && String(item.containerCode ?? '').trim() === currentContainerCode)
+
+    if (item.id === row.id || isSame) {
+      return {
+        ...item,
+        needInspection: value,
+      }
+    }
+    return item
+  })
+  formModel.details = detailRows.value
+}
+
+function inheritInspectionFromSameContainer(rowId: string) {
+  const currentRow = detailRows.value.find((item) => item.id === rowId)
+  if (!currentRow) return
+  const containerId = String(currentRow.containerId ?? '').trim()
+  const containerCode = String(currentRow.containerCode ?? '').trim()
+  if (!containerId && !containerCode) return
+
+  const peer = detailRows.value.find((item) => {
+    if (item.id === rowId) return false
+    const peerContainerId = String(item.containerId ?? '').trim()
+    const peerContainerCode = String(item.containerCode ?? '').trim()
+    if (containerId) return peerContainerId === containerId
+    return Boolean(containerCode && peerContainerCode === containerCode)
+  })
+  if (!peer) return
+
+  updateDetailRowWithSameReelInspection(currentRow, !!peer.needInspection)
+}
+
+function validateSameContainerInspectionConsistency() {
+  const inspectionByContainer = new Map<string, boolean>()
+  for (const row of detailRows.value) {
+    const containerKey = String(row.containerId ?? '').trim() || String(row.containerCode ?? '').trim()
+    if (!containerKey) continue
+    const needInspection = !!row.needInspection
+    if (!inspectionByContainer.has(containerKey)) {
+      inspectionByContainer.set(containerKey, needInspection)
+      continue
+    }
+    if (inspectionByContainer.get(containerKey) !== needInspection) {
+      message.warning('同一盘号的“是否需要检验”设置必须一致，请检查明细')
+      return false
+    }
+  }
+  return true
+}
+
 function handleAddDetail() {
   detailRows.value = [...detailRows.value, createEmptyDetailRow()]
   formModel.details = detailRows.value
@@ -537,6 +597,7 @@ const {
     'craftVersion',
     'containerId',
     'containerCode',
+    'needInspection',
     'qty',
     'unit',
     'weight',
@@ -550,20 +611,21 @@ const {
   defaultVisible: (key) => !key.toLowerCase().endsWith('id'),
   resolveTitle: (key) => {
     if (key === 'productId') return '物料ID'
-    if (key === 'productCode') return '物料编码'
+    if (key === 'productCode') return '* 物料编码'
     if (key === 'productName') return '物料名称'
-    if (key === 'batchNo') return '批次号'
+    if (key === 'batchNo') return '* 批次号'
     if (key === 'craftVersion') return '工艺版本'
     if (key === 'containerId') return '盘ID'
-    if (key === 'containerCode') return '盘号'
-    if (key === 'qty') return '数量'
-    if (key === 'unit') return '单位'
+    if (key === 'containerCode') return '* 盘号'
+    if (key === 'needInspection') return '是否需要检验'
+    if (key === 'qty') return '* 数量'
+    if (key === 'unit') return '* 单位'
     if (key === 'weight') return '重量'
     if (key === 'sn') return 'SN'
     if (key === 'layerIndex') return '层号'
     if (key === 'relatedOrderNo') return '关联单号'
     if (key === 'relatedOrderNoLineNo') return '关联行号'
-    if (key === 'actualLocationCode') return '实际库位编码'
+    if (key === 'actualLocationCode') return '* 实际库位编码'
     if (key === 'actualLocationId') return '实入库位ID'
     return key
   },
@@ -581,7 +643,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     }),
   },
   productCode: {
-    title: createDraggableTitle('productCode', '物料编码'),
+    title: createDraggableTitle('productCode', '* 物料编码'),
     key: 'productCode',
     minWidth: 220,
     render: (row) => h(NSelect, {
@@ -600,6 +662,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
           productId: id,
           productCode: selected?.code ?? '',
           productName: selected?.name ?? '',
+          unit: selected?.unit ?? '',
         })
       },
     }),
@@ -611,7 +674,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     render: (row) => row.productName ?? '-',
   },
   batchNo: {
-    title: createDraggableTitle('batchNo', '批次号'),
+    title: createDraggableTitle('batchNo', '* 批次号'),
     key: 'batchNo',
     minWidth: 180,
     render: (row) => h(NInput, {
@@ -637,11 +700,14 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     render: (row) => h(NInput, {
       value: row.containerId,
       placeholder: '请输入盘ID',
-      onUpdateValue: (value) => updateDetailRow(row.id, { containerId: value }),
+      onUpdateValue: (value) => {
+        updateDetailRow(row.id, { containerId: value })
+        inheritInspectionFromSameContainer(row.id)
+      },
     }),
   },
   containerCode: {
-    title: createDraggableTitle('containerCode', '盘号'),
+    title: createDraggableTitle('containerCode', '* 盘号'),
     key: 'containerCode',
     minWidth: 180,
     render: (row) => h(NSelect, {
@@ -661,17 +727,28 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
           containerCode: selected?.containerCode ?? '',
         })
         inheritLocationFromSameContainer(row.id)
+        inheritInspectionFromSameContainer(row.id)
+      },
+    }),
+  },
+  needInspection: {
+    title: createDraggableTitle('needInspection', '是否需要检验'),
+    key: 'needInspection',
+    width: 140,
+    render: (row) => h(NSwitch, {
+      value: row.needInspection,
+      onUpdateValue: (value: boolean) => {
+        updateDetailRowWithSameReelInspection(row, value)
       },
     }),
   },
   qty: {
-    title: createDraggableTitle('qty', '数量'),
+    title: createDraggableTitle('qty', '* 数量'),
     key: 'qty',
     width: 130,
     render: (row) => h(NInputNumber, {
       value: row.qty,
       min: 0,
-      precision: 3,
       placeholder: '数量',
       onUpdateValue: (value) => updateDetailRow(row.id, { qty: Number(value ?? 0) }),
     }),
@@ -680,11 +757,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     title: createDraggableTitle('unit', '单位'),
     key: 'unit',
     width: 120,
-    render: (row) => h(NInput, {
-      value: row.unit,
-      placeholder: '单位',
-      onUpdateValue: (value) => updateDetailRow(row.id, { unit: value }),
-    }),
+    render: (row) => row.unit || '-',
   },
   weight: {
     title: createDraggableTitle('weight', '重量'),
@@ -693,14 +766,13 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     render: (row) => h(NInputNumber, {
       value: row.weight,
       min: 0,
-      precision: 3,
       clearable: true,
       placeholder: '重量',
       onUpdateValue: (value) => updateDetailRow(row.id, { weight: Number(value ?? 0) }),
     }),
   },
   sn: {
-    title: createDraggableTitle('sn', 'SN'),
+    title: createDraggableTitle('sn', '* SN'),
     key: 'sn',
     minWidth: 180,
     render: (row) => h(NInput, {
@@ -752,7 +824,7 @@ const detailColumnMap: Record<string, DataTableColumns<DetailDraftRow>[number]> 
     }),
   },
   actualLocationCode: {
-    title: createDraggableTitle('actualLocationCode', '实际库位编码'),
+    title: createDraggableTitle('actualLocationCode', '* 实际库位编码'),
     key: 'actualLocationCode',
     minWidth: 220,
     render: (row) => h(NSelect, {
@@ -872,6 +944,10 @@ async function handleSave() {
     return
   }
 
+  if (!validateSameContainerInspectionConsistency()) {
+    return
+  }
+
   const dtoInboundId = String(formModel.id ?? '').trim()
 
   if (isEditMode.value && !isValidGuid(dtoInboundId)) {
@@ -879,18 +955,49 @@ async function handleSave() {
     return
   }
 
-  const invalidDetailIndex = detailRows.value.findIndex((item) => {
-    if (isEditMode.value) {
-      const productionInboundId = toRequiredGuid(item.productionInboundId, dtoInboundId)
-      if (!isValidGuid(productionInboundId)) return true
-    }
-    return !isValidGuid(item.productId)
-      || !isValidGuid(item.containerId)
-      || !isValidGuid(item.actualLocationId)
-  })
-  if (invalidDetailIndex >= 0) {
-    message.warning(`第${invalidDetailIndex + 1}条明细存在无效Guid字段，请检查物料ID/盘ID/实入库位ID`) 
+  if (detailRows.value.length === 0) {
+    message.warning('请至少新增一条入库明细')
     return
+  }
+
+  for (let i = 0; i < detailRows.value.length; i++) {
+    const row = detailRows.value[i]
+    if (!row) continue
+    if (isEditMode.value) {
+      const productionInboundId = toRequiredGuid(row.productionInboundId, dtoInboundId)
+      if (!isValidGuid(productionInboundId)) {
+        message.warning(`第 ${i + 1} 行明细的入库单关联ID无效`)
+        return
+      }
+    }
+    if (!isValidGuid(row.productId)) {
+      message.warning(`第 ${i + 1} 行明细未选择有效物料（物料编码为必填项）`)
+      return
+    }
+    if (!row.batchNo?.trim()) {
+      message.warning(`第 ${i + 1} 行明细的批次号不能为空`)
+      return
+    }
+    if (!isValidGuid(row.containerId)) {
+      message.warning(`第 ${i + 1} 行明细未选择有效盘具（盘号为必填项）`)
+      return
+    }
+    if (Number(row.qty ?? 0) <= 0) {
+      message.warning(`第 ${i + 1} 行明细的数量必须大于 0`)
+      return
+    }
+    if (!row.unit?.trim()) {
+      message.warning(`第 ${i + 1} 行明细的单位不能为空`)
+      return
+    }
+    if (!isValidGuid(row.actualLocationId)) {
+      message.warning(`第 ${i + 1} 行明细未选择实际库位`)
+      return
+    }
+    if (!row.sn?.trim()) {
+      message.warning(`第 ${i + 1} 行明细的SN不能为空`)
+      return
+    }
   }
 
   saving.value = true
@@ -925,6 +1032,7 @@ async function handleSave() {
           relatedOrderNoLineNo: safeTrim(item.relatedOrderNoLineNo),
           actualLocationId: toRequiredGuid(item.actualLocationId),
           actualLocationCode: safeTrim(item.actualLocationCode),
+          needInspection: !!item.needInspection,
         })),
       }
 
@@ -950,6 +1058,7 @@ async function handleSave() {
         relatedOrderNo: safeTrim(item.relatedOrderNo),
         relatedOrderNoLineNo: safeTrim(item.relatedOrderNoLineNo),
         actualLocationId: toRequiredGuid(item.actualLocationId),
+        needInspection: !!item.needInspection,
       }))
 
       const payload: productionInboundApi.CreateProductionInboundDto = {
@@ -1003,8 +1112,7 @@ watch(
 </script>
 
 <template>
-  <div>
-    <BaseCrudPage :search-collapsible="false">
+  <BaseCrudPage :search-collapsible="false">
       <template #search>
         <div class="detail-header-wrap">
           <div class="header-action-bar">
@@ -1026,7 +1134,8 @@ watch(
               <n-descriptions-item label="入库单号">
                 {{ formModel.orderNo || '-' }}
               </n-descriptions-item>
-              <n-descriptions-item label="来源单号">
+              <n-descriptions-item>
+                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>来源单号</template>
                 <n-input
                   :value="formModel.sourceOrderNo"
                   placeholder="请输入来源单号"
@@ -1038,7 +1147,8 @@ watch(
               <n-descriptions-item label="创建时间">
                 {{ formatDateTime(formModel.creationTime) }}
               </n-descriptions-item>
-              <n-descriptions-item label="入库类型">
+              <n-descriptions-item>
+                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>入库类型</template>
                 <n-select
                   :value="formModel.inboundType"
                   :options="inboundTypeOptions"
@@ -1046,7 +1156,8 @@ watch(
                   @update:value="(value) => { formModel.inboundType = value }"
                 />
               </n-descriptions-item>
-              <n-descriptions-item label="来源部门">
+              <n-descriptions-item>
+                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>来源部门</template>
                 <n-select
                   :value="formModel.sourceDepartmentId"
                   :options="sourceDepartmentOptions"
@@ -1058,7 +1169,8 @@ watch(
                   @update:value="handleSourceDepartmentChange"
                 />
               </n-descriptions-item>
-              <n-descriptions-item label="目标入库仓库">
+              <n-descriptions-item>
+                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>目标入库仓库</template>
                 <n-select
                   :value="formModel.targetWarehouseId"
                   :options="targetWarehouseOptions"
@@ -1122,6 +1234,7 @@ watch(
           :bordered="false"
           :row-key="getDetailRowKey"
           :checked-row-keys="checkedDetailKeys"
+          :scroll-x="3000"
           @update:checked-row-keys="handleCheckedDetailKeysUpdate"
         >
           <template #empty>
@@ -1130,7 +1243,6 @@ watch(
         </n-data-table>
       </template>
     </BaseCrudPage>
-  </div>
 </template>
 
 <style scoped>

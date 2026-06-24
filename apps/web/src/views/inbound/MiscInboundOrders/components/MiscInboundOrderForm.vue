@@ -82,7 +82,6 @@ const detailRows = ref<DetailRow[]>([])
 
 const isEditMode = computed(() => props.mode === 'edit')
 const isCreateMode = computed(() => props.mode === 'create')
-const pageTagText = computed(() => (isEditMode.value ? '编辑模式' : '新增模式'))
 
 const headerLabelStyle = {
   width: '120px',
@@ -593,7 +592,7 @@ function handleAccountAliasChange(value: string) {
   const accountAliasId = String(value ?? '').trim()
   const target = accountAliasLookup.value[accountAliasId]
   formModel.accountAliasId = accountAliasId
-  formModel.accountAliasDescription = target?.description ?? ''
+  formModel.accountAliasDescription = target?.description || target?.alias || ''
 }
 
 function handleCostCenterChange(value: string) {
@@ -672,9 +671,8 @@ function handleDeleteSelectedDetails() {
   }
 }
 
-function buildPayload(): miscInboundOrderApi.MiscInboundOrderDto {
-  const payloadDetails = detailRows.value.map((item) => ({
-    id: normalizeGuid(item.id),
+function buildDetailPayload(): miscInboundOrderApi.CreateMiscInboundOrderDetailDto[] {
+  return detailRows.value.map((item) => ({
     warehouseId: String(item.warehouseId ?? '').trim(),
     warehouseCode: String(item.warehouseCode ?? '').trim(),
     warehouseName: String(item.warehouseName ?? '').trim(),
@@ -692,48 +690,57 @@ function buildPayload(): miscInboundOrderApi.MiscInboundOrderDto {
     qty: Number(item.qty ?? 0),
     remark: String(item.remark ?? '').trim() || null,
   }))
+}
 
+function buildCreatePayload(): miscInboundOrderApi.CreateMiscInboundOrderDto {
+  const payloadDetails = buildDetailPayload()
   return {
-    id: isEditMode.value ? normalizeGuid(formModel.id) : EMPTY_GUID,
-    orderNo: String(formModel.orderNo ?? '').trim(),
     accountAliasId: String(formModel.accountAliasId ?? '').trim(),
     accountAliasDescription: String(formModel.accountAliasDescription ?? '').trim(),
     costCenterId: String(formModel.costCenterId ?? '').trim(),
     costCenterCode: String(formModel.costCenterCode ?? '').trim(),
     costCenterName: String(formModel.costCenterName ?? '').trim(),
-    type: formModel.type,
-    status: formModel.status,
     remark: String(formModel.remark ?? '').trim() || null,
     details: payloadDetails,
   }
 }
 
-function validatePayload(payload: miscInboundOrderApi.MiscInboundOrderDto) {
-  if (!payload.orderNo) {
-    activeTab.value = 'header'
-    message.warning('请填写单据号')
-    return false
+function buildUpdatePayload(): miscInboundOrderApi.UpdateMiscInboundOrderDto {
+  const payloadDetails = buildDetailPayload()
+  return {
+    accountAliasId: String(formModel.accountAliasId ?? '').trim(),
+    accountAliasDescription: String(formModel.accountAliasDescription ?? '').trim(),
+    costCenterId: String(formModel.costCenterId ?? '').trim(),
+    costCenterCode: String(formModel.costCenterCode ?? '').trim(),
+    costCenterName: String(formModel.costCenterName ?? '').trim(),
+    remark: String(formModel.remark ?? '').trim() || null,
+    details: payloadDetails,
   }
+}
 
-  if (!payload.accountAliasId) {
+function validatePayload(details: miscInboundOrderApi.CreateMiscInboundOrderDetailDto[]) {
+  const accountAliasId = String(formModel.accountAliasId ?? '').trim()
+  const costCenterId = String(formModel.costCenterId ?? '').trim()
+
+  if (!accountAliasId) {
     activeTab.value = 'header'
     message.warning('请选择账户别名')
     return false
   }
 
-  if (!payload.costCenterId) {
+  if (!costCenterId) {
     activeTab.value = 'header'
     message.warning('请选择成本中心')
     return false
   }
 
-  if (payload.details.length === 0) {
+  if (details.length === 0) {
     activeTab.value = 'details'
     message.warning('请至少维护一条明细')
     return false
   }
 
-  const invalidIndex = payload.details.findIndex((item) =>
+  const invalidIndex = details.findIndex((item) =>
     !item.warehouseId || !item.locationId || !item.containerId || !item.productId || !item.unit || Number(item.qty) <= 0,
   )
 
@@ -747,18 +754,21 @@ function validatePayload(payload: miscInboundOrderApi.MiscInboundOrderDto) {
 }
 
 async function handleSave() {
-  const payload = buildPayload()
-  if (!validatePayload(payload)) {
-    return
-  }
-
   saving.value = true
   try {
     if (isEditMode.value) {
-      await miscInboundOrderApi.update(payload)
+      const updatePayload = buildUpdatePayload()
+      if (!validatePayload(updatePayload.details)) {
+        return
+      }
+      await miscInboundOrderApi.update(normalizeGuid(formModel.id), updatePayload)
       message.success('编辑保存成功')
     } else {
-      await miscInboundOrderApi.create(payload)
+      const createPayload = buildCreatePayload()
+      if (!validatePayload(createPayload.details)) {
+        return
+      }
+      await miscInboundOrderApi.create(createPayload)
       message.success('新增保存成功')
     }
 
@@ -786,6 +796,11 @@ async function loadDetail() {
   loading.value = true
   try {
     const data = await miscInboundOrderApi.get(id)
+    if (normalizeStatusValue(data.status ?? miscInboundOrderApi.MiscOrderStatus.Draft) !== miscInboundOrderApi.MiscOrderStatus.Draft) {
+      message.warning('当前其他入库单不是草稿状态，无法编辑')
+      await router.replace({ name: 'MiscInboundOrdersDetail', params: { id } })
+      return
+    }
     formModel.id = normalizeGuid(data.id)
     formModel.orderNo = String(data.orderNo ?? '')
     formModel.accountAliasId = String(data.accountAliasId ?? '')
@@ -1039,7 +1054,7 @@ onMounted(async () => {
             style="margin-top: 10px;"
           >
             <n-descriptions-item label="单据号">
-              <n-input :value="formModel.orderNo" placeholder="请输入单据号" @update:value="(value) => { formModel.orderNo = value }" />
+              <n-input :value="isEditMode ? formModel.orderNo : ''" :disabled="true" placeholder="系统自动生成" />
             </n-descriptions-item>
             <n-descriptions-item label="账户别名">
               <n-select
@@ -1111,11 +1126,7 @@ onMounted(async () => {
       </div>
     </template>
 
-    <template #actions-right>
-      <div class="crud-action-tools">
-        <n-tag size="small" type="info">{{ pageTagText }}</n-tag>
-      </div>
-    </template>
+
 
     <template #data>
       <n-data-table
@@ -1139,11 +1150,7 @@ onMounted(async () => {
       </div>
     </template>
 
-    <template #actions-right>
-      <div class="crud-action-tools">
-        <n-tag size="small" type="info">{{ pageTagText }}</n-tag>
-      </div>
-    </template>
+
 
     <template #data>
       <div v-if="loading" class="form-loading-wrap">正在加载表单数据...</div>
@@ -1152,7 +1159,7 @@ onMounted(async () => {
         <n-tab-pane name="header" tab="单头信息">
           <n-form :model="formModel" label-placement="left" label-width="140" class="form-tab-panel">
             <n-form-item label="单据号">
-              <n-input :value="formModel.orderNo" placeholder="请输入单据号" @update:value="(value) => { formModel.orderNo = value }" />
+              <n-input :value="isEditMode ? formModel.orderNo : ''" :disabled="true" placeholder="系统自动生成" />
             </n-form-item>
             <n-form-item label="账户别名">
               <n-select

@@ -45,9 +45,9 @@ const list = ref<WarehouseDto[]>([])
 
 const { hasPermission } = usePermission()
 
-const canCreate = computed(() => hasPermission('MasterData.Warehouse.Create'))
-const canUpdate = computed(() => hasPermission('MasterData.Warehouse.Update'))
-const canDelete = computed(() => hasPermission('MasterData.Warehouse.Delete'))
+const canCreate = computed(() => hasPermission('WMS.MasterData.Warehouses.Create'))
+const canUpdate = computed(() => hasPermission('WMS.MasterData.Warehouses.Update'))
+const canDelete = computed(() => hasPermission('WMS.MasterData.Warehouses.Delete'))
 
 const query = reactive({
   warehouseCode: '',

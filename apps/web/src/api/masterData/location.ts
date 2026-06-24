@@ -43,7 +43,7 @@ export interface LocationDto {
   bin: string
   maxWeight: number
   maxVolume: number
-  maxContainerCount: number
+  maxReelCount: number
   type: number
   status: number
   allowMixedProducts: boolean
@@ -66,7 +66,7 @@ export interface CreateUpdateLocationDto {
   bin: string
   maxWeight: number
   maxVolume: number
-  maxContainerCount: number
+  maxReelCount: number
   type: number
   allowMixedProducts: boolean
   allowMixedBatches: boolean
@@ -128,5 +128,25 @@ export { deleteLocation as delete }
 
 export async function batchCreate(data: BatchCreateLocationDto) {
   const res = await request.post<void>(`${baseUrl}/batch-create`, data)
+  return res.data
+}
+
+export async function getImportTemplate() {
+  const res = await request.get(`${baseUrl}/import-template`, { responseType: 'blob' })
+  return res.data
+}
+
+export async function importData(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await request.post(
+    `${baseUrl}/import`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  )
   return res.data
 }

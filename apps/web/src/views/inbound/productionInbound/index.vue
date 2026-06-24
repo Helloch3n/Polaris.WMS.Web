@@ -22,6 +22,7 @@ import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
+import { usePermission } from '../../../composables/usePermission'
 
 type RowItem = productionInboundApi.ProductionInboundDto
 
@@ -72,9 +73,6 @@ const {
   toggleSingleRow,
   clearSelection,
 } = useTableSelection(rows, getRowKey)
-
-const canViewSelected = computed(() => selectedCount.value === 1)
-
 function formatDateTime(v?: string) {
   if (!v) return '-'
   const d = new Date(v)
@@ -281,7 +279,65 @@ function openDetail(row: RowItem) {
   router.push({ name: 'ProductionInboundDetail', params: { orderId: row.id } })
 }
 
-// 审核/编辑/新增操作在此页面被禁用（只读查询）
+const { hasPermission } = usePermission()
+
+const canCreate = computed(() => hasPermission('WMS.InboundOps.ProductionInbounds.Create'))
+const canUpdate = computed(() => hasPermission('WMS.InboundOps.ProductionInbounds.Update'))
+const canApprove = computed(() => hasPermission('WMS.InboundOps.ProductionInbounds.Approve'))
+
+const canSelectOne = computed(() => selectedCount.value === 1)
+
+const canEditSelected = computed(() => {
+  if (!canSelectOne.value || !selectedRows.value[0]) return false
+  const status = normalizeStatusValue(selectedRows.value[0].status)
+  return status === productionInboundApi.ProductionInboundStatus.Draft
+})
+
+const canApproveSelected = computed(() => {
+  if (!canSelectOne.value || !selectedRows.value[0]) return false
+  const status = normalizeStatusValue(selectedRows.value[0].status)
+  return status === productionInboundApi.ProductionInboundStatus.Draft
+})
+
+function handleCreate() {
+  router.push({ name: 'ProductionInboundCreate' })
+}
+
+function handleEditSelected() {
+  if (selectedRows.value.length !== 1) {
+    message.warning('请选择一条数据进行编辑')
+    return
+  }
+  const selected = selectedRows.value[0]
+  if (!selected?.id) {
+    message.warning('缺少单据ID，无法编辑')
+    return
+  }
+  router.push({ name: 'ProductionInboundEdit', params: { orderId: selected.id } })
+}
+
+async function handleApproveSelected() {
+  if (selectedRows.value.length !== 1) {
+    message.warning('请选择一条数据进行审核')
+    return
+  }
+  const selected = selectedRows.value[0]
+  if (!selected?.id) {
+    message.warning('缺少单据ID，无法审核')
+    return
+  }
+  loading.value = true
+  try {
+    await productionInboundApi.approveAndExecute(selected.id)
+    message.success('审核并执行成功')
+    clearSelection()
+    loadData()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '审核并执行失败')
+  } finally {
+    loading.value = false
+  }
+}
 
 function handleQuery() {
   pagination.page = 1
@@ -355,7 +411,10 @@ onMounted(() => {
 
     <template #actions-left>
       <div class="crud-action-main">
-        <n-button :disabled="!canViewSelected || loading" @click="handleView">{{ t('common.view') }}</n-button>
+        <n-button v-if="canCreate" type="primary" @click="handleCreate">新增</n-button>
+        <n-button :disabled="!canSelectOne || loading" @click="handleView">查看</n-button>
+        <n-button v-if="canUpdate" :disabled="!canEditSelected || loading" @click="handleEditSelected">编辑</n-button>
+        <n-button v-if="canApprove" type="warning" :disabled="!canApproveSelected || loading" @click="handleApproveSelected">审核并执行</n-button>
       </div>
     </template>
 

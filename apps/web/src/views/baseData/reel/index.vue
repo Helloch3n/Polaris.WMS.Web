@@ -43,9 +43,9 @@ const dialogRef = ref<ContainerDialogExpose | null>(null)
 
 const { hasPermission } = usePermission()
 
-const canCreate = computed(() => hasPermission('MasterData.Container.Create'))
-const canUpdate = computed(() => hasPermission('MasterData.Container.Update'))
-const canDelete = computed(() => hasPermission('MasterData.Container.Delete'))
+const canCreate = computed(() => hasPermission('WMS.MasterData.Containers.Create'))
+const canUpdate = computed(() => hasPermission('WMS.MasterData.Containers.Update'))
+const canDelete = computed(() => hasPermission('WMS.MasterData.Containers.Delete'))
 
 const COLUMN_STORAGE_KEY = 'container-column-settings-v6'
 const preferredColumnOrder = [

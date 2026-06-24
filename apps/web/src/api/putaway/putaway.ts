@@ -87,22 +87,19 @@ export interface CompletePutawayTaskInput {
 
 export interface GetPutawayTaskListInput extends PagedRequestDto {
   status?: PutawayTaskStatus | string
+  statuses?: string[]
+  taskNo?: string
+  containerNo?: string
 }
 
 const baseUrl = '/api/app/putaway'
-
-function toAbpPaging(input?: PagedRequestDto) {
-  return {
-    skipCount: input?.skipCount,
-    maxResultCount: input?.maxResultCount,
-  }
-}
 
 /** GET /api/app/putaway/available-containers */
 export async function getAvailableContainers(params: GetAvailableContainersInput) {
   const res = await request.get<PagedResultDto<AvailableContainerDto>>(`${baseUrl}/available-containers`, {
     params: {
-      ...toAbpPaging(params),
+      skipCount: params.skipCount ?? 0,
+      maxResultCount: params.maxResultCount ?? 100,
       filter: params.filter,
       warehouseId: params.warehouseId,
     },
@@ -120,8 +117,12 @@ export async function createPutawayTask(data: CreatePutawayTaskInput) {
 export async function getPutawayTaskList(params: GetPutawayTaskListInput = {}) {
   const res = await request.get<PagedResultDto<PutawayTaskDto>>(baseUrl, {
     params: {
-      ...toAbpPaging(params),
+      skipCount: params.skipCount ?? 0,
+      maxResultCount: params.maxResultCount ?? 100,
       status: params.status,
+      statuses: params.statuses,
+      taskNo: params.taskNo,
+      containerNo: params.containerNo,
     },
   })
   return res.data

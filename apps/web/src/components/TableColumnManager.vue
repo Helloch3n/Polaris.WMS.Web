@@ -59,7 +59,12 @@ function handleVisibleChange(key: string, visible: boolean) {
             :checked="item.visible"
             @update:checked="(value) => handleVisibleChange(item.key, value)"
           >
-            {{ item.title }}
+            <template v-if="item.title.startsWith('*')">
+              <span style="color: #d03050; margin-right: 4px;">*</span>{{ item.title.slice(1).trim() }}
+            </template>
+            <template v-else>
+              {{ item.title }}
+            </template>
           </n-checkbox>
         </div>
       </div>

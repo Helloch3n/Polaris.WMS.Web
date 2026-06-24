@@ -64,6 +64,25 @@ export interface MiscInboundOrderDetailDto extends EntityDto {
   remark?: string | null
 }
 
+export interface CreateMiscInboundOrderDetailDto {
+  warehouseId: string
+  warehouseCode: string
+  warehouseName: string
+  locationId: string
+  locationCode: string
+  containerId: string
+  containerCode: string
+  productId: string
+  productCode: string
+  productName: string
+  sn: string
+  batchNo: string
+  craftVersion?: string | null
+  unit: string
+  qty: number
+  remark?: string | null
+}
+
 export interface MiscInboundOrderDto extends AuditedEntityDto {
   orderNo: string
   accountAliasId: string
@@ -75,6 +94,27 @@ export interface MiscInboundOrderDto extends AuditedEntityDto {
   status: MiscOrderStatus
   remark?: string | null
   details: MiscInboundOrderDetailDto[]
+}
+
+export interface CreateMiscInboundOrderDto {
+  orderNo?: string
+  accountAliasId: string
+  accountAliasDescription: string
+  costCenterId: string
+  costCenterCode: string
+  costCenterName: string
+  remark?: string | null
+  details: CreateMiscInboundOrderDetailDto[]
+}
+
+export interface UpdateMiscInboundOrderDto {
+  accountAliasId: string
+  accountAliasDescription: string
+  costCenterId: string
+  costCenterCode: string
+  costCenterName: string
+  remark?: string | null
+  details: CreateMiscInboundOrderDetailDto[]
 }
 
 export interface MiscInboundOrderSearchDto extends PagedAndSortedResultRequestDto {
@@ -94,13 +134,23 @@ export async function get(id: string) {
   return res.data
 }
 
-export async function create(data: MiscInboundOrderDto) {
+export async function create(data: CreateMiscInboundOrderDto) {
   const res = await request.post<MiscInboundOrderDto>(baseUrl, data)
   return res.data
 }
 
-export async function update(data: MiscInboundOrderDto) {
-  const res = await request.put<MiscInboundOrderDto>(baseUrl, data)
+export async function update(id: string, data: UpdateMiscInboundOrderDto) {
+  const res = await request.put<MiscInboundOrderDto>(`${baseUrl}/${id}`, data)
+  return res.data
+}
+
+export async function approveAndExecute(id: string) {
+  const res = await request.post<void>(`${baseUrl}/${id}/approve-and-execute`)
+  return res.data
+}
+
+export async function remove(id: string) {
+  const res = await request.delete<void>(`${baseUrl}/${id}`)
   return res.data
 }
 
@@ -109,4 +159,6 @@ export default {
   get,
   create,
   update,
+  approveAndExecute,
+  remove,
 }

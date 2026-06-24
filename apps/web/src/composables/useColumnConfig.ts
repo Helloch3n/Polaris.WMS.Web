@@ -33,6 +33,38 @@ function ensureUniqueTitles(settings: ColumnSetting[], resolveTitle: (key: strin
   })
 }
 
+function ensureMinVisible(
+  settings: ColumnSetting[],
+  minVisible: number,
+  preferredKeys: string[],
+  defaultVisible: (key: string) => boolean,
+) {
+  if (settings.filter((item) => item.visible).length >= minVisible) {
+    return settings
+  }
+
+  const preferredOrder = new Map(preferredKeys.map((key, index) => [key, index]))
+  const next = settings.map((item) => ({ ...item, visible: false }))
+  const sortedKeys = [...next]
+    .sort((a, b) => (preferredOrder.get(a.key) ?? Number.MAX_SAFE_INTEGER) - (preferredOrder.get(b.key) ?? Number.MAX_SAFE_INTEGER))
+    .map((item) => item.key)
+
+  for (const key of sortedKeys) {
+    if (next.filter((item) => item.visible).length >= minVisible) {
+      break
+    }
+
+    const target = next.find((item) => item.key === key)
+    if (!target) {
+      continue
+    }
+
+    target.visible = defaultVisible(target.key) || next.every((item) => !item.visible)
+  }
+
+  return next
+}
+
 export function useColumnConfig(options: UseColumnConfigOptions) {
   const {
     storageKey,
@@ -67,9 +99,15 @@ export function useColumnConfig(options: UseColumnConfigOptions) {
     try {
       const parsed = JSON.parse(raw) as Array<Partial<ColumnSetting>>
       if (!Array.isArray(parsed)) return
+      const allowedKeys = new Set(preferredKeys)
       const normalized: ColumnSetting[] = []
       for (const item of parsed) {
-        if (!item || typeof item.key !== 'string' || typeof item.visible !== 'boolean') {
+        if (
+          !item ||
+          typeof item.key !== 'string' ||
+          typeof item.visible !== 'boolean' ||
+          !allowedKeys.has(item.key)
+        ) {
           continue
         }
         normalized.push({
@@ -78,8 +116,21 @@ export function useColumnConfig(options: UseColumnConfigOptions) {
           visible: item.visible,
         })
       }
-      if (normalized.length > 0) {
-        columnSettings.value = ensureUniqueTitles(normalized, resolveTitle)
+      const missingDefaults = preferredKeys
+        .filter((key) => !normalized.some((item) => item.key === key))
+        .map((key) => ({
+          key,
+          title: '',
+          visible: defaultVisible(key),
+        }))
+
+      const merged = [...normalized, ...missingDefaults]
+
+      if (merged.length > 0) {
+        columnSettings.value = ensureUniqueTitles(
+          ensureMinVisible(merged, minVisible, preferredKeys, defaultVisible),
+          resolveTitle,
+        )
       }
     } catch {
       columnSettings.value = ensureUniqueTitles(
@@ -214,7 +265,12 @@ export function useColumnConfig(options: UseColumnConfigOptions) {
         onDrop: (event: DragEvent) => handleDrop(key, event),
         onDragend: handleDragEnd,
       },
-      h('span', title),
+      typeof title === 'string' && title.startsWith('*')
+        ? h('span', {}, [
+            h('span', { style: 'color: #d03050; margin-right: 4px;' }, '*'),
+            h('span', title.slice(1).trim()),
+          ])
+        : h('span', title),
     )
   }
 

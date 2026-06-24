@@ -66,3 +66,23 @@ export async function deleteProduct(id: string) {
   const res = await request.delete<void>(`${baseUrl}/${id}`)
   return res.data
 }
+
+export async function getImportTemplate() {
+  const res = await request.get(`${baseUrl}/import-template`, { responseType: 'blob' })
+  return res.data
+}
+
+export async function importData(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await request.post(
+    `${baseUrl}/import`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  )
+  return res.data
+}

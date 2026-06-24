@@ -28,22 +28,27 @@ import {
   LocationType,
   deleteLocation,
   getList,
+  getImportTemplate,
+  importData,
   type LocationDto,
   type LocationPagedQueryDto,
 } from '../../../api/masterData/location'
 import LocationDialog, { type LocationDialogExpose } from './components/LocationDialog.vue'
 import LocationBatchDialog, { type LocationBatchDialogExpose } from './components/LocationBatchDialog.vue'
+import ImportModal from '../../../components/ImportModal.vue'
 
 const message = useMessage()
 const dialog = useDialog()
 const loading = ref(false)
 const list = ref<LocationDto[]>([])
+const importModalVisible = ref(false)
 
 const { hasPermission } = usePermission()
 
-const canCreate = computed(() => hasPermission('MasterData.Location.Create'))
-const canUpdate = computed(() => hasPermission('MasterData.Location.Update'))
-const canDelete = computed(() => hasPermission('MasterData.Location.Delete'))
+const canCreate = computed(() => hasPermission('WMS.MasterData.Locations.Create'))
+const canUpdate = computed(() => hasPermission('WMS.MasterData.Locations.Update'))
+const canDelete = computed(() => hasPermission('WMS.MasterData.Locations.Delete'))
+const canImport = computed(() => hasPermission('WMS.MasterData.Locations.Import'))
 
 const warehouses = ref<WarehouseDto[]>([])
 const zones = ref<ZoneDto[]>([])
@@ -114,7 +119,7 @@ const defaultColumnKeys = [
   'bin',
   'maxWeight',
   'maxVolume',
-  'maxContainerCount',
+  'maxReelCount',
   'type',
   'status',
   'allowMixedProducts',
@@ -151,7 +156,7 @@ function normalizeLocation(item: unknown, index: number): LocationDto & { __rowK
     bin: String(data.bin ?? data.Bin ?? data.locationBin ?? data.LocationBin ?? ''),
     maxWeight: toNumber(data.maxWeight ?? data.MaxWeight),
     maxVolume: toNumber(data.maxVolume ?? data.MaxVolume),
-    maxContainerCount: toNumber(data.maxContainerCount ?? data.MaxContainerCount, 1),
+    maxReelCount: toNumber(data.maxReelCount ?? data.MaxReelCount ?? data.maxContainerCount ?? data.MaxContainerCount, 1),
     type: toNumber(data.type ?? data.Type),
     status: toNumber(data.status ?? data.Status),
     allowMixedProducts: Boolean(data.allowMixedProducts ?? data.AllowMixedProducts),
@@ -360,7 +365,7 @@ const {
     if (key === 'bin') return '位'
     if (key === 'maxWeight') return '最大承重'
     if (key === 'maxVolume') return '最大体积'
-    if (key === 'maxContainerCount') return '最大容器数'
+    if (key === 'maxReelCount') return '最大容器数'
     if (key === 'type') return '类型'
     if (key === 'status') return '状态'
     if (key === 'allowMixedProducts') return '允许混放物料'
@@ -379,7 +384,7 @@ const columnMap: Record<string, DataTableColumns<LocationDto>[number]> = {
   bin: { title: createDraggableTitle('bin', '位'), key: 'bin', width: 90, align: 'center', sorter: 'default' },
   maxWeight: { title: createDraggableTitle('maxWeight', '最大承重'), key: 'maxWeight', width: 120, align: 'center', sorter: 'default' },
   maxVolume: { title: createDraggableTitle('maxVolume', '最大体积'), key: 'maxVolume', width: 120, align: 'center', sorter: 'default' },
-  maxContainerCount: { title: createDraggableTitle('maxContainerCount', '最大容器数'), key: 'maxContainerCount', width: 120, align: 'center', sorter: 'default' },
+  maxReelCount: { title: createDraggableTitle('maxReelCount', '最大容器数'), key: 'maxReelCount', width: 120, align: 'center', sorter: 'default' },
   type: {
     title: createDraggableTitle('type', '类型'),
     key: 'type',
@@ -557,6 +562,7 @@ onMounted(async () => {
     <template #actions-left>
       <div class="crud-action-main">
         <n-button v-if="canCreate" type="primary" @click="handleCreate">新增</n-button>
+        <n-button v-if="canImport" @click="importModalVisible = true">导入</n-button>
         <n-button v-if="canUpdate" :disabled="!canEditSelected" @click="handleToolbarEdit">编辑</n-button>
         <n-button v-if="canDelete" type="error" :disabled="!canDeleteSelected" @click="handleToolbarDelete">删除</n-button>
         <n-button @click="handleBatchCreate">批量创建</n-button>
@@ -610,6 +616,14 @@ onMounted(async () => {
       />
     </template>
   </BaseCrudPage>
+  <ImportModal
+    v-model:show="importModalVisible"
+    title="导入库位数据"
+    template-name="库位导入模板.xlsx"
+    :download-template-api="getImportTemplate"
+    :import-api="importData"
+    @success="fetchList"
+  />
 </template>
 
 <style scoped>

@@ -43,9 +43,9 @@ const list = ref<ZoneDto[]>([])
 
 const { hasPermission } = usePermission()
 
-const canCreate = computed(() => hasPermission('MasterData.Zone.Create'))
-const canUpdate = computed(() => hasPermission('MasterData.Zone.Update'))
-const canDelete = computed(() => hasPermission('MasterData.Zone.Delete'))
+const canCreate = computed(() => hasPermission('WMS.MasterData.Zones.Create'))
+const canUpdate = computed(() => hasPermission('WMS.MasterData.Zones.Update'))
+const canDelete = computed(() => hasPermission('WMS.MasterData.Zones.Delete'))
 
 const warehouses = ref<WarehouseDto[]>([])
 const selectedWarehouseId = ref<string | null>(null)
@@ -92,13 +92,21 @@ const dialogVisible = ref(false)
 const dialogMode = ref<'create' | 'edit'>('create')
 const editId = ref<string | null>(null)
 const formRef = ref<FormInst | null>(null)
-const form = ref<Omit<CreateUpdateZoneDto, 'warehouseId'>>({ code: '', name: '', zoneType: ZoneType.Storage })
+const form = ref<CreateUpdateZoneDto>({ warehouseId: '', code: '', name: '', zoneType: ZoneType.Storage })
 
 const rules: FormRules = {
   code: [{ required: true, message: '请输入库区编码', trigger: ['input', 'blur'] }],
   name: [{ required: true, message: '请输入库区名称', trigger: ['input', 'blur'] }],
   zoneType: [{ required: true, type: 'number', message: '请选择类型', trigger: ['change'] }],
+  warehouseId: [{ required: true, message: '请选择所属仓库', trigger: ['change'] }],
 }
+
+const warehouseOptions = computed(() => {
+  return warehouses.value.map((w) => ({
+    label: w.code ? `${w.code} - ${w.name}` : (w.name || '-'),
+    value: w.id,
+  }))
+})
 
 const zoneTypeOptions = [
   { label: '收货暂存区 (地面暂存)', value: ZoneType.Dock },
@@ -173,34 +181,26 @@ function toSorting(s: DataTableSortState | DataTableSortState[] | null): string 
 }
 
 async function handleCreate() {
-  if (!selectedWarehouseId.value) {
-    message.warning('请先选择一个仓库')
-    return
-  }
   dialogMode.value = 'create'
   editId.value = null
-  form.value = { code: '', name: '', zoneType: ZoneType.Storage }
+  form.value = { code: '', name: '', zoneType: ZoneType.Storage, warehouseId: selectedWarehouseId.value || '' }
   dialogVisible.value = true
 }
 
 function handleEdit(row: ZoneDto) {
   dialogMode.value = 'edit'
   editId.value = row.id!
-  form.value = { code: row.code, name: row.name, zoneType: row.zoneType }
+  form.value = { code: row.code, name: row.name, zoneType: row.zoneType, warehouseId: row.warehouseId }
   dialogVisible.value = true
 }
 
 async function handleSubmit() {
   await formRef.value?.validate()
-  const payload: CreateUpdateZoneDto = {
-    ...form.value,
-    warehouseId: selectedWarehouseId.value!,
-  }
   if (dialogMode.value === 'edit' && editId.value) {
-    await update(editId.value, payload)
+    await update(editId.value, form.value)
     message.success('更新成功')
   } else {
-    await create(payload)
+    await create(form.value)
     message.success('创建成功')
   }
   dialogVisible.value = false
@@ -251,10 +251,6 @@ function handleToolbarDelete() {
   })
 }
 
-function getWarehouseName() {
-  const wh = warehouses.value.find((w) => w.id === selectedWarehouseId.value)
-  return wh ? `${wh.code} - ${wh.name}` : ''
-}
 
 const {
   showColumnConfig,
@@ -406,8 +402,13 @@ onMounted(async () => {
           @close="dialogVisible = false"
         >
           <n-form ref="formRef" :model="form" :rules="rules" label-placement="left" label-width="80">
-            <n-form-item label="所属仓库">
-              <n-input :value="getWarehouseName()" readonly />
+            <n-form-item label="所属仓库" path="warehouseId">
+              <n-select
+                :value="form.warehouseId"
+                :options="warehouseOptions"
+                placeholder="请选择所属仓库"
+                @update:value="(value) => { form.warehouseId = value }"
+              />
             </n-form-item>
             <n-form-item label="编码" path="code">
               <n-input :value="form.code" placeholder="如: WH01-存储区01" @update:value="(value) => { form.code = value }" />

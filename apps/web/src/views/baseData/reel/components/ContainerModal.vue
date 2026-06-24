@@ -14,6 +14,7 @@ import {
   NInputNumber,
   NModal,
   NSelect,
+  NSwitch,
   useMessage,
 } from 'naive-ui'
 import type { FormInst, FormRules, SelectOption } from 'naive-ui'
@@ -45,6 +46,8 @@ type ContainerFormModel = {
   containerType: ContainerType | number | null
   selfWeight: number | null
   currentLocationId: string | null
+  status: number
+  isLocked: boolean
 }
 
 const emit = defineEmits<{
@@ -65,6 +68,8 @@ const form = reactive<ContainerFormModel>({
   containerType: ContainerType.Turnover,
   selfWeight: null,
   currentLocationId: null,
+  status: 0,
+  isLocked: false,
 })
 
 const rules = computed<FormRules>(() => ({
@@ -93,6 +98,13 @@ const containerTypeOptions: SelectOption[] = [
   { label: '虚拟盘', value: ContainerType.Virtual },
 ]
 
+const statusOptions: SelectOption[] = [
+  { label: '空闲', value: 0 },
+  { label: '占用中', value: 1 },
+  { label: '损坏', value: 2 },
+  { label: '维护中', value: 3 },
+]
+
 function normalizeContainerType(raw: unknown): ContainerType {
   if (raw === ContainerType.FinishedGoods || raw === 'FinishedGoods' || raw === '1' || raw === 1) return ContainerType.FinishedGoods
   if (raw === ContainerType.Virtual || raw === 'Virtual' || raw === '2' || raw === 2) return ContainerType.Virtual
@@ -106,6 +118,8 @@ async function resetForm() {
   form.containerType = ContainerType.Turnover
   form.selfWeight = null
   form.currentLocationId = null
+  form.status = 0
+  form.isLocked = false
   locationOptions.value = []
 }
 
@@ -138,6 +152,8 @@ function open(row?: ContainerRow) {
     form.containerType = normalizeContainerType(row.containerType)
     form.selfWeight = typeof row.selfWeight === 'number' ? row.selfWeight : null
     form.currentLocationId = row.currentLocationId ?? null
+    form.status = typeof row.status === 'number' ? row.status : (typeof row.status === 'string' ? parseInt(row.status) : 0)
+    form.isLocked = !!row.isLocked
   } else {
     mode.value = 'create'
     editingId.value = null
@@ -183,6 +199,8 @@ async function handleSubmit() {
       containerType: form.containerType ?? ContainerType.Turnover,
       selfWeight: form.selfWeight ?? 0,
       currentLocationId: form.currentLocationId ?? undefined,
+      status: form.status ?? 0,
+      isLocked: !!form.isLocked,
     }
 
     if (mode.value === 'edit') {
@@ -254,6 +272,22 @@ const showLocation = computed(() => mode.value === 'create')
           :options="locationOptions"
           @update:value="handleCurrentLocationChange"
           @search="handleLocationSearch"
+        />
+      </n-form-item>
+
+      <n-form-item v-if="mode === 'edit'" label="盘具状态" path="status">
+        <n-select
+          :value="form.status"
+          :options="statusOptions"
+          placeholder="请选择盘具状态"
+          @update:value="(value) => { form.status = value }"
+        />
+      </n-form-item>
+
+      <n-form-item v-if="mode === 'edit'" label="锁定状态" path="isLocked">
+        <n-switch
+          :value="form.isLocked"
+          @update:value="(value) => { form.isLocked = value }"
         />
       </n-form-item>
     </n-form>

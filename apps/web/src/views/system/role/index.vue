@@ -3,6 +3,7 @@
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
+  NCard,
   NDataTable,
   NDrawer,
   NDrawerContent,
@@ -434,8 +435,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <BaseCrudPage>
+  <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item>
@@ -453,8 +453,8 @@ onMounted(() => {
 
     <template #actions-left>
       <div class="crud-action-main">
-        <n-button type="primary" @click="openCreate">新增</n-button>
-        <n-button :disabled="!selectedRole" @click="openPermissionDrawerSelected">权限分配</n-button>
+        <n-button v-permission="'AbpIdentity.Roles.Create'" type="primary" @click="openCreate">新增</n-button>
+        <n-button v-permission="'AbpIdentity.Roles.ManagePermissions'" :disabled="!selectedRole" @click="openPermissionDrawerSelected">权限分配</n-button>
       </div>
     </template>
 
@@ -558,7 +558,6 @@ onMounted(() => {
         </n-space>
       </n-drawer-content>
     </n-drawer>
-  </div>
 </template>
 
 <style scoped>

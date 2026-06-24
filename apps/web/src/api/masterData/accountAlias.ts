@@ -50,6 +50,22 @@ export type ProductionCostType = (typeof ProductionCostType)[keyof typeof Produc
 
 const baseUrl = '/api/app/account-alias'
 
+export interface CreateAccountAliasDto {
+  alias: string
+  description: string
+  effectiveDate: string
+  expireDate?: string | null
+  isUnitPriceRequired: boolean
+  isProjectRequired: boolean
+  isDepartmentRequired: boolean
+  isProductionNoRequired: boolean
+  isWorkOrderOperationRequired: boolean
+  productionCostType: ProductionCostType | keyof typeof ProductionCostType | string | number
+  isSupplierRequired: boolean
+  isCustomerRequired: boolean
+  isWorkOrderAttributeRequired: boolean
+}
+
 export async function getList(params: AccountAliasSearchDto) {
   const res = await request.get<PagedResultDto<AccountAliasDto>>(baseUrl, { params })
   return res.data
@@ -57,5 +73,10 @@ export async function getList(params: AccountAliasSearchDto) {
 
 export async function get(id: string) {
   const res = await request.get<AccountAliasDto>(`${baseUrl}/${id}`)
+  return res.data
+}
+
+export async function create(data: CreateAccountAliasDto) {
+  const res = await request.post<AccountAliasDto>(baseUrl, data)
   return res.data
 }

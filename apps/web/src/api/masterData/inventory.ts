@@ -33,9 +33,6 @@ export type InventoryType = (typeof InventoryType)[keyof typeof InventoryType]
 export interface Inventory {
   id: string
   containerId: string
-  reelId?: string
-  /** 服务端新增：序号 */
-  sequence?: number
   productId: string
   type: InventoryType | keyof typeof InventoryType | string | number
   productCode?: string
@@ -45,8 +42,6 @@ export interface Inventory {
   unit: string
   weight: number
   batchNo: string
-  relatedOrderNo?: string
-  relatedOrderLineNo?: string
   sn?: string
   SN?: string
   status: InventoryStatus | keyof typeof InventoryStatus | string | number
@@ -81,7 +76,6 @@ export interface GetInventoryListParams extends PagedAndSortedResultRequestDto {
   containerNo?: string
   containerCode?: string
   productId?: string
-  relatedOrderNo?: string
   warehouseCode?: string
   zoneCode?: string
 }
@@ -108,7 +102,6 @@ export async function getList(params: GetInventoryListParams) {
     skipCount: params.skipCount,
     sorting: params.sorting,
     productId: params.productId,
-    relatedOrderNo: params.relatedOrderNo,
     warehouseCode: params.warehouseCode,
     zoneCode: params.zoneCode,
   }

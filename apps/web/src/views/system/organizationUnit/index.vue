@@ -390,8 +390,8 @@ onMounted(() => {
     <n-card class="left-panel" :bordered="false" title="部门结构">
       <template #header-extra>
         <n-space>
-          <n-button type="primary" size="small" @click="openAddRootDepartment">添加根部门</n-button>
-          <n-button size="small" :disabled="!selectedDeptId" @click="openAddChildDepartment">添加子部门</n-button>
+          <n-button v-permission="'AbpIdentity.OrganizationUnits.ManageOU'" type="primary" size="small" @click="openAddRootDepartment">添加根部门</n-button>
+          <n-button v-permission="'AbpIdentity.OrganizationUnits.ManageOU'" size="small" :disabled="!selectedDeptId" @click="openAddChildDepartment">添加子部门</n-button>
         </n-space>
       </template>
 
@@ -420,7 +420,7 @@ onMounted(() => {
     <n-card class="right-panel" :bordered="false" :title="memberCardTitle">
       <template #header-extra>
         <n-space>
-          <n-button type="primary" :disabled="!selectedDeptId" @click="openAddUsersModal">添加用户</n-button>
+          <n-button v-permission="'AbpIdentity.OrganizationUnits.ManageUsers'" type="primary" :disabled="!selectedDeptId" @click="openAddUsersModal">添加用户</n-button>
           <n-input
             :value="memberKeyword"
             clearable

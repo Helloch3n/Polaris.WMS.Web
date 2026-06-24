@@ -2,7 +2,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { showFailToast, showSuccessToast } from 'vant'
 import { useRoute, useRouter } from 'vue-router'
-import { addPurchaseReceiptRecords, approveAndExecutePurchaseReceipt } from '@/api/inbound/purchaseReceipt'
+import { addPurchaseReceiptRecords, approveAndExecutePurchaseReceipt, getPurchaseReceiptDetail } from '@/api/inbound/purchaseReceipt'
 import type {
   AddPurchaseReceiptRecordsDto,
   PurchaseReceiptDto,
@@ -68,6 +68,14 @@ const receiveLine = computed(() => findLineById(receiveLineId.value))
 const lpnDrawerLine = computed(() => findLineById(lpnDrawerLineId.value))
 const currentLpnRecords = computed(() => lpnDrawerLine.value?.lpnRecords ?? [])
 const drawerUom = computed(() => lpnDrawerLine.value?.uom?.trim() || '')
+const receiveLineRemainingQuantity = computed(() => {
+  const line = receiveLine.value
+  if (!line) {
+    return 0
+  }
+
+  return Math.max(0, normalizeQuantity(line.expectedQuantity) - normalizeQuantity(line.totalReceivedQuantity))
+})
 
 function resolveReceiptId(): string {
   const rawId = route.params.receiptId
@@ -277,6 +285,16 @@ async function confirmReceiveDialog(): Promise<boolean> {
   const normalizedQuantity = normalizeQuantity(unitQuantity)
   const batchNo = receiveBatchNoText.value.trim() || null
   const supplierBatchNo = receiveSupplierBatchNoText.value.trim() || null
+  const requestedQuantity = normalizeQuantity(normalizedQuantity * pieceCount)
+
+  const remainingQuantity = Math.max(
+    0,
+    normalizeQuantity(line.expectedQuantity) - normalizeQuantity(line.totalReceivedQuantity),
+  )
+  if (remainingQuantity > 0 && requestedQuantity > remainingQuantity) {
+    showFailToast(`超出可收数量，当前最多还能收 ${formatQuantity(remainingQuantity)}`)
+    return false
+  }
 
   const singleRecordInput = {
     receivedQuantity: normalizedQuantity,
@@ -397,7 +415,7 @@ async function finishReceive() {
   }
 }
 
-function loadReceiptFromCache() {
+async function loadReceiptFromCache() {
   const receiptId = resolveReceiptId()
   if (!receiptId) {
     loadErrorText.value = '缺少收货单参数，请返回重新创建。'
@@ -406,25 +424,31 @@ function loadReceiptFromCache() {
   }
 
   const cachedReceipt = sessionStorage.getItem(getCacheKey(receiptId))
-  if (!cachedReceipt) {
-    loadErrorText.value = '未找到收货单缓存，请返回扫描 PO/ASN 重新创建。'
-    showFailToast(loadErrorText.value)
-    return
+  if (cachedReceipt) {
+    const parsedReceipt = parseCachedReceipt(cachedReceipt)
+    if (parsedReceipt) {
+      receipt.value = parsedReceipt
+      entryLines.value = toEntryLines(parsedReceipt)
+      loadErrorText.value = ''
+      return
+    }
   }
 
-  const parsedReceipt = parseCachedReceipt(cachedReceipt)
-  if (!parsedReceipt) {
-    loadErrorText.value = '收货单缓存数据损坏，请返回重新创建。'
+  try {
+    const fetchedReceipt = await getPurchaseReceiptDetail(receiptId)
+    sessionStorage.setItem(getCacheKey(receiptId), JSON.stringify(fetchedReceipt))
+    receipt.value = fetchedReceipt
+    entryLines.value = toEntryLines(fetchedReceipt)
+    loadErrorText.value = ''
+  } catch (error) {
+    console.error('恢复采购收货单失败:', error)
+    loadErrorText.value = '未找到收货单缓存，且无法从服务器恢复，请返回扫描 PO/ASN 重新创建。'
     showFailToast(loadErrorText.value)
-    return
   }
-
-  receipt.value = parsedReceipt
-  entryLines.value = toEntryLines(parsedReceipt)
 }
 
 onMounted(() => {
-  loadReceiptFromCache()
+  void loadReceiptFromCache()
 })
 </script>
 
@@ -547,6 +571,11 @@ onMounted(() => {
       :before-close="handleReceiveDialogBeforeClose"
     >
       <div class="p-4 space-y-3">
+        <div class="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-sm text-amber-700">
+          本行剩余可收: <span class="font-bold">{{ formatQuantity(receiveLineRemainingQuantity) }}</span>
+          <span v-if="displayUom(receiveLine || { uom: '' })"> {{ displayUom(receiveLine || { uom: '' }) }}</span>
+        </div>
+
         <van-field
           v-model="receiveLocationText"
           label="目标库位"

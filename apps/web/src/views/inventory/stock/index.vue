@@ -25,7 +25,6 @@ type InventoryQueryParams = inventoryApi.GetInventoryListParams & {
   containerNo?: string
   containerCode?: string
   productId?: string
-  relatedOrderNo?: string
   warehouseCode?: string
   zoneCode?: string
 }
@@ -37,7 +36,6 @@ const message = useMessage()
 const query = reactive({
   containerNo: '',
   productId: '',
-  relatedOrderNo: '',
   warehouseCode: '',
   zoneCode: '',
   page: 1,
@@ -52,7 +50,6 @@ const listParams = computed<InventoryQueryParams>(() => {
     containerNo: query.containerNo || undefined,
     containerCode: query.containerNo || undefined,
     productId: query.productId || undefined,
-    relatedOrderNo: query.relatedOrderNo || undefined,
     warehouseCode: query.warehouseCode || undefined,
     zoneCode: query.zoneCode || undefined,
   }
@@ -105,7 +102,6 @@ function onQuery() {
 function onReset() {
   query.containerNo = ''
   query.productId = ''
-  query.relatedOrderNo = ''
   query.warehouseCode = ''
   query.zoneCode = ''
   onQuery()
@@ -214,7 +210,6 @@ const {
 } = useColumnConfig({
   storageKey: 'inventory-column-settings-v5',
   preferredKeys: [
-    'sequence',
     'containerNo',
     'warehouseCode',
     'warehouseName',
@@ -231,15 +226,12 @@ const {
     'lockedQuantity',
     'weight',
     'batchNo',
-    'relatedOrderNo',
-    'relatedOrderLineNo',
     'sn',
     'craftVersion',
     'fifoDate',
     'layer',
   ],
   resolveTitle: (key) => {
-    if (key === 'sequence') return '序号'
     if (key === 'containerNo') return '盘号'
     if (key === 'warehouseCode') return '仓库编码'
     if (key === 'warehouseName') return '仓库名称'
@@ -256,8 +248,6 @@ const {
     if (key === 'lockedQuantity') return '锁定数量'
     if (key === 'weight') return '净重'
     if (key === 'batchNo') return '批次'
-    if (key === 'relatedOrderNo') return '所属单据'
-    if (key === 'relatedOrderLineNo') return '所属单据明细行'
     if (key === 'sn') return 'SN'
     if (key === 'craftVersion') return '工艺版本'
     if (key === 'fifoDate') return 'FIFO日期'
@@ -267,14 +257,6 @@ const {
 })
 
 const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
-  sequence: {
-    title: createDraggableTitle('sequence', '序号'),
-    key: 'sequence',
-    width: 100,
-    align: 'center',
-    sorter: (a, b) => compareSortValue((a as any).sequence, (b as any).sequence),
-    render: (row) => (row.sequence !== undefined && row.sequence !== null) ? String((row as any).sequence) : '-',
-  },
   containerNo: {
     title: createDraggableTitle('containerNo', '盘号'),
     key: 'containerNo',
@@ -317,8 +299,6 @@ const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
   lockedQuantity: { title: createDraggableTitle('lockedQuantity', '锁定数量'), key: 'lockedQuantity', width: 140, sorter: (a, b) => compareSortValue(a.lockedQuantity, b.lockedQuantity), render: (row) => row.lockedQuantity ?? 0 },
   weight: { title: createDraggableTitle('weight', '净重'), key: 'weight', width: 140, sorter: (a, b) => compareSortValue(a.weight, b.weight), render: (row) => `${row.weight ?? 0}` },
   batchNo: { title: createDraggableTitle('batchNo', '批次'), key: 'batchNo', minWidth: 160, sorter: (a, b) => compareSortValue(a.batchNo, b.batchNo), render: (row) => row.batchNo ?? '-' },
-  relatedOrderNo: { title: createDraggableTitle('relatedOrderNo', '所属单据'), key: 'relatedOrderNo', minWidth: 180, sorter: (a, b) => compareSortValue(a.relatedOrderNo, b.relatedOrderNo), render: (row) => row.relatedOrderNo ?? '-' },
-  relatedOrderLineNo: { title: createDraggableTitle('relatedOrderLineNo', '所属单据明细行'), key: 'relatedOrderLineNo', minWidth: 180, sorter: (a, b) => compareSortValue(a.relatedOrderLineNo, b.relatedOrderLineNo), render: (row) => row.relatedOrderLineNo ?? '-' },
   sn: { title: createDraggableTitle('sn', 'SN'), key: 'sn', minWidth: 160, sorter: (a, b) => compareSortValue(a.sn, b.sn), render: (row) => row.sn ?? '-' },
   craftVersion: { title: createDraggableTitle('craftVersion', '工艺版本'), key: 'craftVersion', minWidth: 140, sorter: (a, b) => compareSortValue(a.craftVersion, b.craftVersion), render: (row) => row.craftVersion ?? '-' },
   fifoDate: { title: createDraggableTitle('fifoDate', 'FIFO日期'), key: 'fifoDate', minWidth: 180, sorter: (a, b) => compareSortValue(a.fifoDate, b.fifoDate), render: (row) => formatDateTime(row.fifoDate) },
@@ -372,9 +352,6 @@ onMounted(() => {
         </n-form-item>
         <n-form-item>
           <n-input :value="query.productId" placeholder="请输入物料Id" clearable @update:value="(value) => { query.productId = value }" />
-        </n-form-item>
-        <n-form-item>
-          <n-input :value="query.relatedOrderNo" placeholder="请输入所属单据" clearable @update:value="(value) => { query.relatedOrderNo = value }" />
         </n-form-item>
         <n-form-item>
           <n-input :value="query.warehouseCode" placeholder="请输入仓库编码" clearable @update:value="(value) => { query.warehouseCode = value }" />

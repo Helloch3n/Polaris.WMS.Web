@@ -1107,16 +1107,17 @@ function handleBack() {
 }
 
 async function handleApproveAndExecute() {
-  if (props.mode !== 'edit') return
   const id = props.transferId?.trim()
   if (!id) {
     message.warning('缺少调拨单ID，无法审核')
     return
   }
 
-  const saved = await saveEditTransfer(false)
-  if (!saved) {
-    return
+  if (props.mode === 'edit') {
+    const saved = await saveEditTransfer(false)
+    if (!saved) {
+      return
+    }
   }
 
   approving.value = true
@@ -1203,7 +1204,7 @@ async function handleSaveCreate() {
     const created = await transferApi.create(payload)
     message.success(created?.orderNo ? `保存成功：${created.orderNo}` : '保存成功')
     if (created?.id) {
-      router.push({ name: 'TransferOrderEdit', params: { id: created.id } })
+      router.push({ name: 'TransferOrderDetail', params: { id: created.id } })
       return
     }
     router.push({ name: 'TransferOrderList' })
@@ -1285,6 +1286,17 @@ async function saveEditTransfer(showSuccessMessage: boolean) {
   }
 }
 
+const isDraft = computed(() => {
+  if (!transfer.value) return false
+  return normalizeStatusValue(transfer.value.status) === transferApi.TransferOrderStatus.Draft
+})
+
+function handleGoToEdit() {
+  const id = props.transferId?.trim()
+  if (!id) return
+  router.push({ name: 'TransferOrderEdit', params: { id } })
+}
+
 onMounted(() => {
   loadColumnSettings()
   loadWarehouses()
@@ -1311,15 +1323,16 @@ watch(
 </script>
 
 <template>
-  <div>
-    <BaseCrudPage :search-collapsible="false">
+  <BaseCrudPage :search-collapsible="false">
       <template #search>
         <div class="detail-header-wrap">
           <div class="header-action-bar">
             <n-button @click="handleBack">返回列表</n-button>
             <n-button v-if="props.mode !== 'create'" type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
-            <n-button v-if="props.mode === 'edit'" v-permission="'WMS.InternalOps.TransferOrders.Approve'"
+            <n-button v-if="props.mode === 'edit' || (props.mode === 'view' && isDraft)" v-permission="'WMS.InternalOps.TransferOrders.Approve'"
               type="primary" secondary :loading="approving" @click="handleApproveAndExecute">审核</n-button>
+            <n-button v-if="props.mode === 'view' && isDraft" v-permission="'WMS.InternalOps.TransferOrders.Update'"
+              type="primary" @click="handleGoToEdit">编辑</n-button>
             <n-button v-if="props.mode === 'edit'" v-permission="'WMS.InternalOps.TransferOrders.Update'"
               type="primary" :loading="saving" @click="handleSaveEdit">保存</n-button>
             <n-button v-if="props.mode === 'create'" type="primary" :loading="saving"
@@ -1475,7 +1488,6 @@ watch(
         ]" :data="locationRows" :bordered="false" :row-key="(row) => row.id" :max-height="500" />
       </n-spin>
     </n-modal>
-  </div>
 </template>
 
 <style scoped>

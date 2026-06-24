@@ -32,7 +32,20 @@ export interface CostCenterDto {
   lastModifierId?: string
 }
 
+export interface CreateCostCenterDto {
+  code: string
+  name: string
+  departmentCode: string
+  departmentName: string
+  companyCode: string
+}
+
 const baseUrl = '/api/app/cost-center'
+
+export async function create(payload: CreateCostCenterDto) {
+  const res = await request.post<CostCenterDto>(baseUrl, payload)
+  return res.data
+}
 
 export async function getList(params: CostCenterSearchDto) {
   const res = await request.get<PagedResultDto<CostCenterDto>>(baseUrl, { params })

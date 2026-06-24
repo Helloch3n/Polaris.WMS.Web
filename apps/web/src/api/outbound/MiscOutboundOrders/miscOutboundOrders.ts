@@ -97,7 +97,7 @@ export interface MiscOutboundOrderDto extends AuditedEntityDto {
 }
 
 export interface CreateMiscOutboundOrderDto {
-  orderNo: string
+  orderNo?: string
   accountAliasId: string
   accountAliasDescription: string
   costCenterId: string

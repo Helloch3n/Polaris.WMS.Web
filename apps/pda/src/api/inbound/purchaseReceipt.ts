@@ -350,6 +350,21 @@ export async function createPurchaseReceipt(payload: CreatePurchaseReceiptDto): 
   return unwrapped
 }
 
+export async function getPurchaseReceiptDetail(id: string): Promise<PurchaseReceiptDto> {
+  const cleanId = id.trim()
+  if (!cleanId) {
+    throw new Error('采购收货单 Id 不能为空')
+  }
+
+  const res = await http.get<unknown>(`/api/app/purchase-receipt/${cleanId}`)
+  const unwrapped = unwrapSingleDoc(res.data)
+  if (!unwrapped || !isPurchaseReceiptDto(unwrapped)) {
+    throw new Error('采购收货单详情返回数据为空')
+  }
+
+  return unwrapped
+}
+
 export async function addPurchaseReceiptRecords(payload: AddPurchaseReceiptRecordsDto): Promise<PurchaseRecordDto[]> {
   const res = await http.post<unknown>('/api/app/purchase-receipt/records', payload)
   const records = extractPurchaseRecords(res.data)

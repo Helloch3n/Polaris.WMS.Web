@@ -74,6 +74,7 @@ export interface ProductionInboundDetailDto extends AuditedEntityDto {
   actualLocationId: string
   actualLocationCode: string
   status: ProductionInboundDetailStatus
+  needInspection: boolean
 }
 
 export interface ProductionInboundDto extends AuditedEntityDto {
@@ -117,33 +118,76 @@ export interface CreateProductionInboundDetailDto {
   relatedOrderNo: string
   relatedOrderNoLineNo: string
   actualLocationId?: string | null
+  needInspection?: boolean
 }
 
 const baseUrl = '/api/app/production-inbound'
 
+function mapDetailFromBackend(detail: any): ProductionInboundDetailDto {
+  return {
+    ...detail,
+    containerId: detail.reelId,
+    containerCode: detail.reelCode || detail.reelId,
+  }
+}
+
+function mapDetailToBackend(detail: any): any {
+  return {
+    ...detail,
+    reelId: detail.containerId,
+    reelCode: detail.containerCode || detail.containerId,
+  }
+}
+
+function mapCreateDetailToBackend(detail: any): any {
+  return {
+    ...detail,
+    reelId: detail.containerId,
+  }
+}
+
+function mapFromBackend(data: any): ProductionInboundDto {
+  if (!data) return data
+  return {
+    ...data,
+    details: data.details ? data.details.map(mapDetailFromBackend) : [],
+  }
+}
+
 export async function getList(params: ProductionInboundSearchDto) {
-  const res = await request.get<PagedResultDto<ProductionInboundDto>>(baseUrl, { params })
+  const res = await request.get<PagedResultDto<any>>(baseUrl, { params })
+  if (res.data && res.data.items) {
+    res.data.items = res.data.items.map(mapFromBackend)
+  }
   return res.data
 }
 
 export async function get(id: string) {
-  const res = await request.get<ProductionInboundDto>(`${baseUrl}/${id}`)
-  return res.data
+  const res = await request.get<any>(`${baseUrl}/${id}`)
+  return mapFromBackend(res.data)
 }
 
 export async function getByOrderId(orderId: string) {
-  const res = await request.get<ProductionInboundDto>(`${baseUrl}/${orderId}`)
-  return res.data
+  const res = await request.get<any>(`${baseUrl}/${orderId}`)
+  return mapFromBackend(res.data)
 }
 
 export async function create(data: CreateProductionInboundDto) {
-  const res = await request.post<ProductionInboundDto>(baseUrl, data)
-  return res.data
+  const payload = {
+    ...data,
+    details: data.details ? data.details.map(mapCreateDetailToBackend) : [],
+  }
+  const res = await request.post<any>(baseUrl, payload)
+  return mapFromBackend(res.data)
 }
 
 export async function update(data: ProductionInboundDto) {
-  const res = await request.put<ProductionInboundDto>(baseUrl, data)
-  return res.data
+  const payload = {
+    ...data,
+    details: data.details ? data.details.map(mapDetailToBackend) : [],
+  }
+  const res = await request.put<any>(baseUrl, payload)
+  return mapFromBackend(res.data)
 }
 
 export async function approveAndExecute(id: string) {
