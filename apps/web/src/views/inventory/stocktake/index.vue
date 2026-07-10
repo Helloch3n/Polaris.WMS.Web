@@ -55,11 +55,8 @@ function getRowKey(row: StocktakeRow) {
 
 const {
   checkedRowKeys,
-  selectedRows,
-  selectedCount,
   handleCheckedRowKeysChange,
   syncCheckedRowKeys,
-  clearSelection,
 } = useTableSelection(rows, getRowKey)
 
 const statusOptions = [
@@ -355,19 +352,19 @@ onMounted(() => {
   <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form">
-        <n-form-item label="盘点单号">
+        <n-form-item>
           <n-input
             v-model:value="query.orderNo"
             clearable
-            placeholder="请输入盘点单号"
+            placeholder="盘点单号"
             @keyup.enter="handleQuery"
           />
         </n-form-item>
-        <n-form-item label="单据状态">
+        <n-form-item>
           <n-select
             v-model:value="query.status"
             clearable
-            placeholder="请选择状态"
+            placeholder="单据状态"
             :options="statusOptions"
             style="width: 180px"
             @update:value="handleQuery"

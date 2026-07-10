@@ -3,7 +3,7 @@
     <BaseCrudPage>
       <template #search>
         <n-form inline class="crud-search-form">
-          <n-form-item label="订单号">
+          <n-form-item>
             <n-input
               :value="searchForm.orderNo"
               placeholder="请输入订单号"
@@ -13,7 +13,7 @@
               @keyup.enter="loadOrders"
             />
           </n-form-item>
-          <n-form-item label="客户编码">
+          <n-form-item>
             <n-input
               :value="searchForm.customerCode"
               placeholder="请输入客户编码"
@@ -23,7 +23,7 @@
               @keyup.enter="loadOrders"
             />
           </n-form-item>
-          <n-form-item label="状态">
+          <n-form-item>
             <n-select
               :value="searchForm.status"
               :options="statusOptions"

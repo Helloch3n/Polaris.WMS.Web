@@ -53,5 +53,16 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTab.value = '/dashboard'
   }
 
-  return { tabs, activeTab, tabList, addTab, removeTab, setActive, closeOthers, closeAll }
+  function moveTab(sourcePath: string, targetPath: string) {
+    if (sourcePath === targetPath) return
+    const sourceIndex = tabs.value.findIndex((tab) => tab.path === sourcePath)
+    const targetIndex = tabs.value.findIndex((tab) => tab.path === targetPath)
+    if (sourceIndex === -1 || targetIndex === -1) return
+
+    const [sourceTab] = tabs.value.splice(sourceIndex, 1)
+    if (!sourceTab) return
+    tabs.value.splice(targetIndex, 0, sourceTab)
+  }
+
+  return { tabs, activeTab, tabList, addTab, removeTab, setActive, closeOthers, closeAll, moveTab }
 })

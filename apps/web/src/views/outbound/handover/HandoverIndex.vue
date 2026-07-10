@@ -3,7 +3,7 @@
     <BaseCrudPage>
       <template #search>
         <n-form inline class="crud-search-form">
-          <n-form-item label="交接单号">
+          <n-form-item>
             <n-input
               :value="searchForm.handoverNo"
               placeholder="请输入交接单号"
@@ -13,7 +13,7 @@
               @keyup.enter="loadHandovers"
             />
           </n-form-item>
-          <n-form-item label="状态">
+          <n-form-item>
             <n-select
               :value="searchForm.status"
               :options="statusOptions"

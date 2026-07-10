@@ -70,7 +70,6 @@ const expandedPermissionKeys = ref<Array<string | number>>([])
 const listParams = computed<GetIdentityRolesParams>(() => ({
   skipCount: (query.page - 1) * query.pageSize,
   maxResultCount: query.pageSize,
-  filter: query.filter.trim() || undefined,
 }))
 
 const selectedRole = computed(() => {
@@ -175,7 +174,6 @@ function onQuery() {
 }
 
 function onReset() {
-  query.filter = ''
   query.page = 1
   loadData()
 }
@@ -438,9 +436,6 @@ onMounted(() => {
   <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form">
-        <n-form-item>
-          <n-input :value="query.filter" clearable placeholder="请输入角色名称" @update:value="(value) => (query.filter = value)" @keyup.enter="onQuery" />
-        </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
           <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>

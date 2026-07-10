@@ -292,7 +292,7 @@ onMounted(() => {
   <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form">
-        <n-form-item label="任务单号">
+        <n-form-item>
           <n-input
             :value="query.taskNo"
             placeholder="请输入任务单号"
@@ -302,7 +302,7 @@ onMounted(() => {
             @keyup.enter="onQuery"
           />
         </n-form-item>
-        <n-form-item label="盘号">
+        <n-form-item>
           <n-input
             :value="query.containerCode"
             placeholder="请输入盘号"
@@ -312,7 +312,7 @@ onMounted(() => {
             @keyup.enter="onQuery"
           />
         </n-form-item>
-        <n-form-item label="状态">
+        <n-form-item>
           <n-select
             :value="query.status"
             :options="statusOptions"

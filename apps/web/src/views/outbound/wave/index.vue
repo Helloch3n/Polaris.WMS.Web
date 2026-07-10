@@ -3,7 +3,7 @@
     <BaseCrudPage>
       <template #search>
         <n-form inline class="crud-search-form">
-          <n-form-item label="波次单号">
+          <n-form-item>
             <n-input
               :value="searchForm.waveNo"
               placeholder="请输入波次号"
@@ -13,7 +13,7 @@
               @keyup.enter="loadWaves"
             />
           </n-form-item>
-          <n-form-item label="状态">
+          <n-form-item>
             <n-select
               :value="searchForm.status"
               :options="statusOptions"
@@ -34,8 +34,13 @@
       </template>
 
       <template #actions-right>
-        <div class="crud-action-tools">
+        <div class="crud-action-tools" style="display: flex; align-items: center; gap: 12px;">
+          <n-radio-group v-model:value="currentView" size="small">
+            <n-radio-button value="list">列表视图</n-radio-button>
+            <n-radio-button value="kanban">看板视图</n-radio-button>
+          </n-radio-group>
           <TableColumnManager
+            v-if="currentView === 'list'"
             :show="showColumnConfig"
             :settings="columnSettings"
             @update:show="handleColumnConfigShowChange"
@@ -45,7 +50,17 @@
       </template>
 
       <template #data>
-        <n-data-table class="crud-table-flat" :columns="columns" :data="waves" :bordered="false" :loading="loading" />
+        <template v-if="currentView === 'list'">
+          <n-data-table class="crud-table-flat" :columns="columns" :data="waves" :bordered="false" :loading="loading" />
+        </template>
+        <template v-else>
+          <WaveKanbanBoard
+            :waves="waves"
+            :loading="loading"
+            @view-detail="openDrawer"
+            @create-picklist="openPickListCreate"
+          />
+        </template>
       </template>
 
       <template #pager-right>
@@ -137,6 +152,8 @@ import {
   NSpace,
   NTag,
   NText,
+  NRadioGroup,
+  NRadioButton,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules, PaginationProps, SelectOption } from 'naive-ui'
@@ -145,11 +162,13 @@ import * as pickListApi from '../../../api/outbound/pickList'
 import * as locationApi from '../../../api/masterData/location'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
+import WaveKanbanBoard from './components/WaveKanbanBoard.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 
 const message = useMessage()
+const currentView = ref<'list' | 'kanban'>('list')
 
 const pagination = reactive<PaginationProps>({
   page: 1,

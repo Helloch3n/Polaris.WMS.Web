@@ -4,17 +4,11 @@ import { useRouter } from 'vue-router'
 import {
   NButton,
   NDataTable,
-  NDescriptions,
-  NDescriptionsItem,
   NEmpty,
   NInput,
   NInputNumber,
-  NProgress,
   NSelect,
-  NSpin,
   NSwitch,
-  NTag,
-  NText,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, SelectOption } from 'naive-ui'
@@ -27,9 +21,11 @@ import * as warehouseApi from '../../../../api/masterData/warehouse'
 import * as organizationUnitsApi from '../../../../api/identity/organizationUnits'
 import { useAuthStore } from '../../../../stores/auth'
 import BaseCrudPage from '../../../../components/BaseCrudPage.vue'
+import DetailWorkbench from '../../../../components/DetailWorkbench.vue'
 import TableColumnManager from '../../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../../composables/useColumnConfig'
 import { withResizable } from '../../../../utils/table'
+import ProductionInboundHeaderTable from './ProductionInboundHeaderTable.vue'
 
 const props = defineProps<{
   mode: 'create' | 'edit'
@@ -63,14 +59,6 @@ const contextDepartmentId = computed(() => String(authStore.currentDepartmentId 
 const isTargetWarehouseLockedByContext = computed(() => props.mode === 'create' && Boolean(contextWarehouseId.value))
 const isSourceDepartmentLockedByContext = computed(() => props.mode === 'create' && Boolean(contextDepartmentId.value))
 const isEditMode = computed(() => props.mode === 'edit')
-
-const headerLabelStyle = {
-  width: '120px',
-}
-
-const headerContentStyle = {
-  minWidth: '220px',
-}
 
 const formModel = reactive<productionInboundApi.ProductionInboundDto>({
   id: '',
@@ -148,57 +136,6 @@ function applyTargetWarehouseSelection(id: string) {
   formModel.targetWarehouseName = target?.name ?? ''
   formModel.targetWarehouseCode = target?.code ?? ''
 }
-
-function formatDateTime(v?: string) {
-  if (!v) return '-'
-  const d = new Date(v)
-  if (Number.isNaN(d.getTime())) return v
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-}
-
-function normalizeStatusValue(status: productionInboundApi.ProductionInboundStatus) {
-  if (typeof status === 'string') {
-    if (status === 'Draft' || status === '0') return productionInboundApi.ProductionInboundStatus.Draft
-    if (status === 'InProgress' || status === '1') return productionInboundApi.ProductionInboundStatus.InProgress
-    if (status === 'Completed' || status === '2') return productionInboundApi.ProductionInboundStatus.Completed
-  }
-  if (typeof status === 'number') return status
-  return null
-}
-
-function resolveStatusLabel(status: productionInboundApi.ProductionInboundStatus) {
-  const value = normalizeStatusValue(status)
-  if (value === productionInboundApi.ProductionInboundStatus.Draft) return '草稿'
-  if (value === productionInboundApi.ProductionInboundStatus.InProgress) return '作业中'
-  if (value === productionInboundApi.ProductionInboundStatus.Completed) return '已完成'
-  return '-'
-}
-
-function getStatusTagType(status: productionInboundApi.ProductionInboundStatus) {
-  const value = normalizeStatusValue(status)
-  if (value === productionInboundApi.ProductionInboundStatus.Draft) return 'default'
-  if (value === productionInboundApi.ProductionInboundStatus.InProgress) return 'warning'
-  if (value === productionInboundApi.ProductionInboundStatus.Completed) return 'success'
-  return 'default'
-}
-
-function normalizeDetailStatusValue(status: productionInboundApi.ProductionInboundDetailStatus) {
-  if (typeof status === 'string') {
-    if (status === 'Pending' || status === '0') return productionInboundApi.ProductionInboundDetailStatus.Pending
-    if (status === 'InProgress' || status === '1') return productionInboundApi.ProductionInboundDetailStatus.InProgress
-    if (status === 'Completed' || status === '2') return productionInboundApi.ProductionInboundDetailStatus.Completed
-  }
-  if (typeof status === 'number') return status
-  return null
-}
-
-const completedCount = computed(() => detailRows.value.filter((item) => normalizeDetailStatusValue(item.status) === productionInboundApi.ProductionInboundDetailStatus.Completed).length)
-const detailTotalCount = computed(() => detailRows.value.length)
-const progressPercentage = computed(() => {
-  if (detailTotalCount.value <= 0) return 0
-  return Math.round((completedCount.value / detailTotalCount.value) * 100)
-})
 
 function cloneDetailRow(row: DetailDraftRow): DetailDraftRow {
   return {
@@ -1022,7 +959,7 @@ async function handleSave() {
           batchNo: safeTrim(item.batchNo),
           craftVersion: safeTrim(item.craftVersion),
           containerId: toRequiredGuid(item.containerId),
-          containerCode: toRequiredGuid(item.containerCode, item.containerId),
+          containerCode: safeTrim(item.containerCode),
           qty: Number(item.qty ?? 0),
           unit: safeTrim(item.unit),
           weight: Number(item.weight ?? 0),
@@ -1114,97 +1051,34 @@ watch(
 <template>
   <BaseCrudPage :search-collapsible="false">
       <template #search>
-        <div class="detail-header-wrap">
-          <div class="header-action-bar">
+        <DetailWorkbench
+          :show-header="false"
+          :loading="loading"
+        >
+          <template #summary>
+          <div class="detail-action-bar">
             <n-button @click="handleBack">返回列表</n-button>
             <n-button v-if="isEditMode" :loading="loading" @click="loadDetail">刷新</n-button>
             <n-button type="primary" :loading="saving" @click="handleSave">保存</n-button>
           </div>
 
-          <n-spin :show="loading">
-            <n-descriptions
-              class="transfer-header-descriptions"
-              bordered
-              label-placement="left"
-              :column="3"
-              :label-style="headerLabelStyle"
-              :content-style="headerContentStyle"
-              style="margin-top: 10px;"
-            >
-              <n-descriptions-item label="入库单号">
-                {{ formModel.orderNo || '-' }}
-              </n-descriptions-item>
-              <n-descriptions-item>
-                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>来源单号</template>
-                <n-input
-                  :value="formModel.sourceOrderNo"
-                  placeholder="请输入来源单号"
-                  maxlength="64"
-                  clearable
-                  @update:value="(value) => { formModel.sourceOrderNo = value }"
-                />
-              </n-descriptions-item>
-              <n-descriptions-item label="创建时间">
-                {{ formatDateTime(formModel.creationTime) }}
-              </n-descriptions-item>
-              <n-descriptions-item>
-                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>入库类型</template>
-                <n-select
-                  :value="formModel.inboundType"
-                  :options="inboundTypeOptions"
-                  placeholder="请选择入库类型"
-                  @update:value="(value) => { formModel.inboundType = value }"
-                />
-              </n-descriptions-item>
-              <n-descriptions-item>
-                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>来源部门</template>
-                <n-select
-                  :value="formModel.sourceDepartmentId"
-                  :options="sourceDepartmentOptions"
-                  :loading="departmentLoading"
-                  :disabled="isSourceDepartmentLockedByContext"
-                  :clearable="!isSourceDepartmentLockedByContext"
-                  :placeholder="isSourceDepartmentLockedByContext ? '来源部门已锁定' : '请选择来源部门'"
-                  filterable
-                  @update:value="handleSourceDepartmentChange"
-                />
-              </n-descriptions-item>
-              <n-descriptions-item>
-                <template #label><span style="color: #d03050; margin-right: 4px;">*</span>目标入库仓库</template>
-                <n-select
-                  :value="formModel.targetWarehouseId"
-                  :options="targetWarehouseOptions"
-                  :loading="warehouseLoading"
-                  :disabled="isTargetWarehouseLockedByContext"
-                  :clearable="!isTargetWarehouseLockedByContext"
-                  :placeholder="isTargetWarehouseLockedByContext ? '目标入库仓库已锁定' : '请选择目标入库仓库'"
-                  filterable
-                  @update:value="handleTargetWarehouseChange"
-                />
-              </n-descriptions-item>
-              <n-descriptions-item label="状态">
-                <n-tag size="small" :type="getStatusTagType(formModel.status)">{{ resolveStatusLabel(formModel.status) }}</n-tag>
-              </n-descriptions-item>
-            </n-descriptions>
-
-            <div class="detail-progress-wrap">
-              <n-text class="detail-progress-label">总体进度</n-text>
-              <n-progress
-                class="detail-progress-bar"
-                type="line"
-                :percentage="progressPercentage"
-                :height="14"
-                :show-indicator="false"
-                :border-radius="8"
-                :fill-border-radius="8"
-                status="success"
-              />
-              <n-text depth="3" class="detail-progress-meta">
-                {{ progressPercentage }}%（已完成: {{ completedCount }}/{{ detailTotalCount }} 条）
-              </n-text>
-            </div>
-          </n-spin>
-        </div>
+            <ProductionInboundHeaderTable
+              mode="editable"
+              :model="formModel"
+              :inbound-type-options="inboundTypeOptions"
+              :source-department-options="sourceDepartmentOptions"
+              :target-warehouse-options="targetWarehouseOptions"
+              :department-loading="departmentLoading"
+              :warehouse-loading="warehouseLoading"
+              :source-department-locked="isSourceDepartmentLockedByContext"
+              :target-warehouse-locked="isTargetWarehouseLockedByContext"
+              @update:source-order-no="(value) => { formModel.sourceOrderNo = value }"
+              @update:inbound-type="(value) => { formModel.inboundType = value }"
+              @update:source-department-id="handleSourceDepartmentChange"
+              @update:target-warehouse-id="handleTargetWarehouseChange"
+            />
+          </template>
+        </DetailWorkbench>
       </template>
 
       <template #actions-left>
@@ -1246,43 +1120,13 @@ watch(
 </template>
 
 <style scoped>
-.detail-header-wrap {
-  width: 100%;
-}
-
-.header-action-bar {
+.detail-action-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
-.transfer-header-descriptions :deep(table) {
-  table-layout: fixed;
-  width: 100%;
-}
-
-.transfer-header-descriptions :deep(.n-descriptions-table-header) {
-  width: 120px;
-}
-
-.detail-progress-wrap {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.detail-progress-label {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.detail-progress-bar {
-  min-width: 200px;
-}
-
-.detail-progress-meta {
-  white-space: nowrap;
-}
 </style>

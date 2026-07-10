@@ -1,27 +1,34 @@
 import request from '../../utils/request'
 import type { PagedResultDto, PagedAndSortedResultRequestDto } from '../inventory/allocation'
 
-export enum StocktakeOrderStatus {
-  Draft = 10,
-  Locked = 20,
-  InProgress = 30,
-  InApproval = 40,
-  Completed = 50,
-  Cancelled = 60,
-}
+export const StocktakeOrderStatus = {
+  Draft: 10,
+  Locked: 20,
+  InProgress: 30,
+  InApproval: 40,
+  Completed: 50,
+  Cancelled: 60,
+} as const
 
-export enum StocktakeMode {
-  Dynamic = 10,
-  Cycle = 20,
-  AreaStatic = 30,
-  DetailSelection = 40,
-}
+export type StocktakeOrderStatus =
+  (typeof StocktakeOrderStatus)[keyof typeof StocktakeOrderStatus]
 
-export enum CountStatus {
-  NotCounted = 0,
-  Matched = 10,
-  Discrepancy = 20,
-}
+export const StocktakeMode = {
+  Dynamic: 10,
+  Cycle: 20,
+  AreaStatic: 30,
+  DetailSelection: 40,
+} as const
+
+export type StocktakeMode = (typeof StocktakeMode)[keyof typeof StocktakeMode]
+
+export const CountStatus = {
+  NotCounted: 0,
+  Matched: 10,
+  Discrepancy: 20,
+} as const
+
+export type CountStatus = (typeof CountStatus)[keyof typeof CountStatus]
 
 export interface StocktakeOrderDetailDto {
   id: string

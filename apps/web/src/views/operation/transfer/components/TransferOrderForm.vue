@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
   NCheckbox,
@@ -31,6 +31,7 @@ import * as usersApi from '../../../../api/identity/users'
 import * as organizationUnitsApi from '../../../../api/identity/organizationUnits'
 import request from '../../../../utils/request'
 import { useAuthStore } from '../../../../stores/auth'
+import { useTabsStore } from '../../../../stores/tabs'
 import BaseCrudPage from '../../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../../composables/useColumnConfig'
@@ -42,10 +43,12 @@ const props = defineProps<{
   mode: 'view' | 'edit' | 'create'
 }>()
 
+const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
 const authStore = useAuthStore()
+const tabsStore = useTabsStore()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -1204,7 +1207,9 @@ async function handleSaveCreate() {
     const created = await transferApi.create(payload)
     message.success(created?.orderNo ? `保存成功：${created.orderNo}` : '保存成功')
     if (created?.id) {
-      router.push({ name: 'TransferOrderDetail', params: { id: created.id } })
+      const createPath = route.path
+      await router.push({ name: 'TransferOrderDetail', params: { id: created.id } })
+      tabsStore.removeTab(createPath)
       return
     }
     router.push({ name: 'TransferOrderList' })

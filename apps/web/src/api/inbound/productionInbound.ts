@@ -37,8 +37,7 @@ export type ProductionInboundStatus =
 
 export const ProductionInboundDetailStatus = {
   Pending: 0,
-  InProgress: 1,
-  Completed: 2,
+  Completed: 1,
 } as const
 
 export type ProductionInboundDetailStatus =
@@ -122,21 +121,36 @@ export interface CreateProductionInboundDetailDto {
 }
 
 const baseUrl = '/api/app/production-inbound'
+const emptyGuid = '00000000-0000-0000-0000-000000000000'
+
+function isEmptyGuid(value: unknown) {
+  return String(value ?? '').trim().toLowerCase() === emptyGuid
+}
+
+function normalizeDisplayCode(value: unknown) {
+  const text = String(value ?? '').trim()
+  if (!text || isEmptyGuid(text)) return ''
+  return text
+}
 
 function mapDetailFromBackend(detail: any): ProductionInboundDetailDto {
+  const reelId = normalizeDisplayCode(detail.reelId)
+  const containerCode = normalizeDisplayCode(detail.containerCode) || normalizeDisplayCode(detail.reelCode)
   return {
     ...detail,
-    containerId: detail.reelId,
-    containerCode: detail.reelCode || detail.reelId,
+    containerId: reelId,
+    containerCode,
   }
 }
 
 function mapDetailToBackend(detail: any): any {
-  return {
+  const payload = {
     ...detail,
     reelId: detail.containerId,
-    reelCode: detail.containerCode || detail.containerId,
   }
+  delete payload.containerId
+  delete payload.containerCode
+  return payload
 }
 
 function mapCreateDetailToBackend(detail: any): any {

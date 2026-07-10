@@ -14,7 +14,7 @@ import {
   NSpace,
   useMessage,
 } from 'naive-ui'
-import type { DataTableColumns } from 'naive-ui'
+import type { DataTableColumns, FormRules } from 'naive-ui'
 
 import * as stocktakeApi from '../../../api/inventory/stocktake'
 import * as warehouseApi from '../../../api/masterData/warehouse'
@@ -32,9 +32,9 @@ const formModel = reactive({
   locationIds: [] as string[],
 })
 
-const formRules = {
+const formRules: FormRules = {
   warehouseId: { required: true, message: '请选择仓库', trigger: 'change' },
-  mode: { required: true, message: '请选择盘点模式', type: 'number', trigger: 'change' },
+  mode: { required: true, message: '请选择盘点模式', type: 'number', trigger: 'change' as const },
 }
 
 // 仓库下拉列表

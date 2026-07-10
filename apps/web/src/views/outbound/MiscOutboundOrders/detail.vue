@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
@@ -7,8 +7,6 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NEmpty,
-  NSpin,
-  NTag,
   useDialog,
   useMessage,
 } from 'naive-ui'
@@ -16,6 +14,9 @@ import type { DataTableColumns } from 'naive-ui'
 
 import * as miscOutboundOrderApi from '../../../api/outbound/MiscOutboundOrders/miscOutboundOrders'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
+import CopyableText from '../../../components/CopyableText.vue'
+import DetailWorkbench from '../../../components/DetailWorkbench.vue'
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { withResizable } from '../../../utils/table'
 
 const route = useRoute()
@@ -99,7 +100,7 @@ const detailColumns = computed<DataTableColumns<miscOutboundOrderApi.MiscOutboun
     title: '仓库编码',
     key: 'warehouseCode',
     minWidth: 120,
-    render: (row) => row.warehouseCode || '-',
+    render: (row) => h(CopyableText, { value: row.warehouseCode }),
   },
   {
     title: '仓库名称',
@@ -111,19 +112,19 @@ const detailColumns = computed<DataTableColumns<miscOutboundOrderApi.MiscOutboun
     title: '库位编码',
     key: 'locationCode',
     minWidth: 120,
-    render: (row) => row.locationCode || '-',
+    render: (row) => h(CopyableText, { value: row.locationCode }),
   },
   {
     title: '容器编码',
     key: 'containerCode',
     minWidth: 120,
-    render: (row) => row.containerCode || '-',
+    render: (row) => h(CopyableText, { value: row.containerCode }),
   },
   {
     title: '物料编码',
     key: 'productCode',
     minWidth: 140,
-    render: (row) => row.productCode || '-',
+    render: (row) => h(CopyableText, { value: row.productCode }),
   },
   {
     title: '物料名称',
@@ -135,13 +136,13 @@ const detailColumns = computed<DataTableColumns<miscOutboundOrderApi.MiscOutboun
     title: 'SN',
     key: 'sn',
     minWidth: 140,
-    render: (row) => row.sn || '-',
+    render: (row) => h(CopyableText, { value: row.sn }),
   },
   {
     title: '批次号',
     key: 'batchNo',
     minWidth: 140,
-    render: (row) => row.batchNo || '-',
+    render: (row) => h(CopyableText, { value: row.batchNo }),
   },
   {
     title: '工艺版本',
@@ -246,8 +247,14 @@ onMounted(() => {
 <template>
   <BaseCrudPage :search-collapsible="false">
     <template #search>
-      <div class="detail-header-wrap">
-        <div class="header-action-bar">
+      <DetailWorkbench
+        :title="detail?.orderNo || '其他出库详情'"
+        :subtitle="detail?.costCenterName ? `成本中心：${detail.costCenterName}` : '其他出库单执行状态与明细'"
+        :status-label="detail ? resolveStatusLabel(detail.status) : ''"
+        :status-type="detail ? getStatusTagType(detail.status) : 'default'"
+        :loading="loading"
+      >
+        <template #actions>
           <n-button @click="handleBack">返回列表</n-button>
           <n-button
             v-if="detail && isDraftStatus(detail.status)"
@@ -260,9 +267,9 @@ onMounted(() => {
             审核执行
           </n-button>
           <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
-        </div>
+        </template>
 
-        <n-spin :show="loading">
+        <template #summary>
           <n-descriptions
             class="detail-header-descriptions"
             bordered
@@ -270,23 +277,25 @@ onMounted(() => {
             :column="3"
             :label-style="headerLabelStyle"
             :content-style="headerContentStyle"
-            style="margin-top: 10px;"
           >
-            <n-descriptions-item label="单据号">{{ detail?.orderNo || '-' }}</n-descriptions-item>
+            <n-descriptions-item label="单据号">
+              <CopyableText :value="detail?.orderNo" strong />
+            </n-descriptions-item>
             <n-descriptions-item label="账户别名">{{ detail?.accountAliasDescription || '-' }}</n-descriptions-item>
             <n-descriptions-item label="创建时间">{{ formatDateTime(detail?.creationTime) }}</n-descriptions-item>
             <n-descriptions-item label="成本中心编码">{{ detail?.costCenterCode || '-' }}</n-descriptions-item>
             <n-descriptions-item label="成本中心名称">{{ detail?.costCenterName || '-' }}</n-descriptions-item>
             <n-descriptions-item label="业务类型">{{ detail ? resolveOperationTypeLabel(detail.type) : '-' }}</n-descriptions-item>
             <n-descriptions-item label="状态">
-              <n-tag size="small" :type="detail ? getStatusTagType(detail.status) : 'default'">
-                {{ detail ? resolveStatusLabel(detail.status) : '-' }}
-              </n-tag>
+              <WmsStatusTag
+                :label="detail ? resolveStatusLabel(detail.status) : '-'"
+                :type="detail ? getStatusTagType(detail.status) : 'default'"
+              />
             </n-descriptions-item>
             <n-descriptions-item label="备注" :span="2">{{ detail?.remark || '-' }}</n-descriptions-item>
           </n-descriptions>
-        </n-spin>
-      </div>
+        </template>
+      </DetailWorkbench>
     </template>
 
     <template #data>

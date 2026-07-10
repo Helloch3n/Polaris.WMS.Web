@@ -9,7 +9,6 @@ import {
   NInput,
   NPagination,
   NSelect,
-  NTag,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
@@ -17,7 +16,9 @@ import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
 import * as productionInboundApi from '../../../api/inbound/productionInbound'
 import { t } from '../../../utils/i18n'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
+import CopyableText from '../../../components/CopyableText.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
@@ -136,27 +137,25 @@ const {
   handleVisibleChange,
   createDraggableTitle,
 } = useColumnConfig({
-  storageKey: 'production-inbound-column-settings-v1',
+  storageKey: 'production-inbound-column-settings-v2',
   preferredKeys: [
     'orderNo',
+    'status',
     'sourceOrderNo',
     'inboundType',
-    'sourceDepartmentCode',
     'sourceDepartmentName',
-    'targetWarehouseCode',
     'targetWarehouseName',
-    'status',
     'creationTime',
   ],
   resolveTitle: (key) => {
     if (key === 'orderNo') return t('productionInbound.columns.orderNo')
+    if (key === 'status') return t('productionInbound.columns.status')
     if (key === 'sourceOrderNo') return t('productionInbound.columns.sourceOrderNo')
     if (key === 'inboundType') return t('productionInbound.columns.inboundType')
     if (key === 'sourceDepartmentCode') return t('productionInbound.columns.sourceDepartmentCode')
     if (key === 'sourceDepartmentName') return t('productionInbound.columns.sourceDepartmentName')
     if (key === 'targetWarehouseCode') return t('productionInbound.columns.targetWarehouseCode')
     if (key === 'targetWarehouseName') return t('productionInbound.columns.targetWarehouseName')
-    if (key === 'status') return t('productionInbound.columns.status')
     if (key === 'creationTime') return t('productionInbound.columns.creationTime')
     return key
   },
@@ -168,14 +167,14 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     key: 'orderNo',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.orderNo, b.orderNo),
-    render: (row) => row.orderNo ?? '-',
+    render: (row) => h(CopyableText, { value: row.orderNo, strong: true }),
   },
   sourceOrderNo: {
     title: createDraggableTitle('sourceOrderNo', t('productionInbound.columns.sourceOrderNo')),
     key: 'sourceOrderNo',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.sourceOrderNo, b.sourceOrderNo),
-    render: (row) => row.sourceOrderNo ?? '-',
+    render: (row) => h(CopyableText, { value: row.sourceOrderNo }),
   },
   inboundType: {
     title: createDraggableTitle('inboundType', t('productionInbound.columns.inboundType')),
@@ -220,7 +219,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     sorter: (a, b) => compareSortValue(normalizeStatusValue(a.status), normalizeStatusValue(b.status)),
     render: (row) => {
       const label = resolveStatusLabel(row.status)
-      return h(NTag, { size: 'small', type: getStatusTagType(row.status) }, { default: () => label })
+      return h(WmsStatusTag, { label, type: getStatusTagType(row.status) })
     },
   },
   creationTime: {
@@ -463,3 +462,6 @@ onMounted(() => {
     </template>
   </BaseCrudPage>
 </template>
+
+<style scoped>
+</style>

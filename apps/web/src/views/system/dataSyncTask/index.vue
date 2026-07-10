@@ -49,7 +49,6 @@ const query = reactive({
 const listParams = computed(() => ({
   maxResultCount: query.pageSize,
   skipCount: (query.page - 1) * query.pageSize,
-  filter: query.filter || undefined,
 }))
 
 async function loadData() {
@@ -71,7 +70,6 @@ function onQuery() {
 }
 
 function onRefresh() {
-  query.filter = ''
   query.page = 1
   loadData()
 }
@@ -374,16 +372,6 @@ onMounted(() => {
   <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form">
-        <n-form-item>
-          <n-input
-            :value="query.filter"
-            placeholder="请输入任务名称"
-            clearable
-            style="max-width: 260px"
-            @update:value="(value) => (query.filter = value)"
-            @keyup.enter="onQuery"
-          />
-        </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
           <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>

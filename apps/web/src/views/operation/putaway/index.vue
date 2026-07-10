@@ -31,7 +31,6 @@ const dialog = useDialog()
 const activeTab = ref<'source' | 'tasks' | 'all'>('source')
 
 const sourceLoading = ref(false)
-const sourceFilter = ref('')
 const sourceRows = ref<AvailableContainerRow[]>([])
 
 const taskLoading = ref(false)
@@ -144,7 +143,6 @@ async function loadSource() {
   sourceLoading.value = true
   try {
     const res = await PutawayService.getAvailableContainers({
-      filter: sourceFilter.value.trim() || undefined,
     })
     sourceRows.value = res.items ?? []
   } catch (e) {
@@ -242,12 +240,10 @@ async function onConfirmComplete() {
 }
 
 function onQuerySource() {
-  sourceFilter.value = sourceFilter.value.trim()
   loadSource()
 }
 
 function onResetSource() {
-  sourceFilter.value = ''
   loadSource()
 }
 
@@ -459,18 +455,8 @@ onMounted(async () => {
 <template>
   <BaseCrudPage>
     <template #search>
-      <n-form inline label-placement="left" class="crud-search-form" @submit.prevent="onQueryTasks">
+      <n-form inline class="crud-search-form" @submit.prevent="onQueryTasks">
         <template v-if="activeTab === 'source'">
-          <n-form-item label="盘号/物料">
-            <n-input
-              :value="sourceFilter"
-              placeholder="请输入盘号或物料"
-              clearable
-              style="width: 240px"
-              @update:value="(value) => (sourceFilter = value)"
-              @keyup.enter="onQuerySource"
-            />
-          </n-form-item>
           <n-form-item class="crud-page-spacer" />
           <n-form-item>
             <n-button type="primary" :loading="sourceLoading" @click="onQuerySource">查询</n-button>
@@ -480,30 +466,30 @@ onMounted(async () => {
           </n-form-item>
         </template>
         <template v-else>
-          <n-form-item label="任务号">
+          <n-form-item>
             <n-input
               :value="taskQuery.taskNo"
               clearable
-              placeholder="请输入任务号"
+              placeholder="任务号"
               @update:value="(value) => (taskQuery.taskNo = value)"
               @keyup.enter="onQueryTasks"
             />
           </n-form-item>
-          <n-form-item label="盘号">
+          <n-form-item>
             <n-input
               :value="taskQuery.containerNo"
               clearable
-              placeholder="请输入盘号"
+              placeholder="盘号"
               @update:value="(value) => (taskQuery.containerNo = value)"
               @keyup.enter="onQueryTasks"
             />
           </n-form-item>
-          <n-form-item label="状态">
+          <n-form-item>
             <n-select
               :value="taskQuery.status"
               :options="taskStatusOptions"
               clearable
-              placeholder="请选择状态"
+              placeholder="状态"
               style="width: 160px"
               @update:value="(value) => { taskQuery.status = value; onRefreshTasks() }"
             />

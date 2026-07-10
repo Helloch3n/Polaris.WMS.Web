@@ -342,8 +342,8 @@ onMounted(() => {
 <template>
   <BaseCrudPage>
     <template #search>
-      <n-form inline class="crud-search-form" :label-width="80">
-        <n-form-item label="单据号">
+      <n-form inline class="crud-search-form">
+        <n-form-item>
           <n-input
             v-model:value="query.orderNo"
             clearable
@@ -351,11 +351,11 @@ onMounted(() => {
             @keyup.enter="handleQuery"
           />
         </n-form-item>
-        <n-form-item label="业务类型">
+        <n-form-item>
           <n-select
             v-model:value="query.mergeType"
             clearable
-            placeholder="全部"
+            placeholder="业务类型"
             style="width: 140px;"
             :options="[
               { label: '分拆', value: 0 },
@@ -364,11 +364,11 @@ onMounted(() => {
             @update:value="handleQuery"
           />
         </n-form-item>
-        <n-form-item label="状态">
+        <n-form-item>
           <n-select
             v-model:value="query.status"
             clearable
-            placeholder="全部"
+            placeholder="状态"
             style="width: 140px;"
             :options="[
               { label: '草稿', value: 0 },
@@ -377,7 +377,7 @@ onMounted(() => {
             @update:value="handleQuery"
           />
         </n-form-item>
-        <n-form-item label="创建时间">
+        <n-form-item>
           <n-date-picker
             v-model:value="query.dateRange"
             type="daterange"

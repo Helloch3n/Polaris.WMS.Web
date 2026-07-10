@@ -8,19 +8,61 @@
     'Microsoft YaHei', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  letter-spacing: 0.01em;
-  color: #0f172a;
-  background-color: #f5f7fb;
+  letter-spacing: 0;
+  color: var(--wms-text-primary);
+  background-color: var(--wms-surface-app);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* 标准 Modal 宽度档位 */
+  --wms-surface-app: #f4f7fb;
+  --wms-surface-sider: #f8fafc;
+  --wms-surface-header: #ffffff;
+  --wms-surface-panel: #ffffff;
+  --wms-surface-muted: #f8fafc;
+  --wms-surface-elevated: #ffffff;
+  --wms-surface-table-header: #f8fafc;
+  --wms-surface-hover: rgba(37, 99, 235, 0.05);
+  --wms-border-subtle: #eef2f7;
+  --wms-border: #dbe3ef;
+  --wms-border-strong: #b8c4d6;
+  --wms-text-primary: #102033;
+  --wms-text-secondary: #475569;
+  --wms-text-muted: #7b8da3;
+  --wms-text-inverse: #ffffff;
+  --wms-brand: #1f5eff;
+  --wms-brand-hover: #386fff;
+  --wms-brand-pressed: #1747c9;
+  --wms-brand-subtle: #eef4ff;
+  --wms-status-draft: #64748b;
+  --wms-status-pending: #c77700;
+  --wms-status-progress: #1f5eff;
+  --wms-status-success: #047857;
+  --wms-status-error: #c2410c;
+  --wms-status-cancelled: #64748b;
+  --wms-status-draft-bg: #f1f5f9;
+  --wms-status-pending-bg: #fff7ed;
+  --wms-status-progress-bg: #eef4ff;
+  --wms-status-success-bg: #ecfdf5;
+  --wms-status-error-bg: #fff1ed;
+  --wms-status-cancelled-bg: #f1f5f9;
+  --wms-op-inbound: #0f766e;
+  --wms-op-outbound: #7c3aed;
+  --wms-op-internal: #2563eb;
+  --wms-op-inventory: #0891b2;
+  --wms-op-system: #64748b;
+  --wms-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --wms-shadow-elevated: 0 8px 24px rgba(15, 23, 42, 0.08);
+
   --modal-width-sm: 480px;
   --modal-width-md: 640px;
   --modal-width-lg: 880px;
   --modal-width-xl: calc(100vw - 80px);
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 *,
@@ -30,12 +72,12 @@
 }
 
 a {
-  color: #2563eb;
+  color: var(--wms-brand);
   text-decoration: none;
 }
 
 a:hover {
-  color: #1d4ed8;
+  color: var(--wms-brand-hover);
 }
 
 html,
@@ -47,14 +89,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100%;
-  background: #f5f7fb;
+  background: var(--wms-surface-app);
+  color: var(--wms-text-primary);
 }
 
 #app {
   height: 100%;
 }
 
-/* 全局滚动条美化 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -65,10 +107,107 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--wms-border-strong);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--wms-text-muted);
+}
+
+body,
+.layout,
+.sidebar,
+.header,
+.main,
+.tab-item,
+.logo-text,
+.user-name,
+.n-card,
+.n-input,
+.n-base-selection,
+.n-menu,
+.n-menu-item,
+.n-button,
+.n-select,
+.n-modal,
+.n-drawer,
+.n-dialog,
+a {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mini-progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--wms-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.text-mono {
+  font-family: var(--n-font-family-mono), 'SFMono-Regular', Consolas, monospace;
+}
+
+.wms-panel {
+  background: var(--wms-surface-panel);
+  border: 1px solid var(--wms-border-subtle);
+  border-radius: 8px;
+  box-shadow: var(--wms-shadow-panel);
+}
+
+.crud-search-form.n-form,
+.crud-search-form {
+  align-items: center;
+}
+
+.crud-search-form .n-form-item {
+  display: flex;
+  align-items: center;
+  margin-top: 0;
+  margin-bottom: 0;
+  min-height: 28px;
+}
+
+.crud-search-form .n-form-item-blank {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+}
+
+.crud-search-form .n-form-item-feedback-wrapper {
+  display: none;
+  min-height: 0;
+}
+
+.crud-search-form .n-form-item-label,
+.crud-search-form .n-form-item-label__text {
+  display: none;
+}
+
+.crud-search-form .n-input,
+.crud-search-form .n-base-selection,
+.crud-search-form .n-input-number,
+.crud-search-form .n-date-picker,
+.crud-search-form .n-button {
+  --n-height: 28px;
+}
+
+.crud-pager,
+.crud-pager .n-pagination {
+  color: var(--wms-text-secondary);
+}
+
+.crud-pager .n-button,
+.crud-pager .n-pagination .n-pagination-item {
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }

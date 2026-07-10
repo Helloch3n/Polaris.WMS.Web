@@ -8,15 +8,14 @@ import {
   NDatePicker,
   NDescriptions,
   NDescriptionsItem,
+  NDivider,
   NDrawer,
   NDrawerContent,
   NForm,
   NFormItem,
-  NInput,
   NPagination,
   NSelect,
   NSpin,
-  NSwitch,
   NTable,
   NTag,
   useMessage
@@ -41,9 +40,8 @@ const pagination = ref<PaginationProps>({ page: 1, pageSize: 10, itemCount: 0 })
 
 // 查询参数
 const searchQuery = ref({
-  filter: '',
   hasException: null as any,
-  includeGetRequests: false
+  includeGetRequests: false as any
 })
 
 // 详情抽屉控制
@@ -186,12 +184,15 @@ function handleColumnVisibleChange(key: string, visible: boolean) { if (!handleV
 function handleQuery() { pagination.value.page = 1; loadData() }
 
 function handleReset() {
-  searchQuery.value.filter = ''
-  searchQuery.value.hasException = null
-  searchQuery.value.includeGetRequests = false
-  dateRange.value = null
+  handleResetFilters()
   pagination.value.page = 1
   loadData()
+}
+
+function handleResetFilters() {
+  dateRange.value = null
+  searchQuery.value.hasException = null
+  searchQuery.value.includeGetRequests = false as any
 }
 
 function handlePageChange(page: number) { pagination.value.page = page; loadData() }
@@ -212,7 +213,6 @@ async function loadData() {
     }
 
     const data = await getList({
-      filter: searchQuery.value.filter || undefined,
       hasException: searchQuery.value.hasException !== null ? searchQuery.value.hasException : undefined,
       includeGetRequests: searchQuery.value.includeGetRequests,
       startTime,
@@ -253,26 +253,31 @@ onMounted(() => { loadColumnSettings(); loadData() })
   <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form" :show-feedback="false">
-        <n-form-item label="模糊搜索">
-          <n-input :value="searchQuery.filter" clearable placeholder="操作人/IP/路径" @update:value="(val) => searchQuery.filter = val" @keyup.enter="handleQuery" style="width: 180px;" />
+        <n-form-item>
+          <n-date-picker v-model:value="dateRange" type="datetimerange" clearable style="width: 300px" />
         </n-form-item>
-        <n-form-item label="时间范围">
-          <n-date-picker v-model:value="dateRange" type="datetimerange" clearable style="width: 340px;" />
-        </n-form-item>
-        <n-form-item label="执行结果">
+        <n-form-item>
           <n-select
             v-model:value="searchQuery.hasException"
-            placeholder="请选择"
+            placeholder="执行结果"
             clearable
+            style="width: 140px"
             :options="([
               { label: '成功', value: false },
               { label: '失败', value: true }
             ] as any)"
-            style="width: 110px;"
           />
         </n-form-item>
-        <n-form-item label="包含查询">
-          <n-switch v-model:value="searchQuery.includeGetRequests" @update:value="handleQuery" />
+        <n-form-item>
+          <n-select
+            v-model:value="searchQuery.includeGetRequests"
+            placeholder="查询类接口"
+            style="width: 150px"
+            :options="([
+              { label: '隐藏查询接口', value: false },
+              { label: '显示查询接口', value: true }
+            ] as any)"
+          />
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item><n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button></n-form-item>
@@ -290,14 +295,14 @@ onMounted(() => { loadColumnSettings(); loadData() })
   </BaseCrudPage>
 
   <!-- 操作日志详情抽屉 -->
-  <n-drawer v-model:show="drawerVisible" :width="750" placement="right">
+  <n-drawer :show="drawerVisible" :width="750" placement="right" @update:show="(value) => (drawerVisible = value)">
     <n-drawer-content title="操作日志详情" closable>
       <div v-if="detailLoading" style="padding: 40px; text-align: center;">
         <n-spin size="large" />
       </div>
       <div v-else-if="detailData">
-        <h3 style="margin-bottom: 12px; font-weight: bold; color: var(--n-title-text-color);">基本信息</h3>
-        <n-descriptions bordered :column="2" label-placement="left" label-style="width: 110px; font-weight: bold; background-color: #fafafa;">
+        <n-divider title-placement="left">基本信息</n-divider>
+        <n-descriptions bordered :column="2" label-placement="left" label-style="width: 110px;">
           <n-descriptions-item label="操作模块">{{ detailData.module }}</n-descriptions-item>
           <n-descriptions-item label="操作动作">{{ detailData.action }}</n-descriptions-item>
           <n-descriptions-item label="操作人员">{{ detailData.userName }}</n-descriptions-item>
@@ -314,24 +319,24 @@ onMounted(() => { loadColumnSettings(); loadData() })
           </n-descriptions-item>
         </n-descriptions>
 
-        <h3 style="margin-top: 24px; margin-bottom: 12px; font-weight: bold; color: var(--n-title-text-color);">接口路径</h3>
-        <n-descriptions bordered :column="1" label-placement="left" label-style="width: 110px; font-weight: bold; background-color: #fafafa;">
+        <n-divider title-placement="left">接口路径</n-divider>
+        <n-descriptions bordered :column="1" label-placement="left" label-style="width: 110px;">
           <n-descriptions-item label="请求 URL">
-            <span style="font-family: monospace; font-size: 13px; word-break: break-all;">{{ detailData.url }}</span>
+            <span class="text-mono" style="font-size: 13px; word-break: break-all;">{{ detailData.url }}</span>
           </n-descriptions-item>
           <n-descriptions-item label="浏览器 Agent">
-            <span style="font-size: 12px; color: #555;">{{ detailData.browserInfo }}</span>
+            <span style="font-size: 12px; color: var(--n-text-color-3);">{{ detailData.browserInfo }}</span>
           </n-descriptions-item>
         </n-descriptions>
 
         <div v-if="detailData.hasException && detailData.exceptions" style="margin-top: 24px;">
-          <h3 style="margin-bottom: 12px; font-weight: bold; color: #d03050;">异常堆栈</h3>
-          <pre style="padding: 12px; background: #ffeef0; border: 1px solid #ffd1d6; border-radius: 4px; overflow-x: auto; color: #d03050; font-family: monospace; font-size: 11px; white-space: pre-wrap; max-height: 250px;">{{ detailData.exceptions }}</pre>
+          <n-divider title-placement="left">异常堆栈</n-divider>
+          <pre class="exception-pre" style="padding: 16px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 250px; margin-bottom: 20px;">{{ detailData.exceptions }}</pre>
         </div>
 
         <div style="margin-top: 24px;">
-          <h3 style="margin-bottom: 12px; font-weight: bold; color: var(--n-title-text-color);">数据级变更记录 (Data Diff)</h3>
-          <div v-if="!detailData.entityChanges || detailData.entityChanges.length === 0" style="color: #8c8c8c; text-align: center; padding: 24px; border: 1px dashed #eee; border-radius: 4px; background: #fafafa;">
+          <n-divider title-placement="left">数据级变更记录 (Data Diff)</n-divider>
+          <div v-if="!detailData.entityChanges || detailData.entityChanges.length === 0" class="empty-entity-changes" style="text-align: center; padding: 24px; border: 1px dashed var(--n-border-color); border-radius: 8px; margin-bottom: 20px;">
             本次操作未引发数据库实体级属性变化
           </div>
           <n-collapse v-else default-expanded-names="0">
@@ -347,26 +352,26 @@ onMounted(() => { loadColumnSettings(); loadData() })
                 </n-tag>
               </template>
               <div style="padding: 8px 0;">
-                <n-table size="small" :bordered="true" :single-line="false" style="font-size: 13px;">
+                <n-table size="small" :single-line="false">
                   <thead>
-                    <tr style="background-color: #f7f7f7;">
-                      <th style="width: 160px; font-weight: bold;">修改属性/字段</th>
-                      <th style="font-weight: bold;">原值 (Original)</th>
-                      <th style="font-weight: bold;">新值 (New)</th>
+                    <tr>
+                      <th style="width: 160px;">修改属性/字段</th>
+                      <th>原值 (Original)</th>
+                      <th>新值 (New)</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="(pc, pIndex) in ec.propertyChanges" :key="pIndex">
-                      <td style="font-weight: bold; word-break: break-all;">{{ pc.propertyName }}</td>
-                      <td style="background-color: #ffeef0; color: #b30000; text-decoration: line-through; word-break: break-all; font-family: monospace; font-size: 12px;">
+                      <td style="font-weight: 500; word-break: break-all;">{{ pc.propertyName }}</td>
+                      <td style="color: #ef4444; text-decoration: line-through; word-break: break-all; font-family: monospace;">
                         {{ pc.originalValue || '(Null/空)' }}
                       </td>
-                      <td style="background-color: #e6ffed; color: #22863a; word-break: break-all; font-family: monospace; font-size: 12px;">
+                      <td style="color: #10b981; word-break: break-all; font-family: monospace;">
                         {{ pc.newValue || '(Null/空)' }}
                       </td>
                     </tr>
                     <tr v-if="ec.propertyChanges.length === 0">
-                      <td colspan="3" style="text-align: center; color: #8c8c8c; font-style: italic;">
+                      <td colspan="3" style="text-align: center; color: #64748b; font-style: italic;">
                         无具体字段属性发生变化（可能仅影响主键关联关系）
                       </td>
                     </tr>
@@ -380,3 +385,4 @@ onMounted(() => { loadColumnSettings(); loadData() })
     </n-drawer-content>
   </n-drawer>
 </template>
+

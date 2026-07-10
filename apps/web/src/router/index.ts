@@ -59,7 +59,7 @@ const router = createRouter({
         },
         {
           path: 'internalManagement',
-          meta: { title: '库内作业', order: 2, requiresAuth: true, requiredPolicy: 'WMS.InternalOps' },
+          meta: { title: '库内作业', order: 3, requiresAuth: true, requiredPolicy: 'WMS.InternalOps' },
           children: [
             {
               path: 'move-task',
@@ -137,7 +137,7 @@ const router = createRouter({
         },
         {
           path: 'inventoryManagement',
-          meta: { title: '库存管理', order: 2, requiresAuth: true, requiredPolicy: 'WMS.InventoryOps' },
+          meta: { title: '库存管理', order: 5, requiresAuth: true, requiredPolicy: 'WMS.InventoryOps' },
           children: [
             {
               path: 'inventory',
@@ -167,7 +167,7 @@ const router = createRouter({
         },
         {
           path: 'inboundManagement',
-          meta: { title: '入库管理', order: 3, requiresAuth: true, requiredPolicy: 'WMS.InboundOps' },
+          meta: { title: '入库管理', order: 2, requiresAuth: true, requiredPolicy: 'WMS.InboundOps' },
           children: [
             {
               path: 'purchase-receipt',
@@ -317,7 +317,7 @@ const router = createRouter({
         },
         {
           path: 'outboundManagement',
-          meta: { title: '出库管理', order: 5, requiresAuth: true, requiredPolicy: 'WMS.OutboundOps' },
+          meta: { title: '出库管理', order: 4, requiresAuth: true, requiredPolicy: 'WMS.OutboundOps' },
           children: [
             {
               path: 'sales-order',

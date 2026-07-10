@@ -7,16 +7,16 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
-import { NButton, NCard, NIcon, NTag } from 'naive-ui'
+import { GridOutline } from '@vicons/ionicons5'
+import { NButton, NIcon, NTag, NDropdown } from 'naive-ui'
+import { useSettingsStore } from '../stores/settings'
 
 const props = withDefaults(defineProps<{
   searchCollapsible?: boolean
   defaultSearchCollapsed?: boolean
   selectedCount?: number
 }>(), {
-  searchCollapsible: true,
+  searchCollapsible: false,
   defaultSearchCollapsed: false,
   selectedCount: 0,
 })
@@ -25,10 +25,16 @@ const emit = defineEmits<{
   (e: 'clear-selection'): void
 }>()
 
-const searchCollapsed = ref(props.defaultSearchCollapsed)
+const settingsStore = useSettingsStore()
 
-function toggleSearchCollapsed() {
-  searchCollapsed.value = !searchCollapsed.value
+const densityOptions = [
+  { label: '紧凑模式', key: 'small' },
+  { label: '默认模式', key: 'medium' },
+  { label: '宽松模式', key: 'large' },
+]
+
+function handleDensitySelect(key: string) {
+  settingsStore.setTableSize(key as any)
 }
 
 defineSlots<{
@@ -43,73 +49,76 @@ defineSlots<{
 </script>
 
 <template>
-  <div class="crud-page">
-
-    <n-card
-      v-if="$slots.search"
-      class="search-card"
-      :class="{ 'is-collapsed': props.searchCollapsible && searchCollapsed }"
-      :bordered="false"
-    >
-      <div v-show="!searchCollapsed" class="slot-shell slot-search">
-        <slot name="search" />
+  <div class="crud-page" :class="'density-' + settingsStore.tableSize">
+    <div class="unibody-card">
+      <!-- 搜索区 -->
+      <div
+        v-if="$slots.search"
+        class="unibody-search-section"
+      >
+        <div class="slot-shell slot-search">
+          <slot name="search" />
+        </div>
       </div>
-      <div v-if="props.searchCollapsible" class="search-toggle-wrap">
-        <span class="search-toggle-line" />
-        <n-button
-          text
-          size="small"
-          class="search-toggle-btn"
-          @click="toggleSearchCollapsed"
-        >
-          <span class="search-toggle-icon" aria-hidden="true">
-            <n-icon size="14">
-              <ChevronDownOutline v-if="searchCollapsed" />
-              <ChevronUpOutline v-else />
-            </n-icon>
-          </span>
-        </n-button>
-      </div>
-    </n-card>
 
-    <n-card v-if="$slots.actions || $slots['actions-left'] || $slots['actions-right']" class="action-card" :bordered="false">
-      <div class="slot-shell slot-actions">
-        <template v-if="$slots['actions-left'] || $slots['actions-right']">
+      <!-- 功能操作区 -->
+      <div class="unibody-action-section">
+        <div class="slot-shell slot-actions">
           <div class="crud-action-split">
-            <div class="crud-action-left">
-              <slot name="actions-left" />
+            <div class="crud-action-left" style="flex: 1; justify-content: flex-start; min-width: 0;">
+              <template v-if="$slots['actions-left'] || $slots['actions-right']">
+                <div class="crud-action-split" style="width: 100%; border: none; padding: 0; box-shadow: none;">
+                  <div class="crud-action-left">
+                    <slot name="actions-left" />
+                  </div>
+                  <div class="crud-action-right">
+                    <slot name="actions-right" />
+                  </div>
+                </div>
+              </template>
+              <template v-else-if="$slots.actions">
+                <slot name="actions" />
+              </template>
+              <div v-else />
             </div>
-            <div class="crud-action-right">
-              <slot name="actions-right" />
+            
+            <div class="crud-action-right-tools" style="display: flex; align-items: center; margin-left: 12px; gap: 8px; flex-shrink: 0;">
+              <n-dropdown :options="densityOptions" trigger="click" @select="handleDensitySelect">
+                <n-button size="small" quaternary circle title="表格密度">
+                  <template #icon>
+                    <n-icon size="15">
+                      <GridOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+              </n-dropdown>
             </div>
-          </div>
-        </template>
-        <template v-else>
-          <slot name="actions" />
-        </template>
-      </div>
-    </n-card>
-
-    <n-card class="data-card" :bordered="false">
-      <div class="slot-shell slot-data">
-        <slot name="data" />
-      </div>
-      <div v-if="$slots['pager-left'] || $slots['pager-right'] || props.selectedCount > 0" class="slot-shell slot-pager">
-        <div class="crud-pager crud-pager-split">
-          <div class="crud-pager-left">
-            <slot name="pager-left">
-              <div v-if="props.selectedCount > 0" class="crud-selection-summary">
-                <n-tag size="small" type="info">已选 {{ props.selectedCount }} 条</n-tag>
-                <n-button text @click="emit('clear-selection')">清空选择</n-button>
-              </div>
-            </slot>
-          </div>
-          <div class="crud-pager-right">
-            <slot name="pager-right" />
           </div>
         </div>
       </div>
-    </n-card>
+
+      <!-- 数据展示与分页区 -->
+      <div class="unibody-data-section">
+        <div class="slot-shell slot-data">
+          <slot name="data" />
+        </div>
+        <div v-if="$slots['pager-left'] || $slots['pager-right'] || props.selectedCount > 0" class="slot-shell slot-pager">
+          <div class="crud-pager crud-pager-split">
+            <div class="crud-pager-left">
+              <slot name="pager-left">
+                <div v-if="props.selectedCount > 0" class="crud-selection-summary">
+                  <n-tag size="small" type="info">已选 {{ props.selectedCount }} 条</n-tag>
+                  <n-button text @click="emit('clear-selection')">清空选择</n-button>
+                </div>
+              </slot>
+            </div>
+            <div class="crud-pager-right">
+              <slot name="pager-right" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -117,30 +126,49 @@ defineSlots<{
 .crud-page {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
-.search-card,
-.action-card,
-.data-card {
-  width: 100%;
+.unibody-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  border-radius: 8px;
+  background-color: var(--wms-surface-panel);
+  border: 1px solid var(--wms-border-subtle);
+  box-shadow: var(--wms-shadow-panel);
+  overflow: hidden;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.data-card {
-  flex: 1 1 auto;
+.unibody-search-section {
+  padding: 6px 10px;
+  background-color: var(--wms-surface-muted);
+  border-bottom: 1px solid var(--wms-border-subtle);
+  transition: padding 0.2s ease, 
+              background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.unibody-action-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wms-border-subtle);
+  background-color: transparent;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.unibody-data-section {
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.data-card :deep(.n-card__content) {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+  padding: 8px 10px 10px;
+  overflow: hidden;
 }
 
 .slot-shell {
@@ -156,75 +184,16 @@ defineSlots<{
 }
 
 .slot-search {
-  min-height: 32px;
+  min-height: 30px;
   display: flex;
   align-items: center;
-}
-
-.search-toggle-wrap {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 0;
-  height: 1px;
-}
-
-.search-toggle-line {
-  width: 100%;
-  height: 1px;
-  background: var(--n-border-color);
-}
-
-.search-toggle-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 4px;
-  height: 14px;
-  min-width: 20px;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  color: var(--n-text-color-3);
-  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.search-toggle-btn:hover {
-  color: var(--n-text-color-2);
-  background: color-mix(in srgb, var(--n-color-hover) 88%, transparent);
-  transform: translateY(calc(-50% - 1px));
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.1);
-}
-
-.search-toggle-btn:active {
-  transform: translateY(-50%);
-  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
-}
-
-.search-toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  line-height: 1;
-}
-
-:deep(.search-card.is-collapsed .n-card__content) {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-:deep(.search-card.is-collapsed .slot-search) {
-  min-height: 0;
 }
 
 :deep(.crud-search-row),
 :deep(.crud-search-form) {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-height: 28px;
   width: 100%;
   flex-wrap: wrap;
@@ -245,15 +214,29 @@ defineSlots<{
   flex: 0 0 auto;
 }
 
+:deep(.crud-search-form .n-form-item-blank) {
+  min-height: 28px;
+}
+
+:deep(.crud-search-form .n-form-item-feedback-wrapper) {
+  display: none;
+  min-height: 0;
+}
+
+:deep(.crud-search-form .n-form-item-label),
+:deep(.crud-search-form .n-form-item-label__text) {
+  display: none !important;
+}
+
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-input),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-base-selection),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-input-number),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-date-picker) {
-  min-width: 130px;
+  min-width: 180px;
 }
 
 :deep(.crud-search-form .n-form-item .n-button) {
-  min-width: 60px;
+  min-width: 72px;
 }
 
 :deep(.crud-search-form .n-form-item.crud-page-spacer) {
@@ -296,20 +279,29 @@ defineSlots<{
 }
 
 :deep(.crud-pager) {
+  flex: 1 1 auto;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  min-height: 32px;
-  padding-top: 6px;
+  min-height: 0;
+  height: 100%;
 }
 
 .slot-pager {
-  padding-top: 6px;
-  border-top: 1px solid var(--n-border-color);
-  background: var(--n-color);
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  margin: 0 -10px -10px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-top: 1px solid color-mix(in srgb, var(--wms-border-subtle) 82%, transparent);
+  background: color-mix(in srgb, var(--wms-surface-panel) 94%, var(--wms-surface-muted));
+  box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.04);
   position: sticky;
   bottom: 0;
   z-index: 2;
+  backdrop-filter: blur(10px);
 }
 
 .crud-pager-split {
@@ -320,19 +312,94 @@ defineSlots<{
 .crud-pager-right {
   display: flex;
   align-items: center;
+  height: 100%;
+  min-height: 0;
 }
 
 :deep(.crud-selection-summary) {
   display: flex;
   align-items: center;
-  gap: 6px;
+  height: 100%;
+  gap: 7px;
+  color: var(--wms-text-muted);
+  font-size: 13px;
+  line-height: 1;
 }
 
-:deep(.search-card .n-card__content),
-:deep(.action-card .n-card__content),
-:deep(.data-card .n-card__content) {
-  padding: 8px 12px;
+:deep(.crud-selection-summary .n-tag) {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: var(--wms-brand-subtle);
+  border-color: color-mix(in srgb, var(--wms-brand) 34%, transparent);
+  color: var(--wms-brand);
+  font-weight: 500;
+  line-height: 22px;
 }
+
+:deep(.crud-selection-summary .n-button) {
+  --n-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--wms-text-muted);
+  line-height: 1;
+}
+
+:deep(.crud-selection-summary .n-button:not(.n-button--disabled):hover) {
+  color: var(--wms-brand);
+}
+
+:deep(.crud-pager-right .n-pagination) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+}
+
+:deep(.crud-pager-right .n-pagination .n-pagination-item) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  font-weight: 500;
+  line-height: 26px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+:deep(.crud-pager-right .n-pagination .n-pagination-item--button) {
+  color: var(--wms-text-muted);
+}
+
+:deep(.crud-pager-right .n-pagination .n-pagination-item:not(.n-pagination-item--disabled):hover) {
+  color: var(--wms-brand);
+  border-color: var(--wms-brand);
+}
+
+:deep(.crud-pager-right .n-pagination .n-pagination-item--active) {
+  color: var(--wms-brand);
+  border-color: var(--wms-brand);
+  background: color-mix(in srgb, var(--wms-brand-subtle) 72%, transparent);
+}
+
+:deep(.crud-pager-right .n-pagination .n-base-selection) {
+  --n-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  color: var(--wms-text-secondary);
+}
+
+html.dark :deep(.slot-pager) {
+  border-top-color: color-mix(in srgb, var(--wms-border) 70%, transparent);
+  background: color-mix(in srgb, var(--wms-surface-panel) 88%, var(--wms-surface-app));
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.18);
+}
+
 
 :deep(.crud-table-flat .n-data-table-wrapper) {
   min-height: 0;
@@ -344,8 +411,8 @@ defineSlots<{
 
 :deep(.slot-data .n-data-table-th),
 :deep(.slot-data .n-data-table-td) {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
 }
 
 :deep(.slot-data .n-data-table-base-table-header) {
@@ -355,7 +422,9 @@ defineSlots<{
 }
 
 :deep(.slot-data .n-data-table-base-table-header .n-data-table-th) {
-  background: var(--n-color);
+  background: var(--wms-surface-table-header) !important;
+  color: var(--wms-text-secondary);
+  font-weight: 600;
 }
 
 /* ── 表格自动 flex-height：撑满数据区并内部滚动 ── */
@@ -394,6 +463,7 @@ defineSlots<{
 :deep(.crud-table-flat .n-data-table-th),
 :deep(.crud-table-flat .n-data-table-td) {
   background: transparent !important;
+  border-color: var(--wms-border-subtle) !important;
 }
 
 :deep(.slot-data .n-data-table-td) {
@@ -446,7 +516,6 @@ defineSlots<{
 }
 
 :deep(.crud-table-flat .n-data-table-th:hover),
-:deep(.crud-table-flat .n-data-table-tr:hover .n-data-table-td),
 :deep(.crud-table-flat .n-data-table-th__cell:hover),
 :deep(.crud-table-flat .n-data-table-td:hover),
 :deep(.crud-table-flat .n-data-table-th--sorted),
@@ -457,6 +526,11 @@ defineSlots<{
   background: transparent !important;
 }
 
+:deep(.crud-table-flat .n-data-table-tr:hover .n-data-table-td) {
+  box-shadow: none !important;
+  background: var(--wms-surface-hover) !important;
+}
+
 :deep(.crud-table-flat .n-checkbox-box),
 :deep(.crud-table-flat .n-checkbox-box:hover),
 :deep(.crud-table-flat .n-checkbox.n-checkbox--checked .n-checkbox-box),
@@ -464,10 +538,6 @@ defineSlots<{
   box-shadow: none !important;
 }
 
-:deep(.n-card) {
-  --n-padding-top: 8px;
-  --n-padding-bottom: 8px;
-}
 
 :deep(.n-button) {
   --n-height: 28px;
@@ -475,8 +545,13 @@ defineSlots<{
 
 :deep(.crud-search-form .n-input),
 :deep(.crud-search-form .n-base-selection),
-:deep(.crud-search-form .n-input-number) {
+:deep(.crud-search-form .n-input-number),
+:deep(.crud-search-form .n-date-picker) {
   --n-height: 28px;
+}
+
+:deep(.crud-search-form .n-base-selection) {
+  min-height: 28px;
 }
 
 :deep(.n-data-table-th),
@@ -485,16 +560,6 @@ defineSlots<{
   padding-bottom: 6px;
 }
 
-.data-card {
-  display: flex;
-  flex-direction: column;
-}
-
-:deep(.data-card > .n-card__content) {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
 
 .slot-data {
   flex: 1 1 auto;
@@ -515,5 +580,25 @@ defineSlots<{
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+}
+
+/* Table size overrides based on settings density classes */
+.density-small :deep(.n-data-table-th),
+.density-small :deep(.n-data-table-td) {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  font-size: 12px !important;
+}
+.density-medium :deep(.n-data-table-th),
+.density-medium :deep(.n-data-table-td) {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  font-size: 13px !important;
+}
+.density-large :deep(.n-data-table-th),
+.density-large :deep(.n-data-table-td) {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  font-size: 14px !important;
 }
 </style>

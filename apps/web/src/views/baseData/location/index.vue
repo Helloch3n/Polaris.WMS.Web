@@ -9,6 +9,8 @@ import {
   NPagination,
   NSelect,
   NTag,
+  NRadioGroup,
+  NRadioButton,
   useDialog,
   useMessage,
 } from 'naive-ui'
@@ -35,6 +37,7 @@ import {
 } from '../../../api/masterData/location'
 import LocationDialog, { type LocationDialogExpose } from './components/LocationDialog.vue'
 import LocationBatchDialog, { type LocationBatchDialogExpose } from './components/LocationBatchDialog.vue'
+import LocationGridMap from './components/LocationGridMap.vue'
 import ImportModal from '../../../components/ImportModal.vue'
 
 const message = useMessage()
@@ -88,10 +91,6 @@ watch(selectedWarehouseId, async () => {
 })
 
 const query = reactive({
-  zoneCode: '',
-  zoneName: '',
-  warehouseCode: '',
-  warehouseName: '',
   locationCode: '',
   page: 1,
   pageSize: 10,
@@ -104,10 +103,6 @@ const listParams = computed<LocationPagedQueryDto>(() => ({
   maxResultCount: query.pageSize,
   sorting: query.sorting || undefined,
   zoneId: selectedZoneId.value || undefined,
-  zoneCode: query.zoneCode || undefined,
-  zoneName: query.zoneName || undefined,
-  warehouseCode: query.warehouseCode || undefined,
-  warehouseName: query.warehouseName || undefined,
   locationCode: query.locationCode || undefined,
 }))
 
@@ -221,10 +216,6 @@ function handleQuery() {
 function handleReset() {
   selectedWarehouseId.value = null
   selectedZoneId.value = null
-  query.zoneCode = ''
-  query.zoneName = ''
-  query.warehouseCode = ''
-  query.warehouseName = ''
   query.locationCode = ''
   query.sorting = ''
   query.page = 1
@@ -248,6 +239,7 @@ function handleSortChange(state: DataTableSortState | DataTableSortState[] | nul
   void fetchList()
 }
 
+const currentView = ref<'list' | 'map'>('list')
 const dialogRef = ref<LocationDialogExpose | null>(null)
 const batchDialogRef = ref<LocationBatchDialogExpose | null>(null)
 
@@ -452,7 +444,6 @@ const columns = computed<DataTableColumns<LocationDto>>(() => withResizable([
       .filter((item): item is DataTableColumns<LocationDto>[number] => Boolean(item))
   })(),
 ]))
-
 function handleColumnVisibleChange(key: string, visible: boolean) {
   if (!handleVisibleChange(key, visible)) {
     message.warning('至少保留一个展示字段')
@@ -480,71 +471,37 @@ onMounted(async () => {
 <template>
   <BaseCrudPage>
     <template #search>
-      <n-form inline class="crud-search-form">
+      <n-form inline class="crud-search-form" :show-feedback="false">
         <n-form-item>
           <n-select
             :value="selectedWarehouseId"
             :options="warehouses.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id }))"
-            placeholder="请选择仓库"
+            placeholder="仓库"
             clearable
             filterable
-            style="width: 240px"
-            @update:value="(value) => { selectedWarehouseId = value; handleQuery() }"
+            style="width: 220px"
+            @update:value="(value) => { selectedWarehouseId = value }"
           />
         </n-form-item>
         <n-form-item>
           <n-select
             :value="selectedZoneId"
             :options="zones.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id }))"
-            placeholder="请选择库区"
+            placeholder="库区"
             clearable
             filterable
-            style="width: 240px"
-            @update:value="(value) => { selectedZoneId = value; handleQuery() }"
+            :disabled="!selectedWarehouseId"
+            style="width: 220px"
+            @update:value="(value) => { selectedZoneId = value }"
           />
         </n-form-item>
         <n-form-item>
           <n-input
             :value="query.locationCode"
-            placeholder="请输入库位编码"
+            placeholder="库位编码"
             clearable
+            style="width: 180px"
             @update:value="(value) => (query.locationCode = value)"
-            @keyup.enter="handleQuery"
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-input
-            :value="query.zoneCode"
-            placeholder="请输入库区编码"
-            clearable
-            @update:value="(value) => (query.zoneCode = value)"
-            @keyup.enter="handleQuery"
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-input
-            :value="query.zoneName"
-            placeholder="请输入库区名称"
-            clearable
-            @update:value="(value) => (query.zoneName = value)"
-            @keyup.enter="handleQuery"
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-input
-            :value="query.warehouseCode"
-            placeholder="请输入仓库编码"
-            clearable
-            @update:value="(value) => (query.warehouseCode = value)"
-            @keyup.enter="handleQuery"
-          />
-        </n-form-item>
-        <n-form-item>
-          <n-input
-            :value="query.warehouseName"
-            placeholder="请输入仓库名称"
-            clearable
-            @update:value="(value) => (query.warehouseName = value)"
             @keyup.enter="handleQuery"
           />
         </n-form-item>
@@ -570,8 +527,13 @@ onMounted(async () => {
     </template>
 
     <template #actions-right>
-      <div class="crud-action-tools">
+      <div class="crud-action-tools" style="display: flex; align-items: center; gap: 12px;">
+        <n-radio-group v-model:value="currentView" size="small">
+          <n-radio-button value="list">列表视图</n-radio-button>
+          <n-radio-button value="map">图形化库位</n-radio-button>
+        </n-radio-group>
         <TableColumnManager
+          v-if="currentView === 'list'"
           :show="showColumnConfig"
           :settings="columnSettings"
           @update:show="handleColumnConfigShowChange"
@@ -581,18 +543,27 @@ onMounted(async () => {
     </template>
 
     <template #data>
-      <n-data-table
-        class="crud-table-flat"
-        :loading="loading"
-        :columns="columns"
-        :data="list"
-        :bordered="false"
-        :row-key="getRowKey"
-        :row-props="getRowProps"
-        :checked-row-keys="checkedRowKeys"
-        @update:sorter="handleSortChange"
-        @update:checked-row-keys="handleCheckedRowKeysChange"
-      />
+      <template v-if="currentView === 'list'">
+        <n-data-table
+          class="crud-table-flat"
+          :loading="loading"
+          :columns="columns"
+          :data="list"
+          :bordered="false"
+          :row-key="getRowKey"
+          :row-props="getRowProps"
+          :checked-row-keys="checkedRowKeys"
+          @update:sorter="handleSortChange"
+          @update:checked-row-keys="handleCheckedRowKeysChange"
+        />
+      </template>
+      <template v-else>
+        <LocationGridMap
+          :locations="list"
+          :loading="loading"
+          @edit-location="handleEdit"
+        />
+      </template>
       <LocationDialog ref="dialogRef" @success="fetchList" />
       <LocationBatchDialog ref="batchDialogRef" @success="fetchList" />
     </template>

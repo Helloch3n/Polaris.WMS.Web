@@ -8,13 +8,16 @@ import {
   useAuthStore,
 } from '../stores/auth'
 
-type AbpErrorBody = {
+export type AbpErrorBody = {
   error?: {
-    code?: string
-    message?: string
-    details?: string
+    code?: string | null
+    message?: string | null
+    details?: string | null
     data?: Record<string, unknown> | null
-    validationErrors?: Array<{ message?: string }> | null
+    validationErrors?: Array<{
+      message?: string | null
+      members?: string[] | null
+    }> | null
   }
 }
 
@@ -29,85 +32,39 @@ function tryParseJson(data: unknown): unknown {
   }
 }
 
-function formatAbpData(data?: Record<string, unknown> | null): string {
-  if (!data || typeof data !== 'object') return ''
-  const entries = Object.entries(data)
-    .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
-    .map(([key, value]) => `${key}: ${String(value)}`)
-  return entries.join('，')
-}
-
-function getAbpBusinessError(
-  data: unknown,
-): {
-  code?: string
-  message: string
-  details?: string
-  validationErrors?: string
-  dataText?: string
-} | null {
+function getAbpErrorMessage(data: unknown): string | null {
   const parsed = tryParseJson(data)
   if (!parsed || typeof parsed !== 'object') return null
 
   const body = parsed as AbpErrorBody
-  const code = body.error?.code?.trim()
   const message = body.error?.message?.trim()
-  const details = body.error?.details?.trim()
+  if (message) return message
+
   const validationErrors = (body.error?.validationErrors ?? [])
     .map((item) => item?.message?.trim())
     .filter((item): item is string => Boolean(item))
     .join('；')
-  const dataText = formatAbpData(body.error?.data)
+  if (validationErrors) return validationErrors
 
-  if (!message && !code && !validationErrors && !dataText) return null
-  return {
-    code: code || undefined,
-    message: message || '请求处理失败',
-    details: details || undefined,
-    validationErrors: validationErrors || undefined,
-    dataText: dataText || undefined,
-  }
-}
-
-function formatAbpErrorMessage(abpError: {
-  code?: string
-  message: string
-  details?: string
-  validationErrors?: string
-  dataText?: string
-}): string {
-  const segments: string[] = []
-  if (abpError.code) {
-    segments.push(`错误码: ${abpError.code}`)
-  }
-  if (abpError.message) {
-    segments.push(`错误信息: ${abpError.message}`)
-  }
-  if (abpError.details) {
-    segments.push(`详情: ${abpError.details}`)
-  }
-  if (abpError.validationErrors) {
-    segments.push(`校验: ${abpError.validationErrors}`)
-  }
-  if (abpError.dataText) {
-    segments.push(`上下文: ${abpError.dataText}`)
-  }
-  return segments.join('；')
+  return body.error?.details?.trim() || null
 }
 
 function getHttpStatusMessage(status?: number): string {
   if (status === 400) return '请求参数错误'
   if (status === 401) return '未登录或登录已过期'
-  if (status === 403) return '拒绝访问'
+  if (status === 403) return '您没有执行该操作的权限'
   if (status === 404) return '请求资源不存在'
   if (status === 500) return '服务器内部错误'
   return '请求失败'
 }
 
-function resolveFallbackErrorMessage(error: AxiosError): string {
+export function resolveHttpErrorMessage(error: AxiosError): string {
+  const abpMessage = getAbpErrorMessage(error.response?.data)
+  if (abpMessage) return abpMessage
+
   if (error.code === 'ERR_NETWORK') return '网络错误，请检查网络连接'
   const status = error.response?.status
-  if (typeof status === 'number') return `${status}: ${getHttpStatusMessage(status)}`
+  if (typeof status === 'number') return getHttpStatusMessage(status)
   return error.message?.trim() || '请求失败'
 }
 
@@ -266,23 +223,8 @@ http.interceptors.response.use(
       }
     }
 
-    if (status === 403) {
-      notify.error('您没有执行该操作的权限！')
-      return Promise.reject(error)
-    }
-
-    const abpError = getAbpBusinessError(error.response?.data)
-
-    if (abpError) {
-      const text = formatAbpErrorMessage(abpError)
-      notify.error(text)
-      error.message = text
-      return Promise.reject(error)
-    }
-
-    const fallbackMessage = resolveFallbackErrorMessage(error)
-    notify.error(fallbackMessage)
-    error.message = fallbackMessage
+    // 请求层只负责将 ABP/HTTP 错误规范化，具体页面负责展示，避免重复弹窗。
+    error.message = resolveHttpErrorMessage(error)
 
     return Promise.reject(error)
   },

@@ -4,22 +4,22 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
   NDataTable,
-  NDescriptions,
-  NDescriptionsItem,
   NEmpty,
-  NProgress,
-  NSpin,
-  NTag,
-  NText,
+  NTabPane,
+  NTabs,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
 import * as productionInboundApi from '../../../api/inbound/productionInbound'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
+import CopyableText from '../../../components/CopyableText.vue'
+import DetailWorkbench from '../../../components/DetailWorkbench.vue'
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { withResizable } from '../../../utils/table'
 import { usePermission } from '../../../composables/usePermission'
 import { formatQuantity } from '../../../utils/format'
+import ProductionInboundHeaderTable from './components/ProductionInboundHeaderTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,41 +28,7 @@ const message = useMessage()
 const loading = ref(false)
 const detail = ref<productionInboundApi.ProductionInboundDto | null>(null)
 
-const headerLabelStyle = {
-  width: '120px',
-}
-
-const headerContentStyle = {
-  minWidth: '220px',
-}
-
 const detailId = computed(() => String(route.params.orderId ?? ''))
-
-function formatDateTime(v?: string) {
-  if (!v) return '-'
-  const d = new Date(v)
-  if (Number.isNaN(d.getTime())) return v
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-}
-
-function normalizeInboundTypeValue(value: productionInboundApi.ProductionInboundType) {
-  if (typeof value === 'string') {
-    if (value === 'FinishedProduct' || value === '10') return productionInboundApi.ProductionInboundType.FinishedProduct
-    if (value === 'SemiFinishedProduct' || value === '20') return productionInboundApi.ProductionInboundType.SemiFinishedProduct
-    if (value === 'WorkInProgress' || value === '30') return productionInboundApi.ProductionInboundType.WorkInProgress
-  }
-  if (typeof value === 'number') return value
-  return null
-}
-
-function resolveInboundTypeLabel(value: productionInboundApi.ProductionInboundType) {
-  const normalized = normalizeInboundTypeValue(value)
-  if (normalized === productionInboundApi.ProductionInboundType.FinishedProduct) return '成品入库'
-  if (normalized === productionInboundApi.ProductionInboundType.SemiFinishedProduct) return '半成品入库'
-  if (normalized === productionInboundApi.ProductionInboundType.WorkInProgress) return '工序品/在制品入库'
-  return '-'
-}
 
 function normalizeStatusValue(status: productionInboundApi.ProductionInboundStatus) {
   if (typeof status === 'string') {
@@ -74,45 +40,35 @@ function normalizeStatusValue(status: productionInboundApi.ProductionInboundStat
   return null
 }
 
-function resolveStatusLabel(status: productionInboundApi.ProductionInboundStatus) {
-  const value = normalizeStatusValue(status)
-  if (value === productionInboundApi.ProductionInboundStatus.Draft) return '草稿'
-  if (value === productionInboundApi.ProductionInboundStatus.InProgress) return '作业中'
-  if (value === productionInboundApi.ProductionInboundStatus.Completed) return '已完成'
-  return '-'
-}
-
-function getStatusTagType(status: productionInboundApi.ProductionInboundStatus) {
-  const value = normalizeStatusValue(status)
-  if (value === productionInboundApi.ProductionInboundStatus.Draft) return 'default'
-  if (value === productionInboundApi.ProductionInboundStatus.InProgress) return 'warning'
-  if (value === productionInboundApi.ProductionInboundStatus.Completed) return 'success'
-  return 'default'
-}
-
 function normalizeDetailStatusValue(status: productionInboundApi.ProductionInboundDetailStatus) {
   if (typeof status === 'string') {
     if (status === 'Pending' || status === '0') return productionInboundApi.ProductionInboundDetailStatus.Pending
-    if (status === 'InProgress' || status === '1') return productionInboundApi.ProductionInboundDetailStatus.InProgress
-    if (status === 'Completed' || status === '2') return productionInboundApi.ProductionInboundDetailStatus.Completed
+    if (status === 'Completed' || status === '1') return productionInboundApi.ProductionInboundDetailStatus.Completed
   }
   if (typeof status === 'number') return status
   return null
 }
 
-const completedCount = computed(() => (detail.value?.details ?? []).filter((item) => normalizeDetailStatusValue(item.status) === productionInboundApi.ProductionInboundDetailStatus.Completed).length)
-const detailTotalCount = computed(() => detail.value?.details?.length ?? 0)
-const progressPercentage = computed(() => {
-  if (detailTotalCount.value <= 0) return 0
-  return Math.round((completedCount.value / detailTotalCount.value) * 100)
-})
+function resolveDetailStatusLabel(status: productionInboundApi.ProductionInboundDetailStatus) {
+  const value = normalizeDetailStatusValue(status)
+  if (value === productionInboundApi.ProductionInboundDetailStatus.Pending) return '待入库'
+  if (value === productionInboundApi.ProductionInboundDetailStatus.Completed) return '已完成'
+  return '-'
+}
+
+function getDetailStatusTagType(status: productionInboundApi.ProductionInboundDetailStatus) {
+  const value = normalizeDetailStatusValue(status)
+  if (value === productionInboundApi.ProductionInboundDetailStatus.Pending) return 'warning'
+  if (value === productionInboundApi.ProductionInboundDetailStatus.Completed) return 'success'
+  return 'default'
+}
 
 const detailColumns = computed<DataTableColumns<productionInboundApi.ProductionInboundDetailDto>>(() => withResizable([
   {
     title: '物料编码',
     key: 'productCode',
     minWidth: 160,
-    render: (row) => row.productCode ?? '-',
+    render: (row) => h(CopyableText, { value: row.productCode }),
   },
   {
     title: '物料名称',
@@ -124,13 +80,13 @@ const detailColumns = computed<DataTableColumns<productionInboundApi.ProductionI
     title: '批次号',
     key: 'batchNo',
     minWidth: 140,
-    render: (row) => row.batchNo || '-',
+    render: (row) => h(CopyableText, { value: row.batchNo }),
   },
   {
     title: '盘号',
     key: 'containerCode',
     minWidth: 140,
-    render: (row) => row.containerCode || '-',
+    render: (row) => h(CopyableText, { value: row.containerCode || '-' }),
   },
   {
     title: '数量',
@@ -148,23 +104,19 @@ const detailColumns = computed<DataTableColumns<productionInboundApi.ProductionI
     title: '是否需要检验',
     key: 'needInspection',
     width: 140,
-    render: (row) => h(
-      NTag,
-      { type: row.needInspection ? 'warning' : 'success', bordered: false, size: 'small' },
-      { default: () => row.needInspection ? '是' : '否' }
-    ),
+    render: (row) => h(WmsStatusTag, { label: row.needInspection ? '是' : '否', type: row.needInspection ? 'warning' : 'success' }),
   },
   {
     title: '实际库位编码',
     key: 'actualLocationCode',
     minWidth: 160,
-    render: (row) => row.actualLocationCode || '-',
+    render: (row) => h(CopyableText, { value: row.actualLocationCode }),
   },
   {
     title: '状态',
     key: 'status',
     width: 120,
-    render: (row) => String(row.status ?? '-'),
+    render: (row) => h(WmsStatusTag, { label: resolveDetailStatusLabel(row.status), type: getDetailStatusTagType(row.status) }),
   },
 ]))
 
@@ -231,112 +183,78 @@ onMounted(() => {
 <template>
   <BaseCrudPage :search-collapsible="false">
     <template #search>
-      <div class="detail-header-wrap">
-        <div class="header-action-bar">
-          <n-button @click="handleBack">返回列表</n-button>
-          <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
-          <n-button v-if="canUpdate && isDraftStatus" type="warning" secondary @click="handleEdit">编辑</n-button>
-          <n-button v-if="canApprove && isDraftStatus" type="success" :loading="approving" @click="handleApproveAndExecute">审核并执行</n-button>
-        </div>
-
-        <n-spin :show="loading">
-          <n-descriptions
-            class="transfer-header-descriptions"
-            bordered
-            label-placement="left"
-            :column="3"
-            :label-style="headerLabelStyle"
-            :content-style="headerContentStyle"
-            style="margin-top: 10px;"
-          >
-            <n-descriptions-item label="入库单号">{{ detail?.orderNo || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="来源单号">{{ detail?.sourceOrderNo || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="创建时间">{{ formatDateTime(detail?.creationTime) }}</n-descriptions-item>
-            <n-descriptions-item label="入库类型">{{ detail ? resolveInboundTypeLabel(detail.inboundType) : '-' }}</n-descriptions-item>
-            <n-descriptions-item label="来源部门">{{ detail?.sourceDepartmentName || detail?.sourceDepartmentCode || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="目标仓库">{{ detail?.targetWarehouseName || detail?.targetWarehouseCode || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="状态">
-              <n-tag size="small" :type="detail ? getStatusTagType(detail.status) : 'default'">
-                {{ detail ? resolveStatusLabel(detail.status) : '-' }}
-              </n-tag>
-            </n-descriptions-item>
-          </n-descriptions>
-
-          <div class="detail-progress-wrap">
-            <n-text class="detail-progress-label">总体进度</n-text>
-            <n-progress
-              class="detail-progress-bar"
-              type="line"
-              :percentage="progressPercentage"
-              :height="14"
-              :show-indicator="false"
-              :border-radius="8"
-              :fill-border-radius="8"
-              status="success"
-            />
-            <n-text depth="3" class="detail-progress-meta">
-              {{ progressPercentage }}%（已完成: {{ completedCount }}/{{ detailTotalCount }} 条）
-            </n-text>
+      <DetailWorkbench
+        :show-header="false"
+        :loading="loading"
+      >
+        <template #summary>
+          <div class="detail-action-bar">
+            <n-button @click="handleBack">返回列表</n-button>
+            <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+            <n-button v-if="canUpdate && isDraftStatus" type="warning" secondary @click="handleEdit">编辑</n-button>
+            <n-button v-if="canApprove && isDraftStatus" type="success" :loading="approving" @click="handleApproveAndExecute">审核并执行</n-button>
           </div>
-        </n-spin>
-      </div>
+
+          <ProductionInboundHeaderTable :model="detail" mode="readonly" />
+        </template>
+      </DetailWorkbench>
     </template>
 
     <template #data>
-      <n-data-table
-        class="crud-table-flat"
-        :loading="loading"
-        :columns="detailColumns"
-        :data="detail?.details ?? []"
-        :bordered="false"
-        :row-key="getRowKey"
-      >
-        <template #empty>
-          <n-empty description="暂无入库明细" />
-        </template>
-      </n-data-table>
+      <n-tabs class="detail-tabs" type="line" animated>
+        <n-tab-pane name="details" tab="明细">
+          <n-data-table
+            class="crud-table-flat"
+            :loading="loading"
+            :columns="detailColumns"
+            :data="detail?.details ?? []"
+            :bordered="false"
+            :row-key="getRowKey"
+          >
+            <template #empty>
+              <n-empty description="暂无入库明细" />
+            </template>
+          </n-data-table>
+        </n-tab-pane>
+        <n-tab-pane name="records" tab="执行记录">
+          <n-empty description="暂无执行记录" />
+        </n-tab-pane>
+        <n-tab-pane name="inventory" tab="库存影响">
+          <n-empty description="暂无库存影响记录" />
+        </n-tab-pane>
+        <n-tab-pane name="audit" tab="审批/操作日志">
+          <n-empty description="暂无审批或操作日志" />
+        </n-tab-pane>
+        <n-tab-pane name="exceptions" tab="异常记录">
+          <n-empty description="暂无异常记录" />
+        </n-tab-pane>
+      </n-tabs>
     </template>
   </BaseCrudPage>
 </template>
 
 <style scoped>
-.detail-header-wrap {
-  width: 100%;
-}
-
-.header-action-bar {
+.detail-action-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
-.transfer-header-descriptions :deep(table) {
-  table-layout: fixed;
-  width: 100%;
+.detail-tabs {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.transfer-header-descriptions :deep(.n-descriptions-table-header) {
-  width: 120px;
-}
-
-.detail-progress-wrap {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.detail-progress-label {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.detail-progress-bar {
-  min-width: 200px;
-}
-
-.detail-progress-meta {
-  white-space: nowrap;
+.detail-tabs :deep(.n-tabs-pane-wrapper),
+.detail-tabs :deep(.n-tab-pane) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 </style>

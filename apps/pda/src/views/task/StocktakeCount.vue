@@ -24,6 +24,29 @@ const productCode = ref('')
 const realQty = ref<number | null>(null)
 const realWeight = ref<number | null>(null)
 
+function parseNumericField(value: string | number) {
+  if (value === '') {
+    return null
+  }
+
+  const parsedValue = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsedValue) ? parsedValue : null
+}
+
+const realQtyInput = computed<string | number>({
+  get: () => realQty.value ?? '',
+  set: (value) => {
+    realQty.value = parseNumericField(value)
+  },
+})
+
+const realWeightInput = computed<string | number>({
+  get: () => realWeight.value ?? '',
+  set: (value) => {
+    realWeight.value = parseNumericField(value)
+  },
+})
+
 // 扫描历史纪录（保存在本地内存中，仅供本次操作参考，遵循盲盘原则不显示快照）
 interface ScanHistoryItem {
   id: string
@@ -107,7 +130,7 @@ async function handleSubmit() {
       sn: sn.value.trim().toUpperCase(),
       productCode: productCode.value.trim().toUpperCase(),
       realQty: realQty.value,
-      realWeight: realWeight.value || undefined,
+      realWeight: realWeight.value ?? undefined,
     })
 
     showSuccessToast('盘点提交成功')
@@ -242,7 +265,7 @@ onMounted(() => {
         />
 
         <van-field
-          v-model="realQty"
+          v-model="realQtyInput"
           label="实盘数量"
           type="number"
           placeholder="请输入清点数量 (留空)"
@@ -252,7 +275,7 @@ onMounted(() => {
         />
 
         <van-field
-          v-model="realWeight"
+          v-model="realWeightInput"
           label="实盘重量"
           type="number"
           placeholder="请输入清点重量 (可选)"

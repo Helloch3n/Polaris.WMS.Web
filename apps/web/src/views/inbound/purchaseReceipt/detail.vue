@@ -7,14 +7,15 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NEmpty,
-  NSpin,
-  NTag,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
 import * as purchaseReceiptApi from '../../../api/inbound/purchaseReceipt'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
+import CopyableText from '../../../components/CopyableText.vue'
+import DetailWorkbench from '../../../components/DetailWorkbench.vue'
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { withResizable } from '../../../utils/table'
 
 const route = useRoute()
@@ -126,7 +127,7 @@ const detailColumns = computed<DataTableColumns<purchaseReceiptApi.PurchaseRecei
     title: '物料编码',
     key: 'productCode',
     minWidth: 140,
-    render: (row) => row.productCode || '-',
+    render: (row) => h(CopyableText, { value: row.productCode }),
   },
   {
     title: '物料名称',
@@ -152,7 +153,7 @@ const detailColumns = computed<DataTableColumns<purchaseReceiptApi.PurchaseRecei
     title: '批次号',
     key: 'batchNo',
     minWidth: 130,
-    render: (row) => row.batchNo || '-',
+    render: (row) => h(CopyableText, { value: row.batchNo }),
   },
   {
     title: 'ERP同步状态',
@@ -161,11 +162,7 @@ const detailColumns = computed<DataTableColumns<purchaseReceiptApi.PurchaseRecei
     align: 'center',
     render: (row) => {
       const statusLabel = resolveErpSyncStatusLabel(row.erpSyncStatus)
-      return h(
-        NTag,
-        { size: 'small', type: getErpSyncStatusTagType(row.erpSyncStatus) },
-        { default: () => statusLabel },
-      )
+      return h(WmsStatusTag, { label: statusLabel, type: getErpSyncStatusTagType(row.erpSyncStatus) })
     },
   },
   {
@@ -181,7 +178,7 @@ const recordColumns = computed<DataTableColumns<DetailRecordRow>>(() => withResi
     title: '物料编码',
     key: 'detailProductCode',
     minWidth: 140,
-    render: (row) => row.detailProductCode || '-',
+    render: (row) => h(CopyableText, { value: row.detailProductCode }),
   },
   {
     title: '物料名称',
@@ -193,13 +190,13 @@ const recordColumns = computed<DataTableColumns<DetailRecordRow>>(() => withResi
     title: '容器编码',
     key: 'containerCode',
     minWidth: 130,
-    render: (row) => row.containerCode || '-',
+    render: (row) => h(CopyableText, { value: row.containerCode }),
   },
   {
     title: '库位编码',
     key: 'locationCode',
     minWidth: 130,
-    render: (row) => row.locationCode || '-',
+    render: (row) => h(CopyableText, { value: row.locationCode }),
   },
   {
     title: '收货数量',
@@ -212,13 +209,13 @@ const recordColumns = computed<DataTableColumns<DetailRecordRow>>(() => withResi
     title: '批次号',
     key: 'batchNo',
     minWidth: 120,
-    render: (row) => row.batchNo || '-',
+    render: (row) => h(CopyableText, { value: row.batchNo }),
   },
   {
     title: '供应商批次号',
     key: 'supplierBatchNo',
     minWidth: 140,
-    render: (row) => row.supplierBatchNo || '-',
+    render: (row) => h(CopyableText, { value: row.supplierBatchNo }),
   },
 ]))
 
@@ -258,13 +255,17 @@ onMounted(() => {
 <template>
   <BaseCrudPage :search-collapsible="false">
     <template #search>
-      <div class="detail-header-wrap">
-        <div class="header-action-bar">
+      <DetailWorkbench
+        :title="detail?.receiptNo || '采购收货详情'"
+        :subtitle="detail?.sourceDocNo ? `来源单据：${detail.sourceDocNo}` : '采购收货执行结果与明细记录'"
+        :loading="loading"
+      >
+        <template #actions>
           <n-button @click="handleBack">返回列表</n-button>
           <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
-        </div>
+        </template>
 
-        <n-spin :show="loading">
+        <template #summary>
           <n-descriptions
             class="detail-header-descriptions"
             bordered
@@ -272,23 +273,27 @@ onMounted(() => {
             :column="3"
             :label-style="headerLabelStyle"
             :content-style="headerContentStyle"
-            style="margin-top: 10px;"
           >
-            <n-descriptions-item label="收货单号">{{ detail?.receiptNo || '-' }}</n-descriptions-item>
-            <n-descriptions-item label="来源类型">
-              <n-tag size="small" :type="getSourceDocTypeTagType(detail?.sourceDocType)">
-                {{ resolveSourceDocTypeLabel(detail?.sourceDocType) }}
-              </n-tag>
+            <n-descriptions-item label="收货单号">
+              <CopyableText :value="detail?.receiptNo" strong />
             </n-descriptions-item>
-            <n-descriptions-item label="来源单据号">{{ detail?.sourceDocNo || '-' }}</n-descriptions-item>
+            <n-descriptions-item label="来源类型">
+              <WmsStatusTag
+                :label="resolveSourceDocTypeLabel(detail?.sourceDocType)"
+                :type="getSourceDocTypeTagType(detail?.sourceDocType)"
+              />
+            </n-descriptions-item>
+            <n-descriptions-item label="来源单据号">
+              <CopyableText :value="detail?.sourceDocNo" />
+            </n-descriptions-item>
             <n-descriptions-item label="供应商">{{ detail?.supplierName || '-' }}</n-descriptions-item>
             <n-descriptions-item label="计划总量">{{ formatQuantity(sumExpectedQuantity(detail?.details)) }}</n-descriptions-item>
             <n-descriptions-item label="实收总量">{{ formatQuantity(sumReceivedQuantity(detail?.details)) }}</n-descriptions-item>
             <n-descriptions-item label="创建时间">{{ formatDateTime(detail?.creationTime) }}</n-descriptions-item>
             <n-descriptions-item label="备注" :span="2">{{ detail?.remark || '-' }}</n-descriptions-item>
           </n-descriptions>
-        </n-spin>
-      </div>
+        </template>
+      </DetailWorkbench>
     </template>
 
     <template #data>

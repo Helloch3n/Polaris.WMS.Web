@@ -381,11 +381,11 @@ onMounted(() => {
 <template>
   <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
-      <n-form inline label-placement="left" class="crud-search-form" @submit.prevent="handleQuery">
-        <n-form-item label="拣货单号">
+      <n-form inline class="crud-search-form" @submit.prevent="handleQuery">
+        <n-form-item>
           <n-input v-model:value="query.pickNo" clearable placeholder="请输入拣货单号" @keyup.enter="handleQuery" />
         </n-form-item>
-        <n-form-item label="状态">
+        <n-form-item>
           <n-select v-model:value="query.status" clearable :options="statusOptions" placeholder="请选择状态" style="width: 160px" />
         </n-form-item>
         <n-form-item>

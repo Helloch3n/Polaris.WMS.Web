@@ -92,7 +92,6 @@ const listParams = computed<RoutingStrategySearchDto>(() => ({
   skipCount: (query.page - 1) * query.pageSize,
   maxResultCount: query.pageSize,
   sorting: query.sorting || undefined,
-  filter: query.filter || undefined,
   taskType: query.taskType !== null ? query.taskType : undefined,
   isActive: query.isActive !== null ? query.isActive : undefined,
 }))
@@ -214,7 +213,6 @@ function handleQuery() {
 }
 
 function handleReset() {
-  query.filter = ''
   query.taskType = null
   query.isActive = null
   query.sorting = ''
@@ -447,20 +445,10 @@ onMounted(async () => {
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item>
-          <n-input
-            :value="query.filter"
-            placeholder="请输入规则名称"
-            clearable
-            style="width: 220px"
-            @update:value="(value) => { query.filter = value }"
-            @keyup.enter="handleQuery"
-          />
-        </n-form-item>
-        <n-form-item>
           <n-select
             :value="query.taskType"
             :options="taskTypeOptions"
-            placeholder="请选择任务类型"
+            placeholder="任务类型"
             clearable
             style="width: 180px"
             @update:value="(value) => { query.taskType = value; handleQuery() }"
@@ -470,7 +458,7 @@ onMounted(async () => {
           <n-select
             :value="query.isActive"
             :options="activeOptions"
-            placeholder="请选择启用状态"
+            placeholder="启用状态"
             clearable
             style="width: 140px"
             @update:value="(value) => { query.isActive = value; handleQuery() }"
