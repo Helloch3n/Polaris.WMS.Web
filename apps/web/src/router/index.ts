@@ -155,7 +155,7 @@ const router = createRouter({
               path: 'allocation',
               name: 'InventoryAllocationList',
               component: () => import('../views/inventory/allocation/index.vue'),
-              meta: { title: '库存分配', requiresAuth: true, requiredPolicy: 'WMS.InventoryOps.InventoryAllocations', order: 4 },
+              meta: { title: '订单库存预留', requiresAuth: true, requiredPolicy: 'WMS.InventoryOps.InventoryAllocations', order: 4 },
             },
             {
               path: 'container',
@@ -231,9 +231,9 @@ const router = createRouter({
             },
             {
               path: 'return',
-              name: 'ReturnManagement',
+              name: 'SalesReturnManagement',
               component: () => import('../views/inbound/return/index.vue'),
-              meta: { title: '退货管理', requiresAuth: true, requiredPolicy: 'WMS.InboundOps.Returns', order: 5 },
+              meta: { title: '销售退货', requiresAuth: true, requiredPolicy: 'WMS.InboundOps.SalesReturns', order: 5 },
             },
             {
               path: 'misc-inbound-orders',
@@ -284,34 +284,40 @@ const router = createRouter({
               meta: { title: '供应商管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Suppliers', order: 2 },
             },
             {
+              path: 'customer',
+              name: 'CustomerList',
+              component: () => import('../views/baseData/customer/index.vue'),
+              meta: { title: '客户管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Customers', order: 3 },
+            },
+            {
               path: 'warehouse',
               name: 'WarehouseList',
               component: () => import('../views/baseData/warehouse/index.vue'),
-              meta: { title: '仓库管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Warehouses', order: 3 },
+              meta: { title: '仓库管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Warehouses', order: 4 },
             },
             {
               path: 'zone',
               name: 'ZoneList',
               component: () => import('../views/baseData/zone/index.vue'),
-              meta: { title: '库区管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Zones', order: 4 },
+              meta: { title: '库区管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Zones', order: 5 },
             },
             {
               path: 'location',
               name: 'LocationList',
               component: () => import('../views/baseData/location/index.vue'),
-              meta: { title: '库位管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Locations', order: 5 },
+              meta: { title: '库位管理', requiresAuth: true, requiredPolicy: 'WMS.MasterData.Locations', order: 6 },
             },
             {
               path: 'account-alias',
               name: 'AccountAliasList',
               component: () => import('../views/baseData/accountAlias/index.vue'),
-              meta: { title: '账户别名', requiresAuth: true, requiredPolicy: 'WMS.MasterData.AccountAliases', order: 6 },
+              meta: { title: '账户别名', requiresAuth: true, requiredPolicy: 'WMS.MasterData.AccountAliases', order: 7 },
             },
             {
               path: 'cost-center',
               name: 'CostCenterList',
               component: () => import('../views/baseData/costCenter/index.vue'),
-              meta: { title: '成本中心', requiresAuth: true, requiredPolicy: 'WMS.MasterData.CostCenters', order: 7 },
+              meta: { title: '成本中心', requiresAuth: true, requiredPolicy: 'WMS.MasterData.CostCenters', order: 8 },
             },
           ],
         },
@@ -326,22 +332,58 @@ const router = createRouter({
               meta: { title: '销售订单', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.SalesOrders', order: 1 },
             },
             {
-              path: 'sales-shipment',
-              name: 'SalesShipmentList',
-              component: () => import('../views/outbound/shipment/index.vue'),
-              meta: { title: '销售发货单', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.SalesShipments', order: 2 },
+              path: 'sales-order/create',
+              name: 'SalesOrderCreate',
+              component: () => import('../views/outbound/order/create.vue'),
+              meta: { title: '新增销售订单', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.SalesOrders.Create' },
+            },
+            {
+              path: 'sales-order/:id',
+              name: 'SalesOrderDetail',
+              component: () => import('../views/outbound/order/detail.vue'),
+              meta: { title: '销售订单详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.SalesOrders' },
+            },
+            {
+              path: 'sales-delivery-plan',
+              name: 'SalesDeliveryPlanList',
+              component: () => import('../views/outbound/deliveryPlan/index.vue'),
+              meta: { title: '销售发运计划', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.SalesDeliveryPlans', order: 2 },
+            },
+            {
+              path: 'sales-delivery-plan/:id',
+              name: 'SalesDeliveryPlanDetail',
+              component: () => import('../views/outbound/deliveryPlan/detail.vue'),
+              meta: { title: '销售发运计划详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.SalesDeliveryPlans' },
+            },
+            {
+              path: 'sales-allocation-order',
+              name: 'SalesAllocationOrderList',
+              component: () => import('../views/outbound/allocation/index.vue'),
+              meta: { title: '销售配货', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.SalesAllocationOrders', order: 3 },
+            },
+            {
+              path: 'sales-allocation-order/:id',
+              name: 'SalesAllocationOrderDetail',
+              component: () => import('../views/outbound/allocation/detail.vue'),
+              meta: { title: '销售配货详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.SalesAllocationOrders' },
             },
             {
               path: 'wave',
               name: 'WaveManagement',
               component: () => import('../views/outbound/wave/index.vue'),
-              meta: { title: '波次管理', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.Waves', order: 3 },
+              meta: { title: '波次管理', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.Waves', order: 4 },
+            },
+            {
+              path: 'wave/:id',
+              name: 'WaveDetail',
+              component: () => import('../views/outbound/wave/detail.vue'),
+              meta: { title: '波次详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.Waves' },
             },
             {
               path: 'pick-list',
               name: 'PickListManagement',
               component: () => import('../views/outbound/pickList/PickListIndex.vue'),
-              meta: { title: '拣货单', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.PickLists', order: 4 },
+              meta: { title: '拣货单', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.PickLists', order: 5 },
             },
             {
               path: 'pick-list/:id',
@@ -353,25 +395,61 @@ const router = createRouter({
               path: 'pick-task',
               name: 'PickTaskView',
               component: () => import('../views/outbound/pickTask/index.vue'),
-              meta: { title: '拣货执行', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.PickTasks', order: 5 },
+              meta: { title: '拣货执行', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.PickTasks', order: 6 },
             },
             {
               path: 'review',
               name: 'OutboundReviewList',
               component: () => import('../views/outbound/review/index.vue'),
-              meta: { title: '出库复核', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.Reviews', order: 6 },
+              meta: { title: '出库复核', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.Reviews', order: 7 },
+            },
+            {
+              path: 'review/:id',
+              name: 'OutboundReviewDetail',
+              component: () => import('../views/outbound/review/detail.vue'),
+              meta: { title: '出库复核详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.Reviews' },
             },
             {
               path: 'handover',
               name: 'OutboundHandoverList',
               component: () => import('../views/outbound/handover/HandoverIndex.vue'),
-              meta: { title: '出库交接', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.Handovers', order: 7 },
+              meta: { title: '出库交接', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.Handovers', order: 8 },
+            },
+            {
+              path: 'handover/:id',
+              name: 'OutboundHandoverDetail',
+              component: () => import('../views/outbound/handover/detail.vue'),
+              meta: { title: '出库交接详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.Handovers' },
+            },
+            {
+              path: 'purchase-return',
+              name: 'PurchaseReturnManagement',
+              component: () => import('../views/outbound/purchaseReturn/index.vue'),
+              meta: { title: '采购退货', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.PurchaseReturns', order: 9 },
+            },
+            {
+              path: 'purchase-return/create',
+              name: 'PurchaseReturnCreate',
+              component: () => import('../views/outbound/purchaseReturn/create.vue'),
+              meta: { title: '新增采购退货', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.PurchaseReturns.Create' },
+            },
+            {
+              path: 'purchase-return/:id/edit',
+              name: 'PurchaseReturnEdit',
+              component: () => import('../views/outbound/purchaseReturn/edit.vue'),
+              meta: { title: '编辑采购退货', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.PurchaseReturns.Update' },
+            },
+            {
+              path: 'purchase-return/:id',
+              name: 'PurchaseReturnDetail',
+              component: () => import('../views/outbound/purchaseReturn/detail.vue'),
+              meta: { title: '采购退货详情', requiresAuth: true, hidden: true, requiredPolicy: 'WMS.OutboundOps.PurchaseReturns' },
             },
             {
               path: 'misc-outbound-orders',
               name: 'MiscOutboundOrdersManagement',
               component: () => import('../views/outbound/miscOutboundOrder/MiscOutboundOrderIndex.vue'),
-              meta: { title: '其他出库', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.MiscOutboundOrders', order: 8 },
+              meta: { title: '其他出库', requiresAuth: true, requiredPolicy: 'WMS.OutboundOps.MiscOutboundOrders', order: 10 },
             },
             {
               path: 'misc-outbound-orders/create',
@@ -438,6 +516,14 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+const appTitle = '极星仓储'
+
+router.afterEach((to) => {
+  const isBrandRoute = to.name === 'Login' || to.name === 'Dashboard'
+  const pageTitle = typeof to.meta.title === 'string' ? to.meta.title : ''
+  document.title = isBrandRoute || !pageTitle ? appTitle : pageTitle
 })
 
 //路由守卫

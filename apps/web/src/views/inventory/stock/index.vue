@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -7,8 +8,7 @@ import {
   NFormItem,
   NInput,
   NPagination,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
@@ -25,6 +25,8 @@ type InventoryQueryParams = inventoryApi.GetInventoryListParams & {
   containerNo?: string
   containerCode?: string
   productId?: string
+  batchNo?: string
+  sn?: string
   warehouseCode?: string
   zoneCode?: string
 }
@@ -36,6 +38,8 @@ const message = useMessage()
 const query = reactive({
   containerNo: '',
   productId: '',
+  batchNo: '',
+  sn: '',
   warehouseCode: '',
   zoneCode: '',
   page: 1,
@@ -50,6 +54,8 @@ const listParams = computed<InventoryQueryParams>(() => {
     containerNo: query.containerNo || undefined,
     containerCode: query.containerNo || undefined,
     productId: query.productId || undefined,
+    batchNo: query.batchNo.trim() || undefined,
+    sn: query.sn.trim() || undefined,
     warehouseCode: query.warehouseCode || undefined,
     zoneCode: query.zoneCode || undefined,
   }
@@ -102,6 +108,8 @@ function onQuery() {
 function onReset() {
   query.containerNo = ''
   query.productId = ''
+  query.batchNo = ''
+  query.sn = ''
   query.warehouseCode = ''
   query.zoneCode = ''
   onQuery()
@@ -277,7 +285,7 @@ const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
     sorter: (a, b) => compareSortValue(resolveType(a.type), resolveType(b.type)),
     render: (row) => {
       const type = resolveType(row.type)
-      return h(NTag, { type: getTypeTagType(type), size: 'small' }, { default: () => type })
+      return h(WmsStatusTag, { type: getTypeTagType(type), size: 'small' }, { default: () => type })
     },
   },
   status: {
@@ -288,7 +296,7 @@ const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
     sorter: (a, b) => compareSortValue(resolveStatus(a.status), resolveStatus(b.status)),
     render: (row) => {
       const status = resolveStatus(row.status)
-      return h(NTag, { type: getStatusTagType(status), size: 'small' }, { default: () => status })
+      return h(WmsStatusTag, { type: getStatusTagType(status), size: 'small' }, { default: () => status })
     },
   },
   productCode: { title: createDraggableTitle('productCode', '产品编码'), key: 'productCode', minWidth: 160, sorter: (a, b) => compareSortValue(a.productCode, b.productCode), render: (row) => row.productCode ?? '-' },
@@ -312,7 +320,7 @@ const columnMap: Record<string, DataTableColumns<InventoryRow>[number]> = {
       const layer = resolveLayer(row)
       if (!Number.isFinite(layer)) return '-'
       if (isMaxLayer(row)) {
-        return h(NTag, { type: 'error', size: 'small' }, { default: () => `第 ${layer} 段` })
+        return h(WmsStatusTag, { type: 'error', label: `第 ${layer} 段` })
       }
       return h('span', `第 ${layer} 段`)
     },
@@ -354,6 +362,12 @@ onMounted(() => {
           <n-input :value="query.productId" placeholder="请输入物料Id" clearable @update:value="(value) => { query.productId = value }" />
         </n-form-item>
         <n-form-item>
+          <n-input :value="query.batchNo" placeholder="请输入批次" clearable @update:value="(value) => { query.batchNo = value }" />
+        </n-form-item>
+        <n-form-item>
+          <n-input :value="query.sn" placeholder="请输入SN" clearable @update:value="(value) => { query.sn = value }" />
+        </n-form-item>
+        <n-form-item>
           <n-input :value="query.warehouseCode" placeholder="请输入仓库编码" clearable @update:value="(value) => { query.warehouseCode = value }" />
         </n-form-item>
         <n-form-item>
@@ -361,7 +375,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>

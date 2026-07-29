@@ -4,6 +4,7 @@ import type {
   CreatePurchaseReceiptDto,
   PurchaseRecordDto,
   PurchaseReceiptDto,
+  StartPurchaseReceiptDto,
   PurchaseReceiptSourceDetail,
   PurchaseReceiptSourceDocument,
   PurchaseSourceDocType,
@@ -199,6 +200,9 @@ function isPurchaseReceiptDto(value: unknown): value is PurchaseReceiptDto {
     && typeof value.receiptNo === 'string'
     && typeof value.sourceDocType === 'string'
     && typeof value.sourceDocNo === 'string'
+    && typeof value.warehouseId === 'string'
+    && typeof value.warehouseCode === 'string'
+    && typeof value.warehouseName === 'string'
     && Array.isArray(value.details)
   )
 }
@@ -345,6 +349,16 @@ export async function createPurchaseReceipt(payload: CreatePurchaseReceiptDto): 
   const unwrapped = unwrapSingleDoc(res.data)
   if (!unwrapped || !isPurchaseReceiptDto(unwrapped)) {
     throw new Error('创建采购收货单返回数据为空')
+  }
+
+  return unwrapped
+}
+
+export async function startPurchaseReceipt(payload: StartPurchaseReceiptDto): Promise<PurchaseReceiptDto> {
+  const res = await http.post<PurchaseReceiptDto>('/api/app/purchase-receipt/start-receiving', payload)
+  const unwrapped = unwrapSingleDoc(res.data)
+  if (!unwrapped || !isPurchaseReceiptDto(unwrapped)) {
+    throw new Error('首次收货返回数据为空')
   }
 
   return unwrapped

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -9,7 +10,6 @@ import {
   NFormItem,
   NInput,
   NSelect,
-  NTag,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
@@ -24,6 +24,10 @@ import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { compareSortValue } from '../../../utils/tableColumn'
+import {
+  resolveInventoryTransactionStatus,
+  resolveInventoryTransactionType,
+} from '../../../utils/statusTag'
 
 type TransactionRow = InventoryTransactionDto & { id?: string }
 type QueryParams = InventoryTransactionSearchDto & { dateRange?: [number, number] | null }
@@ -48,13 +52,14 @@ const pagination = reactive<PaginationProps>({
 })
 
 const typeOptions: SelectOption[] = [
-  { label: '入库', value: 'In' },
-  { label: '出库', value: 'Out' },
-  { label: '移库', value: 'Move' },
-  { label: '盘点', value: 'Check' },
-  { label: '材料投入', value: 'Feed' },
-  { label: '材料退回', value: 'Return' },
-  { label: '质检判定', value: 'QcInspect' },
+  { label: '入库', value: 0 },
+  { label: '出库', value: 1 },
+  { label: '移库', value: 2 },
+  { label: '盘点', value: 3 },
+  { label: '材料投入', value: 4 },
+  { label: '材料退回', value: 5 },
+  { label: '质检判定', value: 6 },
+  { label: '采购退货', value: 7 },
 ]
 
 function toIso(v?: number | null) {
@@ -68,40 +73,6 @@ function formatDateTime(v?: string) {
   if (Number.isNaN(d.getTime())) return v
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-}
-
-function resolveType(raw: unknown) {
-  if (typeof raw === 'string') {
-    if (raw === 'In') return '入库'
-    if (raw === 'Out') return '出库'
-    if (raw === 'Move') return '移库'
-    if (raw === 'Check') return '盘点'
-    if (raw === 'Feed') return '材料投入'
-    if (raw === 'Return') return '材料退回'
-    if (raw === 'QcInspect') return '质检判定'
-    return raw
-  }
-  if (typeof raw === 'number') {
-    if (raw === 0) return '入库'
-    if (raw === 1) return '出库'
-    if (raw === 2) return '移库'
-    if (raw === 3) return '盘点'
-    if (raw === 4) return '材料投入'
-    if (raw === 5) return '材料退回'
-    if (raw === 6) return '质检判定'
-  }
-  return '-'
-}
-
-function getTypeTagType(label: string) {
-  if (label === '入库') return 'success'
-  if (label === '出库') return 'error'
-  if (label === '移库') return 'info'
-  if (label === '盘点') return 'warning'
-  if (label === '材料投入') return 'primary'
-  if (label === '材料退回') return 'warning'
-  if (label === '质检判定') return 'info'
-  return 'default'
 }
 
 const listParams = computed<InventoryTransactionSearchDto>(() => ({
@@ -208,10 +179,13 @@ const columnMap: Record<string, DataTableColumns<TransactionRow>[number]> = {
     key: 'type',
     width: 120,
     align: 'center',
-    sorter: (a, b) => compareSortValue(resolveType(a.type), resolveType(b.type)),
+    sorter: (a, b) => compareSortValue(
+      resolveInventoryTransactionType(a.type).label,
+      resolveInventoryTransactionType(b.type).label,
+    ),
     render: (row) => {
-      const label = resolveType(row.type)
-      return h(NTag, { type: getTypeTagType(label), size: 'small' }, { default: () => label })
+      const meta = resolveInventoryTransactionType(row.type)
+      return h(WmsStatusTag, { label: meta.label, type: meta.tagType })
     },
   },
   billNo: { title: createDraggableTitle('billNo', '单据号'), key: 'billNo', minWidth: 160, ellipsis: { tooltip: true }, sorter: (a, b) => compareSortValue(a.billNo, b.billNo) },
@@ -230,9 +204,9 @@ const columnMap: Record<string, DataTableColumns<TransactionRow>[number]> = {
     render: (row) => {
       const val = row.quantity
       if (typeof val !== 'number' || Number.isNaN(val)) return '-'
-      // 判断类型是否为出库或材料退回
-      const outTypes = ['Out', 'Return', 1, 5]
-      const inTypes = ['In', 0]
+      // 出库类事务统一使用扣减颜色。
+      const outTypes = ['Issue', 'Out', 'Return', 'PurchaseReturn', 1, 5, 7]
+      const inTypes = ['Receipt', 'In', 0]
       let color: string | undefined
       if (row.type !== undefined && outTypes.includes(row.type as string | number)) {
         color = '#ef4444'
@@ -246,7 +220,20 @@ const columnMap: Record<string, DataTableColumns<TransactionRow>[number]> = {
   batchNo: { title: createDraggableTitle('batchNo', '批次'), key: 'batchNo', minWidth: 140, ellipsis: { tooltip: true }, sorter: (a, b) => compareSortValue(a.batchNo, b.batchNo) },
   sn: { title: createDraggableTitle('sn', 'SN'), key: 'sn', minWidth: 140, ellipsis: { tooltip: true }, sorter: (a, b) => compareSortValue(a.sn, b.sn) },
   craftVersion: { title: createDraggableTitle('craftVersion', '工艺版本'), key: 'craftVersion', minWidth: 120, ellipsis: { tooltip: true }, sorter: (a, b) => compareSortValue(a.craftVersion, b.craftVersion) },
-  status: { title: createDraggableTitle('status', '状态'), key: 'status', width: 100, align: 'center', sorter: (a, b) => compareSortValue(a.status, b.status) },
+  status: {
+    title: createDraggableTitle('status', '状态'),
+    key: 'status',
+    width: 100,
+    align: 'center',
+    sorter: (a, b) => compareSortValue(
+      resolveInventoryTransactionStatus(a.status).label,
+      resolveInventoryTransactionStatus(b.status).label,
+    ),
+    render: (row) => {
+      const meta = resolveInventoryTransactionStatus(row.status)
+      return h(WmsStatusTag, { label: meta.label, type: meta.tagType })
+    },
+  },
   remark: { title: createDraggableTitle('remark', '备注'), key: 'remark', minWidth: 200, ellipsis: { tooltip: true }, sorter: (a, b) => compareSortValue(a.remark, b.remark) },
 }
 
@@ -278,28 +265,28 @@ onMounted(() => {
   <BaseCrudPage>
     <template #search>
       <n-form inline class="crud-search-form inventory-transaction-search-form">
-        <n-form-item>
-          <n-input :value="query.billNo" placeholder="请输入单据号" clearable @update:value="(value) => { query.billNo = value }" />
+        <n-form-item class="transaction-search-item">
+          <n-input class="transaction-search-input" :value="query.billNo" placeholder="请输入单据号" clearable @update:value="(value) => { query.billNo = value }" />
         </n-form-item>
-        <n-form-item>
-          <n-input :value="query.containerNo" placeholder="请输入托盘号" clearable @update:value="(value) => { query.containerNo = value }" />
+        <n-form-item class="transaction-search-item">
+          <n-input class="transaction-search-input" :value="query.containerNo" placeholder="请输入托盘号" clearable @update:value="(value) => { query.containerNo = value }" />
         </n-form-item>
-        <n-form-item>
+        <n-form-item class="transaction-search-item">
           <n-select
+            class="transaction-type-select"
             :value="query.type"
             :options="typeOptions"
             placeholder="请选择事务类型"
             clearable
-            style="width: 140px"
             @update:value="updateType"
           />
         </n-form-item>
-        <n-form-item>
-          <n-date-picker :value="query.dateRange" type="daterange" clearable style="width: 280px" @update:value="updateDateRange" />
+        <n-form-item class="transaction-search-item">
+          <n-date-picker class="transaction-date-picker" :value="query.dateRange" type="daterange" clearable @update:value="updateDateRange" />
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>
@@ -355,7 +342,7 @@ onMounted(() => {
 
 :deep(.inventory-transaction-search-form .n-form-item) {
   margin-bottom: 0;
-  flex: 0 1 auto !important;
+  flex: 0 0 auto !important;
   min-width: 0 !important;
 }
 
@@ -364,17 +351,13 @@ onMounted(() => {
   min-width: 0 !important;
 }
 
-:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-input),
-:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-base-selection),
-:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-date-picker),
-:deep(.inventory-transaction-search-form .n-form-item:not(.crud-page-spacer) .n-input-number) {
-  min-width: 120px !important;
-  max-width: 100% !important;
-  width: auto !important;
+:deep(.inventory-transaction-search-form .transaction-search-input),
+:deep(.inventory-transaction-search-form .transaction-type-select) {
+  width: 180px !important;
 }
 
-:deep(.inventory-transaction-search-form .n-form-item .n-date-picker) {
-  min-width: 160px !important;
+:deep(.inventory-transaction-search-form .transaction-date-picker) {
+  width: 300px !important;
 }
 
 :deep(.inventory-transaction-table) {

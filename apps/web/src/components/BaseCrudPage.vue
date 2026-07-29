@@ -7,7 +7,7 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-import { GridOutline } from '@vicons/ionicons5'
+import { Squares2X2Icon } from '@heroicons/vue/24/outline'
 import { NButton, NIcon, NTag, NDropdown } from 'naive-ui'
 import { useSettingsStore } from '../stores/settings'
 
@@ -79,7 +79,6 @@ defineSlots<{
               <template v-else-if="$slots.actions">
                 <slot name="actions" />
               </template>
-              <div v-else />
             </div>
             
             <div class="crud-action-right-tools" style="display: flex; align-items: center; margin-left: 12px; gap: 8px; flex-shrink: 0;">
@@ -87,7 +86,7 @@ defineSlots<{
                 <n-button size="small" quaternary circle title="表格密度">
                   <template #icon>
                     <n-icon size="15">
-                      <GridOutline />
+                      <Squares2X2Icon />
                     </n-icon>
                   </template>
                 </n-button>
@@ -102,7 +101,14 @@ defineSlots<{
         <div class="slot-shell slot-data">
           <slot name="data" />
         </div>
-        <div v-if="$slots['pager-left'] || $slots['pager-right'] || props.selectedCount > 0" class="slot-shell slot-pager">
+      </div>
+
+      <!-- 勾选摘要与分页独立于表格内容区 -->
+      <div
+        v-if="$slots['pager-left'] || $slots['pager-right'] || props.selectedCount > 0"
+        class="unibody-pager-section"
+      >
+        <div class="slot-shell slot-pager">
           <div class="crud-pager crud-pager-split">
             <div class="crud-pager-left">
               <slot name="pager-left">
@@ -124,10 +130,13 @@ defineSlots<{
 
 <style scoped>
 .crud-page {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -136,14 +145,12 @@ defineSlots<{
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  border-radius: 8px;
+  border-radius: 0;
   background-color: var(--wms-surface-panel);
-  border: 1px solid var(--wms-border-subtle);
-  box-shadow: var(--wms-shadow-panel);
+  border: 0;
+  box-shadow: none;
   overflow: hidden;
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .unibody-search-section {
@@ -167,8 +174,21 @@ defineSlots<{
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px 10px 10px;
+  padding: 8px 10px;
   overflow: hidden;
+}
+
+.unibody-pager-section {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 6px 12px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--wms-border-subtle);
+  background-color: transparent;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slot-shell {
@@ -193,7 +213,8 @@ defineSlots<{
 :deep(.crud-search-form) {
   display: flex;
   align-items: center;
-  gap: 5px;
+  column-gap: 6px;
+  row-gap: 5px;
   min-height: 28px;
   width: 100%;
   flex-wrap: wrap;
@@ -212,10 +233,14 @@ defineSlots<{
   margin-right: 0;
   margin-bottom: 0;
   flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 :deep(.crud-search-form .n-form-item-blank) {
   min-height: 28px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 :deep(.crud-search-form .n-form-item-feedback-wrapper) {
@@ -232,7 +257,9 @@ defineSlots<{
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-base-selection),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-input-number),
 :deep(.crud-search-form .n-form-item:not(.crud-page-spacer) .n-date-picker) {
-  min-width: 180px;
+  width: 180px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 :deep(.crud-search-form .n-form-item .n-button) {
@@ -283,25 +310,15 @@ defineSlots<{
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  min-height: 0;
-  height: 100%;
+  min-height: 28px;
+  height: auto;
 }
 
 .slot-pager {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   box-sizing: border-box;
-  margin: 0 -10px -10px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 12px;
-  border-top: 1px solid color-mix(in srgb, var(--wms-border-subtle) 82%, transparent);
-  background: color-mix(in srgb, var(--wms-surface-panel) 94%, var(--wms-surface-muted));
-  box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.04);
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  backdrop-filter: blur(10px);
+  min-height: 28px;
 }
 
 .crud-pager-split {
@@ -312,14 +329,14 @@ defineSlots<{
 .crud-pager-right {
   display: flex;
   align-items: center;
-  height: 100%;
-  min-height: 0;
+  height: auto;
+  min-height: 28px;
 }
 
 :deep(.crud-selection-summary) {
   display: flex;
   align-items: center;
-  height: 100%;
+  height: 28px;
   gap: 7px;
   color: var(--wms-text-muted);
   font-size: 13px;
@@ -332,9 +349,9 @@ defineSlots<{
   height: 22px;
   padding: 0 7px;
   border-radius: 5px;
-  background: var(--wms-brand-subtle);
-  border-color: color-mix(in srgb, var(--wms-brand) 34%, transparent);
-  color: var(--wms-brand);
+  background: var(--wms-surface-hover);
+  border-color: var(--wms-border-subtle);
+  color: var(--wms-text-primary);
   font-weight: 500;
   line-height: 22px;
 }
@@ -348,15 +365,15 @@ defineSlots<{
 }
 
 :deep(.crud-selection-summary .n-button:not(.n-button--disabled):hover) {
-  color: var(--wms-brand);
+  color: var(--wms-text-primary);
 }
 
 :deep(.crud-pager-right .n-pagination) {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 100%;
-  min-height: 0;
+  height: 28px;
+  min-height: 28px;
 }
 
 :deep(.crud-pager-right .n-pagination .n-pagination-item) {
@@ -376,14 +393,14 @@ defineSlots<{
 }
 
 :deep(.crud-pager-right .n-pagination .n-pagination-item:not(.n-pagination-item--disabled):hover) {
-  color: var(--wms-brand);
-  border-color: var(--wms-brand);
+  color: var(--wms-text-primary);
+  border-color: var(--wms-border);
 }
 
 :deep(.crud-pager-right .n-pagination .n-pagination-item--active) {
-  color: var(--wms-brand);
-  border-color: var(--wms-brand);
-  background: color-mix(in srgb, var(--wms-brand-subtle) 72%, transparent);
+  color: var(--wms-text-primary);
+  border-color: transparent;
+  background: var(--wms-surface-hover);
 }
 
 :deep(.crud-pager-right .n-pagination .n-base-selection) {
@@ -393,13 +410,6 @@ defineSlots<{
   min-height: 26px;
   color: var(--wms-text-secondary);
 }
-
-html.dark :deep(.slot-pager) {
-  border-top-color: color-mix(in srgb, var(--wms-border) 70%, transparent);
-  background: color-mix(in srgb, var(--wms-surface-panel) 88%, var(--wms-surface-app));
-  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.18);
-}
-
 
 :deep(.crud-table-flat .n-data-table-wrapper) {
   min-height: 0;
@@ -435,14 +445,14 @@ html.dark :deep(.slot-pager) {
   flex-direction: column;
 }
 
-:deep(.slot-data .n-data-table) {
+:deep(.slot-data .n-data-table:not(.wms-embedded-table)) {
   flex: 1 1 0 !important;
   min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
 }
 
-:deep(.slot-data .n-data-table > .n-data-table-wrapper) {
+:deep(.slot-data .n-data-table:not(.wms-embedded-table) > .n-data-table-wrapper) {
   flex: 1 1 0 !important;
   min-height: 0 !important;
   overflow: auto !important;

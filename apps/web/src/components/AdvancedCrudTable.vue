@@ -8,7 +8,7 @@ export default defineComponent({
 
 <script setup lang="ts">
 import { computed, h, ref, watch } from 'vue'
-import { OptionsOutline } from '@vicons/ionicons5'
+import { AdjustmentsHorizontalIcon } from '@heroicons/vue/24/outline'
 import {
   NButton,
   NCheckbox,
@@ -288,7 +288,7 @@ function handleSorterChange(sorter: DataTableSortState | DataTableSortState[] | 
     <div v-if="props.showColumnConfig" class="advanced-tools">
       <n-button circle @click="showConfigModal = true">
         <n-icon size="14" aria-hidden="true">
-          <OptionsOutline />
+          <AdjustmentsHorizontalIcon />
         </n-icon>
       </n-button>
     </div>

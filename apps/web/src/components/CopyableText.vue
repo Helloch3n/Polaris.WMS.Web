@@ -8,7 +8,7 @@ export default defineComponent({
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CopyOutline } from '@vicons/ionicons5'
+import { Square2StackIcon } from '@heroicons/vue/24/outline'
 import { NButton, NIcon, useMessage } from 'naive-ui'
 
 const props = withDefaults(defineProps<{
@@ -56,7 +56,7 @@ async function handleCopy() {
     >
       <template #icon>
         <n-icon size="13">
-          <CopyOutline />
+          <Square2StackIcon />
         </n-icon>
       </template>
     </n-button>

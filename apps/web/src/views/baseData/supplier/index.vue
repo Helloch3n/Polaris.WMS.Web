@@ -306,7 +306,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>

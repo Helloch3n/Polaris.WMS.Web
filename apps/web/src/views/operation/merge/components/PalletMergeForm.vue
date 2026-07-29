@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../../components/WmsStatusTag.vue'
 import { computed, onMounted, reactive, ref, watch, h } from 'vue'
 import {
   NButton,
@@ -12,9 +13,9 @@ import {
   NDataTable,
   NModal,
   NAlert,
-  NTag,
-  NDescriptions,
+NDescriptions,
   NDescriptionsItem,
+  NCheckbox,
   useMessage,
 } from 'naive-ui'
 import BaseCrudPage from '../../../../components/BaseCrudPage.vue'
@@ -97,6 +98,8 @@ interface AfterRow {
 
 const beforeRows = ref<BeforeRow[]>([])
 const afterRows = ref<AfterRow[]>([])
+const checkedBeforeRowKeys = ref<string[]>([])
+const checkedAfterRowIds = ref<string[]>([])
 
 // 弹窗状态管理
 const showInventoryModal = ref(false)
@@ -124,6 +127,8 @@ watch(
   async (newVal) => {
     beforeRows.value = []
     afterRows.value = []
+    checkedBeforeRowKeys.value = []
+    checkedAfterRowIds.value = []
     locations.value = []
     if (newVal) {
       await loadLocations(newVal)
@@ -137,6 +142,8 @@ watch(
   () => {
     beforeRows.value = []
     afterRows.value = []
+    checkedBeforeRowKeys.value = []
+    checkedAfterRowIds.value = []
   }
 )
 
@@ -144,6 +151,12 @@ watch(
 watch(
   () => beforeRows.value,
   (newVal) => {
+    if (newVal.length === 0) {
+      afterRows.value = []
+      checkedAfterRowIds.value = []
+      return
+    }
+
     if (formModel.mergeType === 1) { // Merge
       const totalBeforeQty = newVal.reduce((sum, item) => sum + item.qty, 0)
       const totalBeforeWeight = newVal.reduce((sum, item) => sum + item.weight, 0)
@@ -192,6 +205,10 @@ const qtyDifference = computed(() => {
 
 const isQtyConserved = computed(() => {
   return Math.abs(qtyDifference.value) < 0.0001
+})
+
+const isAllAfterRowsChecked = computed(() => {
+  return afterRows.value.length > 0 && afterRows.value.every(row => checkedAfterRowIds.value.includes(row.id))
 })
 
 // 加载仓库
@@ -377,9 +394,29 @@ function confirmSelectInventory() {
   showInventoryModal.value = false
 }
 
-// 删除源库存行
-function removeBeforeRow(index: number) {
-  beforeRows.value.splice(index, 1)
+function removeCheckedBeforeRows() {
+  if (checkedBeforeRowKeys.value.length === 0) return
+  const selectedIds = new Set(checkedBeforeRowKeys.value)
+  beforeRows.value = beforeRows.value.filter(row => !selectedIds.has(row.inventoryId))
+  checkedBeforeRowKeys.value = []
+}
+
+function removeCheckedAfterRows() {
+  if (checkedAfterRowIds.value.length === 0) return
+  const selectedIds = new Set(checkedAfterRowIds.value)
+  afterRows.value = afterRows.value.filter(row => !selectedIds.has(row.id))
+  checkedAfterRowIds.value = []
+}
+
+function updateAfterRowChecked(rowId: string, checked: boolean) {
+  const next = new Set(checkedAfterRowIds.value)
+  if (checked) next.add(rowId)
+  else next.delete(rowId)
+  checkedAfterRowIds.value = [...next]
+}
+
+function updateAllAfterRowsChecked(checked: boolean) {
+  checkedAfterRowIds.value = checked ? afterRows.value.map(row => row.id) : []
 }
 
 // 弹窗搜索目标载具
@@ -447,11 +484,6 @@ function addAfterRow() {
     craftVersion: source.craftVersion,
     layerIndex: 0
   })
-}
-
-// 移除拆分目标行
-function removeAfterRow(index: number) {
-  afterRows.value.splice(index, 1)
 }
 
 // 统一库位下拉选择更新
@@ -609,6 +641,7 @@ function handleCancel() {
 }
 
 const beforeColumns = computed(() => [
+  { type: 'selection' as const, multiple: true },
   { title: '盘号', key: 'containerCode' },
   { title: '库位', key: 'locationCode' },
   { title: '物料编码', key: 'productCode' },
@@ -617,17 +650,6 @@ const beforeColumns = computed(() => [
   { title: '批次号', key: 'batchNo' },
   { title: 'SN号', key: 'sn' },
   { title: '工艺版本', key: 'craftVersion', render: (row: any) => row.craftVersion || '-' },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 80,
-    align: 'center' as const,
-    render: (_: any, index: number) => h(
-      NButton,
-      { size: 'small', type: 'error', text: true, onClick: () => removeBeforeRow(index) },
-      { default: () => '删除' }
-    )
-  }
 ])
 
 const searchInventoryColumns = computed(() => [
@@ -687,7 +709,7 @@ onMounted(() => {
               自动生成
             </n-descriptions-item>
             <n-descriptions-item label="单据状态">
-              <n-tag size="small" type="default">草稿</n-tag>
+              <WmsStatusTag size="small" type="default">草稿</WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item>
               <template #label><span style="color: #d03050; margin-right: 4px;">*</span>业务类型</template>
@@ -729,23 +751,26 @@ onMounted(() => {
       </template>
 
       <template #data>
-        <div style="display: flex; flex-direction: column; gap: 16px; overflow-y: auto; padding-right: 4px;">
-          <!-- 调整前源库存 Card -->
-          <n-card class="form-card" size="medium">
+        <div class="merge-workbench">
+          <n-card class="form-card merge-stage-card" size="medium">
             <template #header>
-              <div class="card-header-flex">
-                <span>调整前源库存</span>
-                <n-button type="primary" secondary @click="openInventoryModal">
-                  选择源库存
-                </n-button>
+              <div class="merge-card-header">
+                <div class="section-title">调整前库存</div>
+                <n-space align="center" :size="8">
+                  <span v-if="checkedBeforeRowKeys.length" class="selection-count">已选 {{ checkedBeforeRowKeys.length }} 条</span>
+                  <n-button type="error" secondary :disabled="checkedBeforeRowKeys.length === 0" @click="removeCheckedBeforeRows">删除选中</n-button>
+                  <n-button @click="openInventoryModal">选择源库存</n-button>
+                </n-space>
               </div>
             </template>
-            
+
             <n-data-table
+              v-if="beforeRows.length"
               :columns="beforeColumns"
               :data="beforeRows"
+              :row-key="(row: BeforeRow) => row.inventoryId"
+              v-model:checked-row-keys="checkedBeforeRowKeys"
               :bordered="false"
-              empty-text="点击上方按钮选择要进行分拆或合盘的在库物料"
             />
           </n-card>
 
@@ -753,44 +778,51 @@ onMounted(() => {
           <div v-if="beforeRows.length > 0" class="qty-warning-banner">
             <n-alert :type="isQtyConserved ? 'success' : 'warning'" :show-icon="true" :bordered="false">
               <div class="qty-banner-text">
-                <span>分拆合盘前总数：<strong>{{ beforeTotalQty }}</strong></span>
-                <span style="margin-left: 24px;">分配目标后总数：<strong>{{ afterTotalQty }}</strong></span>
-                <span style="margin-left: 24px;">
+                <span>源库存总数 <strong>{{ beforeTotalQty }}</strong></span>
+                <span>目标已分配 <strong>{{ afterTotalQty }}</strong></span>
+                <span>
                   分配差额：
-                  <n-tag :type="isQtyConserved ? 'success' : 'error'" size="small">
-                    {{ qtyDifference === 0 ? '守恒' : qtyDifference }}
-                  </n-tag>
+                  <WmsStatusTag
+                    :type="isQtyConserved ? 'success' : 'error'"
+                    :label="qtyDifference === 0 ? '守恒' : qtyDifference"
+                  />
                 </span>
               </div>
             </n-alert>
           </div>
 
-          <!-- 调整后目标行 Card -->
-          <n-card class="form-card" size="medium">
+          <n-card class="form-card merge-stage-card" size="medium">
             <template #header>
-              <div class="card-header-flex">
-                <span>调整后目标行</span>
-                <n-button v-if="formModel.mergeType === 0" type="primary" secondary @click="addAfterRow">
-                  新增
-                </n-button>
+              <div class="merge-card-header">
+                <div class="section-title">调整后目标行</div>
+                <n-space align="center" :size="8">
+                  <span v-if="checkedAfterRowIds.length" class="selection-count">已选 {{ checkedAfterRowIds.length }} 条</span>
+                  <n-button type="error" secondary :disabled="checkedAfterRowIds.length === 0" @click="removeCheckedAfterRows">删除选中</n-button>
+                  <n-button v-if="formModel.mergeType === 0" type="primary" @click="addAfterRow">新增目标行</n-button>
+                </n-space>
               </div>
             </template>
-            
-            <table class="pallet-table">
+
+            <table v-if="afterRows.length" class="pallet-table">
               <thead>
                 <tr>
-                  <th style="width: 140px;">目标盘号 <span class="required-star">*</span></th>
+                  <th class="selection-cell">
+                    <n-checkbox :checked="isAllAfterRowsChecked" @update:checked="updateAllAfterRowsChecked" />
+                  </th>
+                  <th style="width: 156px;">目标盘号 <span class="required-star">*</span></th>
                   <th style="width: 160px;">目标库位 <span class="required-star">*</span></th>
                   <th style="width: 120px;">数量 <span class="required-star">*</span></th>
                   <th style="width: 150px;">SN号 <span class="required-star">*</span></th>
                   <th style="width: 140px;">批次号</th>
                   <th style="width: 120px;">重量</th>
                   <th style="width: 120px;">工艺版本</th>
-                  <th v-if="formModel.mergeType === 0" style="width: 80px; text-align: center;">操作</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, index) in afterRows" :key="row.id">
+                <tr v-for="row in afterRows" :key="row.id">
+                  <td class="selection-cell">
+                    <n-checkbox :checked="checkedAfterRowIds.includes(row.id)" @update:checked="(checked) => updateAfterRowChecked(row.id, checked)" />
+                  </td>
                   <td>
                     <div class="container-picker-wrapper">
                       <n-input
@@ -833,18 +865,9 @@ onMounted(() => {
                   <td>
                     <n-input v-model:value="row.craftVersion" placeholder="工艺版本" size="small" />
                   </td>
-                  <td v-if="formModel.mergeType === 0" style="text-align: center;">
-                    <n-button type="error" text size="small" @click="removeAfterRow(index)">
-                      删除
-                    </n-button>
-                  </td>
                 </tr>
               </tbody>
             </table>
-            
-            <div v-if="afterRows.length === 0" class="table-empty-placeholder">
-              分拆模式下，请点击上方按钮添加目标行；合盘模式下，选择源库存后将自动生成单条目标汇总行。
-            </div>
           </n-card>
         </div>
       </template>
@@ -867,7 +890,7 @@ onMounted(() => {
             <n-input v-model:value="searchInventoryQuery.productCode" placeholder="输入物料编码" />
           </n-form-item>
           <n-form-item>
-            <n-button type="primary" @click="searchInventory">查询</n-button>
+            <n-button @click="searchInventory">查询</n-button>
           </n-form-item>
         </n-form>
         
@@ -882,7 +905,7 @@ onMounted(() => {
         
         <n-space justify="end">
           <n-button @click="showInventoryModal = false">取消</n-button>
-          <n-button type="primary" @click="confirmSelectInventory">确认选择</n-button>
+          <n-button @click="confirmSelectInventory">确认选择</n-button>
         </n-space>
       </n-space>
     </n-modal>
@@ -901,7 +924,7 @@ onMounted(() => {
             <n-input v-model:value="searchContainerQuery.containerCode" placeholder="输入盘号模糊搜索" />
           </n-form-item>
           <n-form-item>
-            <n-button type="primary" @click="searchContainer">查询</n-button>
+            <n-button @click="searchContainer">查询</n-button>
           </n-form-item>
         </n-form>
         
@@ -935,11 +958,33 @@ onMounted(() => {
   width: 120px;
 }
 
-.card-header-flex {
+.merge-workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 2px 4px 16px;
+}
+
+.merge-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   width: 100%;
+}
+
+.section-title {
+  color: var(--wms-text-primary);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.selection-count {
+  color: var(--wms-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .qty-warning-banner {
@@ -948,6 +993,9 @@ onMounted(() => {
 }
 
 .qty-banner-text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
   font-size: 14px;
 }
 
@@ -964,33 +1012,36 @@ onMounted(() => {
 
 .pallet-table th {
   padding: 8px 12px;
-  background-color: #f8fafc;
-  color: #334155;
-  font-weight: 500;
+  background-color: var(--wms-surface-table-header);
+  color: var(--wms-text-secondary);
+  font-weight: 600;
   text-align: left;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 1px solid var(--wms-border);
+}
+
+.pallet-table .selection-cell {
+  width: 42px;
+  padding-right: 4px;
+  padding-left: 10px;
+  text-align: center;
 }
 
 .pallet-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--wms-border-subtle);
   vertical-align: middle;
+  background-color: var(--wms-surface-panel);
 }
 
 .required-star {
-  color: #ef4444;
+  color: var(--wms-status-error);
   margin-left: 2px;
 }
 
-.table-empty-placeholder {
-  text-align: center;
-  padding: 32px;
-  color: #94a3b8;
-  font-size: 14px;
-  background-color: #f8fafc;
-  border-radius: 4px;
-  margin-top: 12px;
-  border: 1px dashed #cbd5e1;
+@media (max-width: 760px) {
+  .merge-card-header {
+    align-items: flex-start;
+  }
 }
 
 /* 覆写 BaseCrudPage 的 flex 撑满高度，防止卡片内的表格高度塌陷 */

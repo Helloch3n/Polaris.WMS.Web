@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -7,8 +8,7 @@ import {
   NDescriptions,
   NDescriptionsItem,
   NDataTable,
-  NTag,
-  useDialog,
+useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -179,7 +179,7 @@ onMounted(() => {
       <div v-if="order" class="detail-header-wrap">
         <div class="header-action-bar">
           <n-button @click="handleBack">返回列表</n-button>
-          <n-button type="primary" :loading="loading" @click="loadData">刷新</n-button>
+          <n-button :loading="loading" @click="loadData">刷新</n-button>
           <n-button
             v-if="isDraft"
             v-permission="'WMS.InternalOps.PalletMerge'"
@@ -214,14 +214,14 @@ onMounted(() => {
             {{ order.orderNo }}
           </n-descriptions-item>
           <n-descriptions-item label="单据状态">
-            <n-tag size="small" :type="getStatusTagType(order.status)" bordered>
+            <WmsStatusTag size="small" :type="getStatusTagType(order.status)" bordered>
               {{ resolveStatusLabel(order.status) }}
-            </n-tag>
+            </WmsStatusTag>
           </n-descriptions-item>
           <n-descriptions-item label="业务类型">
-            <n-tag size="small" :type="getTypeTagType(order.mergeType)">
+            <WmsStatusTag size="small" :type="getTypeTagType(order.mergeType)">
               {{ resolveTypeLabel(order.mergeType) }}
-            </n-tag>
+            </WmsStatusTag>
           </n-descriptions-item>
           <n-descriptions-item label="所属仓库">
             {{ order.warehouseName }} ({{ order.warehouseCode }})

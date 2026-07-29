@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="outbound-list-page">
     <BaseCrudPage>
       <template #search>
         <n-form inline class="crud-search-form">
@@ -25,12 +25,28 @@
           </n-form-item>
           <n-form-item class="crud-page-spacer" />
           <n-form-item>
-            <n-button type="primary" :loading="loading" @click="loadWaves">查询</n-button>
+            <n-button :loading="loading" @click="loadWaves">查询</n-button>
           </n-form-item>
           <n-form-item>
             <n-button @click="resetSearch">重置</n-button>
           </n-form-item>
         </n-form>
+      </template>
+
+      <template #actions-left>
+        <div class="crud-action-main">
+          <n-button v-if="canCreateWave" type="primary" @click="() => openWaveCreate()">新建波次</n-button>
+          <n-button :disabled="!selectedWave" @click="viewSelectedWave">查看</n-button>
+          <n-button
+            type="primary"
+            secondary
+            :disabled="!selectedWave || selectedWave.status !== waveApi.WaveOrderStatus.Created"
+            @click="createPickListForSelected"
+          >
+            生成拣货单
+          </n-button>
+          <n-button :loading="loading" @click="loadWaves">刷新</n-button>
+        </div>
       </template>
 
       <template #actions-right>
@@ -51,7 +67,16 @@
 
       <template #data>
         <template v-if="currentView === 'list'">
-          <n-data-table class="crud-table-flat" :columns="columns" :data="waves" :bordered="false" :loading="loading" />
+          <n-data-table
+            class="crud-table-flat"
+            :columns="columns"
+            :data="waves"
+            :bordered="false"
+            :loading="loading"
+            :row-key="(row) => row.id"
+            :checked-row-keys="checkedWaveKeys"
+            @update:checked-row-keys="(keys) => (checkedWaveKeys = keys as string[])"
+          />
         </template>
         <template v-else>
           <WaveKanbanBoard
@@ -76,6 +101,40 @@
       </template>
     </BaseCrudPage>
 
+    <n-modal v-model:show="waveCreateVisible" preset="card" title="从销售配货创建波次" style="width: 680px">
+      <n-form label-width="110">
+        <n-form-item label="已确认配货单">
+          <n-select
+            v-model:value="waveCreateForm.salesAllocationOrderIds"
+            multiple
+            filterable
+            :options="allocationOrderOptions"
+            :loading="allocationOrderLoading"
+            placeholder="请选择同一仓库的销售配货"
+          />
+        </n-form-item>
+        <n-form-item label="波次仓库">
+          <n-text>{{ selectedAllocationWarehouse || '选择配货单后自动确定' }}</n-text>
+        </n-form-item>
+        <n-form-item label="备注">
+          <n-input v-model:value="waveCreateForm.remark" type="textarea" placeholder="可选" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="waveCreateVisible = false">取消</n-button>
+          <n-button
+            type="primary"
+            :disabled="waveCreateForm.salesAllocationOrderIds.length === 0"
+            :loading="creatingWave"
+            @click="submitCreateWave"
+          >
+            创建波次
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
     <!-- Create PickList Modal -->
     <n-modal :show="pickListVisible" preset="card" title="生成拣货单" style="width: 480px" @update:show="(value) => (pickListVisible = value)">
       <n-form ref="pickListFormRef" :model="pickListForm" :rules="pickListRules" label-width="100">
@@ -91,6 +150,7 @@
             remote
             :loading="locationLoading"
             :on-search="handleLocationSearch"
+            @focus="() => handleLocationSearch('')"
             @update:value="(val) => (pickListForm.targetLocationCode = val)"
           />
         </n-form-item>
@@ -106,43 +166,17 @@
       </template>
     </n-modal>
 
-    <!-- Details Drawer -->
-    <n-drawer :show="drawerVisible" placement="right" :width="750" @update:show="(value) => (drawerVisible = value)">
-      <n-drawer-content title="波次单详情" closable>
-        <n-descriptions label-placement="left" bordered :column="2" style="margin-bottom: 20px" size="small">
-          <n-descriptions-item label="波次单号">{{ currentWave?.waveNo }}</n-descriptions-item>
-          <n-descriptions-item label="状态">
-            <n-tag :type="currentWave ? getStatusTagType(currentWave.status) : 'default'">
-              {{ currentWave ? getStatusLabel(currentWave.status) : '-' }}
-            </n-tag>
-          </n-descriptions-item>
-          <n-descriptions-item label="创建时间">{{ formatDateTime(currentWave?.creationTime) }}</n-descriptions-item>
-          <n-descriptions-item label="备注" :span="2">{{ currentWave?.remark || '-' }}</n-descriptions-item>
-        </n-descriptions>
-
-        <n-divider title-placement="left">包含的发货单明细</n-divider>
-        <n-data-table
-          :columns="detailItemColumns"
-          :data="currentWave?.lines || []"
-          size="small"
-          :bordered="false"
-        />
-      </n-drawer-content>
-    </n-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 /* eslint-disable vue/no-v-model-argument */
 import { computed, h, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
   NDataTable,
-  NDivider,
-  NDrawer,
-  NDrawerContent,
-  NDescriptions,
-  NDescriptionsItem,
   NForm,
   NFormItem,
   NInput,
@@ -150,24 +184,30 @@ import {
   NPagination,
   NSelect,
   NSpace,
-  NTag,
-  NText,
+NText,
   NRadioGroup,
   NRadioButton,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules, PaginationProps, SelectOption } from 'naive-ui'
 import * as waveApi from '../../../api/outbound/wave'
+import * as allocationOrderApi from '../../../api/outbound/salesAllocationOrder'
 import * as pickListApi from '../../../api/outbound/pickList'
 import * as locationApi from '../../../api/masterData/location'
+import * as zoneApi from '../../../api/masterData/zone'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import WaveKanbanBoard from './components/WaveKanbanBoard.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { usePermission } from '../../../composables/usePermission'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 
 const message = useMessage()
+const { hasPermission } = usePermission()
+const canCreateWave = computed(() => hasPermission('WMS.OutboundOps.Waves.Create'))
+const route = useRoute()
+const router = useRouter()
 const currentView = ref<'list' | 'kanban'>('list')
 
 const pagination = reactive<PaginationProps>({
@@ -184,10 +224,30 @@ const searchForm = reactive({
   status: null as number | null,
 })
 
-const drawerVisible = ref(false)
 const pickListVisible = ref(false)
+const waveCreateVisible = ref(false)
+const allocationOrderLoading = ref(false)
+const creatingWave = ref(false)
+const allocationOrders = ref<allocationOrderApi.SalesAllocationOrderDto[]>([])
+const waveCreateForm = reactive({
+  salesAllocationOrderIds: [] as string[],
+  remark: '',
+})
+const allocationOrderOptions = computed(() => allocationOrders.value.map((item) => ({
+  value: item.id,
+  label: `${item.allocationNo} · ${item.customerName} · ${item.warehouseName}`,
+})))
+const selectedAllocationWarehouse = computed(() => {
+  const selected = allocationOrders.value.filter((item) =>
+    waveCreateForm.salesAllocationOrderIds.includes(item.id))
+  if (!selected.length) return ''
+  const warehouses = [...new Set(selected.map((item) => `${item.warehouseName} / ${item.warehouseCode}`))]
+  return warehouses.join('、')
+})
 
 const currentWave = ref<waveApi.WaveOrderDto | null>(null)
+const checkedWaveKeys = ref<string[]>([])
+const selectedWave = computed(() => waves.value.find((wave) => wave.id === checkedWaveKeys.value[0]))
 const creatingPickList = ref(false)
 
 const pickListFormRef = ref<FormInst | null>(null)
@@ -280,7 +340,7 @@ const columnMap: Record<string, DataTableColumns<waveApi.WaveOrderDto>[number]> 
     sorter: (a, b) => compareSortValue(a.status, b.status),
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         { type: getStatusTagType(row.status), size: 'small' },
         { default: () => getStatusLabel(row.status) },
       ),
@@ -295,22 +355,11 @@ const columnMap: Record<string, DataTableColumns<waveApi.WaveOrderDto>[number]> 
 }
 
 const columns = computed<DataTableColumns<waveApi.WaveOrderDto>>(() => withResizable([
+  { type: 'selection', multiple: false, fixed: 'left', width: 44 },
   ...columnSettings.value
     .filter((item) => item.visible)
     .map((item) => columnMap[item.key])
     .filter((item): item is DataTableColumns<waveApi.WaveOrderDto>[number] => Boolean(item)),
-  {
-    title: '操作',
-    key: 'actions',
-    width: 220,
-    align: 'center',
-    render: (row) => [
-      h(NButton, { size: 'small', type: 'info', quaternary: true, onClick: () => openDrawer(row) }, { default: () => '详情' }),
-      row.status === waveApi.WaveOrderStatus.Created
-        ? h(NButton, { size: 'small', type: 'primary', quaternary: true, onClick: () => openPickListCreate(row) }, { default: () => '生成拣货单' })
-        : null,
-    ],
-  },
 ]))
 
 function handleColumnConfigShowChange(value: boolean) {
@@ -323,24 +372,61 @@ function handleColumnVisibleChange(key: string, visible: boolean) {
   }
 }
 
-const detailItemColumns: DataTableColumns<waveApi.WaveOrderLineDto> = [
-  { title: '发货单号', key: 'salesShipmentNo', minWidth: 150 },
-  { title: '客户', key: 'customerName', minWidth: 150, render: (row) => `${row.customerName} (${row.customerCode})` },
-  { title: '产品编码', key: 'productCode', minWidth: 130 },
-  { title: '产品名称', key: 'productName', minWidth: 160 },
-  { title: '数量', key: 'qty', width: 100, align: 'right' },
-]
+function openDrawer(row: waveApi.WaveOrderDto) {
+  router.push({ name: 'WaveDetail', params: { id: row.id } })
+}
 
-async function openDrawer(row: waveApi.WaveOrderDto) {
-  loading.value = true
+function viewSelectedWave() {
+  if (selectedWave.value) openDrawer(selectedWave.value)
+}
+
+function createPickListForSelected() {
+  if (selectedWave.value) openPickListCreate(selectedWave.value)
+}
+
+async function openWaveCreate(preselectedId?: string) {
+  waveCreateForm.salesAllocationOrderIds = preselectedId ? [preselectedId] : []
+  waveCreateForm.remark = ''
+  waveCreateVisible.value = true
+  allocationOrderLoading.value = true
   try {
-    const wave = await waveApi.get(row.id)
-    currentWave.value = wave
-    drawerVisible.value = true
-  } catch (e) {
-    message.error(e instanceof Error ? e.message : '加载详情失败')
+    const result = await allocationOrderApi.getList({
+      status: allocationOrderApi.SalesAllocationOrderStatus.Confirmed,
+      skipCount: 0,
+      maxResultCount: 200,
+    })
+    allocationOrders.value = result.items
+    if (preselectedId && !result.items.some((item) => item.id === preselectedId)) {
+      waveCreateForm.salesAllocationOrderIds = []
+      message.warning('该配货单不是已确认状态，不能创建波次')
+    }
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '加载已确认配货单失败')
   } finally {
-    loading.value = false
+    allocationOrderLoading.value = false
+  }
+}
+
+async function submitCreateWave() {
+  const selected = allocationOrders.value.filter((item) =>
+    waveCreateForm.salesAllocationOrderIds.includes(item.id))
+  if (new Set(selected.map((item) => item.warehouseId)).size > 1) {
+    message.warning('同一波次只能选择同一仓库的配货单')
+    return
+  }
+  creatingWave.value = true
+  try {
+    await waveApi.create({
+      salesAllocationOrderIds: waveCreateForm.salesAllocationOrderIds,
+      remark: waveCreateForm.remark || undefined,
+    })
+    message.success('波次创建成功')
+    waveCreateVisible.value = false
+    await loadWaves()
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '创建波次失败')
+  } finally {
+    creatingWave.value = false
   }
 }
 
@@ -350,20 +436,35 @@ function openPickListCreate(row: waveApi.WaveOrderDto) {
   pickListForm.remark = ''
   locationOptions.value = []
   pickListVisible.value = true
+  void handleLocationSearch('')
 }
 
 async function handleLocationSearch(query: string) {
-  if (!query) return
+  const warehouseId = currentWave.value?.warehouseId
+  if (!warehouseId) return
   locationLoading.value = true
   try {
-    const res = await locationApi.getLocationByWarehouseId('') // Query all
+    const [locations, zoneResult] = await Promise.all([
+      locationApi.getLocationByWarehouseId(warehouseId),
+      zoneApi.getList({
+        warehouseCode: currentWave.value?.warehouseCode,
+        maxResultCount: 1000,
+        skipCount: 0,
+      }),
+    ])
+    const outboundZoneIds = new Set(
+      zoneResult.items
+        .filter(zone => zone.zoneType === zoneApi.ZoneType.Outbound)
+        .map(zone => zone.id),
+    )
     const keyword = query.toLowerCase()
-    locationOptions.value = (res.items ?? [])
-      .filter(l => (l.code ?? '').toLowerCase().includes(keyword))
+    locationOptions.value = (locations.items ?? [])
+      .filter(location => outboundZoneIds.has(location.zoneId))
+      .filter(location => (location.code ?? '').toLowerCase().includes(keyword))
       .slice(0, 20)
-      .map(l => ({
-        label: l.code,
-        value: l.code
+      .map(location => ({
+        label: location.code,
+        value: location.code,
       }))
   } catch (e) {
     console.error(e)
@@ -410,6 +511,7 @@ async function loadWaves() {
       status: searchForm.status ?? undefined,
     })
     waves.value = result.items ?? []
+    checkedWaveKeys.value = []
     pagination.itemCount = result.totalCount ?? 0
   } finally {
     loading.value = false
@@ -432,8 +534,14 @@ function resetSearch() {
 onMounted(() => {
   loadColumnSettings()
   loadWaves()
+  const allocationOrderId = String(route.query.allocationOrderId ?? '')
+  if (allocationOrderId) openWaveCreate(allocationOrderId)
 })
 </script>
 
 <style scoped>
+.outbound-list-page {
+  height: 100%;
+  min-height: 0;
+}
 </style>

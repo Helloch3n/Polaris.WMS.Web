@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -16,8 +17,7 @@ import {
   NProgress,
   NSelect,
   NSpin,
-  NTag,
-  NText,
+NText,
   useDialog,
   useMessage,
 } from 'naive-ui'
@@ -357,7 +357,7 @@ const detailColumnMap: Record<string, DataTableColumns<transferApi.TransferDetai
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isCompleted, b.isCompleted),
-    render: (row) => h(NTag, { size: 'small', type: row.isCompleted ? 'success' : 'warning' }, { default: () => (row.isCompleted ? '已完成' : '未完成') }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: row.isCompleted ? 'success' : 'warning' }, { default: () => (row.isCompleted ? '已完成' : '未完成') }),
   },
 }
 
@@ -1333,11 +1333,10 @@ watch(
         <div class="detail-header-wrap">
           <div class="header-action-bar">
             <n-button @click="handleBack">返回列表</n-button>
-            <n-button v-if="props.mode !== 'create'" type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+            <n-button v-if="props.mode !== 'create'" :loading="loading" @click="loadDetail">刷新</n-button>
             <n-button v-if="props.mode === 'edit' || (props.mode === 'view' && isDraft)" v-permission="'WMS.InternalOps.TransferOrders.Approve'"
               type="primary" secondary :loading="approving" @click="handleApproveAndExecute">审核</n-button>
-            <n-button v-if="props.mode === 'view' && isDraft" v-permission="'WMS.InternalOps.TransferOrders.Update'"
-              type="primary" @click="handleGoToEdit">编辑</n-button>
+            <n-button v-if="props.mode === 'view' && isDraft" v-permission="'WMS.InternalOps.TransferOrders.Update'" @click="handleGoToEdit">编辑</n-button>
             <n-button v-if="props.mode === 'edit'" v-permission="'WMS.InternalOps.TransferOrders.Update'"
               type="primary" :loading="saving" @click="handleSaveEdit">保存</n-button>
             <n-button v-if="props.mode === 'create'" type="primary" :loading="saving"
@@ -1357,9 +1356,9 @@ watch(
               {{ transfer?.orderNo || '-' }}
             </n-descriptions-item>
             <n-descriptions-item label="调拨状态">
-              <n-tag size="small" :type="transfer ? getStatusTagType(transfer.status) : 'default'">
+              <WmsStatusTag size="small" :type="transfer ? getStatusTagType(transfer.status) : 'default'">
                 {{ transfer ? resolveStatusLabel(transfer.status) : '-' }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item label="创建时间">
               {{ formatDateTime(transfer?.creationTime) }}
@@ -1474,7 +1473,7 @@ watch(
             @update:value="(value) => { locationQuery.keyword = value }" />
         </n-form-item>
         <n-form-item>
-          <n-button type="primary" :loading="locationLoading" @click="loadTargetLocations">查询</n-button>
+          <n-button :loading="locationLoading" @click="loadTargetLocations">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleLocationReset">重置</n-button>

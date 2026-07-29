@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, ref } from 'vue'
 import {
   NButton,
@@ -25,6 +26,7 @@ import type { DataTableColumns, PaginationProps } from 'naive-ui'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 import { get, getList } from '../../../api/system/auditLog'
@@ -35,6 +37,17 @@ type RowItem = AuditLogDto
 const message = useMessage()
 const loading = ref(false)
 const rows = ref<RowItem[]>([])
+const getRowKey = (row: RowItem) => row.id
+const {
+  checkedRowKeys,
+  selectedRows,
+  selectedCount,
+  handleCheckedRowKeysChange,
+  syncCheckedRowKeys,
+  toggleSingleRow,
+  clearSelection,
+} = useTableSelection(rows, getRowKey)
+const selectedLog = computed(() => selectedRows.value.length === 1 ? selectedRows.value[0] ?? null : null)
 const dateRange = ref<[number, number] | null>(null)
 const pagination = ref<PaginationProps>({ page: 1, pageSize: 10, itemCount: 0 })
 
@@ -112,7 +125,7 @@ function getChangeTypeTag(type: number) {
 
 const { showColumnConfig, columnSettings, loadColumnSettings, handleVisibleChange, createDraggableTitle } = useColumnConfig({
   storageKey: 'operation-log-column-settings-v1',
-  preferredKeys: ['module', 'action', 'userName', 'clientIpAddress', 'executionTime', 'executionDuration', 'hasException', 'actions'],
+  preferredKeys: ['module', 'action', 'userName', 'clientIpAddress', 'executionTime', 'executionDuration', 'hasException'],
   resolveTitle: (key) => {
     switch (key) {
       case 'module': return '模块'
@@ -122,7 +135,6 @@ const { showColumnConfig, columnSettings, loadColumnSettings, handleVisibleChang
       case 'executionTime': return '时间'
       case 'executionDuration': return '耗时'
       case 'hasException': return '结果'
-      case 'actions': return '操作'
       default: return key
     }
   }
@@ -156,26 +168,18 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
       { type: row.hasException ? 'error' : 'success', size: 'small', bordered: false },
       { default: () => (row.hasException ? '失败' : '成功') }
     )
-  },
-  actions: {
-    title: '操作',
-    key: 'actions',
-    minWidth: 80,
-    fixed: 'right',
-    render: (row) => h(
-      NButton,
-      { type: 'primary', size: 'tiny', secondary: true, onClick: () => handleShowDetail(row.id) },
-      { default: () => '详情' }
-    )
   }
 }
 
 const columns = computed<DataTableColumns<RowItem>>(() =>
   withResizable(
-    columnSettings.value
-      .filter((item) => item.visible)
-      .map((item) => columnMap[item.key])
-      .filter((item): item is DataTableColumns<RowItem>[number] => Boolean(item))
+    [
+      { type: 'selection', fixed: 'left', width: 44 },
+      ...columnSettings.value
+        .filter((item) => item.visible)
+        .map((item) => columnMap[item.key])
+        .filter((item): item is DataTableColumns<RowItem>[number] => Boolean(item)),
+    ]
   )
 )
 
@@ -223,6 +227,7 @@ async function loadData() {
     })
 
     rows.value = data.items
+    syncCheckedRowKeys()
     pagination.value.itemCount = data.totalCount
   } catch (error) {
     message.error(error instanceof Error ? error.message : '加载操作日志失败')
@@ -246,11 +251,15 @@ async function handleShowDetail(id: string) {
   }
 }
 
+function viewSelected() {
+  if (selectedLog.value) handleShowDetail(selectedLog.value.id)
+}
+
 onMounted(() => { loadColumnSettings(); loadData() })
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
       <n-form inline class="crud-search-form" :show-feedback="false">
         <n-form-item>
@@ -280,14 +289,24 @@ onMounted(() => { loadColumnSettings(); loadData() })
           />
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
-        <n-form-item><n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button></n-form-item>
+        <n-form-item><n-button :loading="loading" @click="handleQuery">查询</n-button></n-form-item>
         <n-form-item><n-button @click="handleReset">重置</n-button></n-form-item>
       </n-form>
     </template>
-    <template #actions-left><div class="crud-action-main"><n-button @click="loadData">刷新</n-button></div></template>
+    <template #actions-left><div class="crud-action-main"><n-button :disabled="!selectedLog" @click="viewSelected">查看</n-button><n-button :loading="loading" @click="loadData">刷新</n-button></div></template>
     <template #actions-right><div class="crud-action-tools"><TableColumnManager :show="showColumnConfig" :settings="columnSettings" @update:show="handleColumnConfigShowChange" @visible-change="handleColumnVisibleChange" /></div></template>
     <template #data>
-      <n-data-table class="crud-table-flat" :loading="loading" :columns="columns" :data="rows" :bordered="false" />
+      <n-data-table
+        class="crud-table-flat"
+        :loading="loading"
+        :columns="columns"
+        :data="rows"
+        :bordered="false"
+        :row-key="getRowKey"
+        :checked-row-keys="checkedRowKeys"
+        :row-props="(row) => ({ onClick: (event) => toggleSingleRow(row, event), onDblclick: () => handleShowDetail(row.id) })"
+        @update:checked-row-keys="handleCheckedRowKeysChange"
+      />
     </template>
     <template #pager-right>
       <n-pagination :page="pagination.page" :page-size="pagination.pageSize" :item-count="pagination.itemCount" :page-sizes="[10, 20, 50, 100]" show-size-picker @update:page="(page) => { pagination.page = page; handlePageChange(page) }" @update:page-size="(size) => { pagination.pageSize = size; handlePageSizeChange(size) }" />
@@ -310,12 +329,12 @@ onMounted(() => { loadColumnSettings(); loadData() })
           <n-descriptions-item label="操作时间">{{ formatDate(detailData.executionTime) }}</n-descriptions-item>
           <n-descriptions-item label="耗时时长">{{ detailData.executionDuration }} ms</n-descriptions-item>
           <n-descriptions-item label="HTTP 方法">
-            <n-tag type="info" size="small" :bordered="false">{{ detailData.httpMethod }}</n-tag>
+            <WmsStatusTag type="info" :label="detailData.httpMethod" />
           </n-descriptions-item>
           <n-descriptions-item label="返回状态">
-            <n-tag :type="detailData.hasException ? 'error' : 'success'" size="small" :bordered="false">
+            <WmsStatusTag :type="detailData.hasException ? 'error' : 'success'" size="small" :bordered="false">
               {{ detailData.httpStatusCode || 200 }}
-            </n-tag>
+            </WmsStatusTag>
           </n-descriptions-item>
         </n-descriptions>
 
@@ -347,9 +366,10 @@ onMounted(() => { loadColumnSettings(); loadData() })
               :name="index.toString()"
             >
               <template #header-extra>
-                <n-tag :type="getChangeTypeTag(ec.changeType)" size="small" :bordered="false">
-                  {{ getChangeTypeText(ec.changeType) }}
-                </n-tag>
+                <WmsStatusTag
+                  :type="getChangeTypeTag(ec.changeType)"
+                  :label="getChangeTypeText(ec.changeType)"
+                />
               </template>
               <div style="padding: 8px 0;">
                 <n-table size="small" :single-line="false">
@@ -385,4 +405,3 @@ onMounted(() => { loadColumnSettings(); loadData() })
     </n-drawer-content>
   </n-drawer>
 </template>
-

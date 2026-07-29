@@ -11,6 +11,8 @@ import { computed } from 'vue'
 import { NTag } from 'naive-ui'
 import type { TagType } from '../utils/statusTag'
 
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(defineProps<{
   label?: string | number | null
   type?: TagType
@@ -31,6 +33,7 @@ const displayLabel = computed(() => {
 
 <template>
   <n-tag
+    v-bind="$attrs"
     class="wms-status-tag"
     :class="`wms-status-tag--${props.type}`"
     :type="props.type"
@@ -38,15 +41,20 @@ const displayLabel = computed(() => {
     :bordered="false"
     round
   >
-    {{ displayLabel }}
+    <slot>{{ displayLabel }}</slot>
   </n-tag>
 </template>
 
 <style scoped>
 .wms-status-tag {
   min-width: 64px;
+  max-width: 100%;
   justify-content: center;
+  padding-inline: 12px;
+  border: 0;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .wms-status-tag--warning {

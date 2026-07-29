@@ -7,7 +7,7 @@ export default defineComponent({
 </script>
 
 <script setup lang="ts">
-import { OptionsOutline } from '@vicons/ionicons5'
+import { AdjustmentsHorizontalIcon } from '@heroicons/vue/24/outline'
 import {
   NButton,
   NCheckbox,
@@ -43,7 +43,7 @@ function handleVisibleChange(key: string, visible: boolean) {
     <n-button circle @click="updateShow(true)">
       <span class="column-config-trigger">
         <n-icon size="14" class="column-config-icon" aria-hidden="true">
-          <OptionsOutline />
+          <AdjustmentsHorizontalIcon />
         </n-icon>
       </span>
     </n-button>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   NButton,
   NDataTable,
@@ -8,8 +10,7 @@ import {
   NInput,
   NPagination,
   NSelect,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
 
@@ -23,6 +24,7 @@ import { compareSortValue } from '../../../utils/tableColumn'
 type RowItem = moveTaskApi.MoveTaskDto
 
 const message = useMessage()
+const route = useRoute()
 const loading = ref(false)
 const rows = ref<RowItem[]>([])
 
@@ -177,7 +179,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(normalizeTaskTypeValue(a.taskType), normalizeTaskTypeValue(b.taskType)),
-    render: (row) => h(NTag, { size: 'small', type: getTaskTypeTagType(row.taskType) }, { default: () => resolveTaskTypeLabel(row.taskType) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getTaskTypeTagType(row.taskType) }, { default: () => resolveTaskTypeLabel(row.taskType) }),
   },
   status: {
     title: createDraggableTitle('status', '状态'),
@@ -185,7 +187,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(normalizeTaskStatusValue(a.status), normalizeTaskStatusValue(b.status)),
-    render: (row) => h(NTag, { size: 'small', type: getTaskStatusTagType(row.status) }, { default: () => resolveTaskStatusLabel(row.status) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getTaskStatusTagType(row.status) }, { default: () => resolveTaskStatusLabel(row.status) }),
   },
   containerCode: {
     title: createDraggableTitle('containerCode', '容器编码'),
@@ -264,6 +266,10 @@ function handlePageSizeChange(size: number) {
 
 onMounted(() => {
   loadColumnSettings()
+  const status = route.query.status
+  if (typeof status === 'string') {
+    query.status = normalizeTaskStatusValue(status)
+  }
   loadData()
 })
 </script>
@@ -286,7 +292,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button :disabled="loading" @click="handleReset">重置</n-button>

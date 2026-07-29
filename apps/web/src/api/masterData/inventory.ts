@@ -52,9 +52,11 @@ export interface Inventory {
   containerCode?: string
   reelNo?: string
   locationCode: string
+  locationId?: string
   productName: string
   warehouseName?: string
   warehouseCode?: string
+  warehouseId?: string
   zoneCode?: string
   zoneName?: string
 }
@@ -76,6 +78,8 @@ export interface GetInventoryListParams extends PagedAndSortedResultRequestDto {
   containerNo?: string
   containerCode?: string
   productId?: string
+  batchNo?: string
+  sn?: string
   warehouseCode?: string
   zoneCode?: string
 }
@@ -102,6 +106,8 @@ export async function getList(params: GetInventoryListParams) {
     skipCount: params.skipCount,
     sorting: params.sorting,
     productId: params.productId,
+    batchNo: params.batchNo,
+    sn: params.sn,
     warehouseCode: params.warehouseCode,
     zoneCode: params.zoneCode,
   }

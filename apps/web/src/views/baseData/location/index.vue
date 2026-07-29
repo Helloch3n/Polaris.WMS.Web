@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
@@ -39,6 +40,7 @@ import LocationDialog, { type LocationDialogExpose } from './components/Location
 import LocationBatchDialog, { type LocationBatchDialogExpose } from './components/LocationBatchDialog.vue'
 import LocationGridMap from './components/LocationGridMap.vue'
 import ImportModal from '../../../components/ImportModal.vue'
+import { resolveLocationStatus, resolveLocationType } from '../../../utils/statusTag'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -383,7 +385,10 @@ const columnMap: Record<string, DataTableColumns<LocationDto>[number]> = {
     width: 130,
     align: 'center',
     sorter: 'default',
-    render: (row) => h(NTag, { size: 'small' }, { default: () => typeMap[row.type] ?? String(row.type) }),
+    render: (row) => {
+      const meta = resolveLocationType(row.type)
+      return h(WmsStatusTag, { label: typeMap[row.type] ?? meta.label, type: meta.tagType })
+    },
   },
   status: {
     title: createDraggableTitle('status', '状态'),
@@ -391,7 +396,10 @@ const columnMap: Record<string, DataTableColumns<LocationDto>[number]> = {
     width: 120,
     align: 'center',
     sorter: 'default',
-    render: (row) => h(NTag, { size: 'small' }, { default: () => resolveStatusText(row.status) }),
+    render: (row) => {
+      const meta = resolveLocationStatus(row.status)
+      return h(WmsStatusTag, { label: resolveStatusText(row.status), type: meta.tagType })
+    },
   },
   allowMixedProducts: {
     title: createDraggableTitle('allowMixedProducts', '允许混放物料'),
@@ -399,7 +407,10 @@ const columnMap: Record<string, DataTableColumns<LocationDto>[number]> = {
     width: 130,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.allowMixedProducts, b.allowMixedProducts),
-    render: (row) => formatBool(row.allowMixedProducts),
+    render: (row) => h(WmsStatusTag, {
+      label: formatBool(row.allowMixedProducts),
+      type: row.allowMixedProducts ? 'success' : 'default',
+    }),
   },
   allowMixedBatches: {
     title: createDraggableTitle('allowMixedBatches', '允许混放批次'),
@@ -407,7 +418,10 @@ const columnMap: Record<string, DataTableColumns<LocationDto>[number]> = {
     width: 130,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.allowMixedBatches, b.allowMixedBatches),
-    render: (row) => formatBool(row.allowMixedBatches),
+    render: (row) => h(WmsStatusTag, {
+      label: formatBool(row.allowMixedBatches),
+      type: row.allowMixedBatches ? 'success' : 'default',
+    }),
   },
   creationTime: {
     title: createDraggableTitle('creationTime', '创建时间'),
@@ -479,7 +493,6 @@ onMounted(async () => {
             placeholder="仓库"
             clearable
             filterable
-            style="width: 220px"
             @update:value="(value) => { selectedWarehouseId = value }"
           />
         </n-form-item>
@@ -491,7 +504,6 @@ onMounted(async () => {
             clearable
             filterable
             :disabled="!selectedWarehouseId"
-            style="width: 220px"
             @update:value="(value) => { selectedZoneId = value }"
           />
         </n-form-item>
@@ -500,7 +512,6 @@ onMounted(async () => {
             :value="query.locationCode"
             placeholder="库位编码"
             clearable
-            style="width: 180px"
             @update:value="(value) => (query.locationCode = value)"
             @keyup.enter="handleQuery"
           />
@@ -508,7 +519,7 @@ onMounted(async () => {
 
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>

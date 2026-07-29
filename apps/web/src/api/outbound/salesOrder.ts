@@ -19,7 +19,9 @@ export interface SalesOrderDetailDto {
   unit: string
   qty: number
   allocatedQty: number
+  plannedShipmentQty: number
   shippedQty: number
+  availableToShipQty: number
   remark?: string | null
 }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -1452,9 +1453,9 @@ onMounted(async () => {
               />
             </n-descriptions-item>
             <n-descriptions-item label="业务类型">
-              <n-tag size="small" :type="getOperationTypeTagType(formModel.type)">
+              <WmsStatusTag size="small" :type="getOperationTypeTagType(formModel.type)">
                 {{ resolveOperationTypeLabel(formModel.type) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item label="成本中心编码">
               <span class="readonly-value">{{ formModel.costCenterCode || '-' }}</span>
@@ -1463,9 +1464,9 @@ onMounted(async () => {
               <span class="readonly-value">{{ formModel.costCenterName || '-' }}</span>
             </n-descriptions-item>
             <n-descriptions-item label="状态">
-              <n-tag size="small" :type="getStatusTagType(formModel.status)">
+              <WmsStatusTag size="small" :type="getStatusTagType(formModel.status)">
                 {{ resolveStatusLabel(formModel.status) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item label="备注" :span="2">
               <n-input
@@ -1561,14 +1562,14 @@ onMounted(async () => {
               <span class="readonly-value">{{ formModel.costCenterName || '-' }}</span>
             </n-form-item>
             <n-form-item label="业务类型">
-              <n-tag size="small" :type="getOperationTypeTagType(formModel.type)">
+              <WmsStatusTag size="small" :type="getOperationTypeTagType(formModel.type)">
                 {{ resolveOperationTypeLabel(formModel.type) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-form-item>
             <n-form-item label="状态">
-              <n-tag size="small" :type="getStatusTagType(formModel.status)">
+              <WmsStatusTag size="small" :type="getStatusTagType(formModel.status)">
                 {{ resolveStatusLabel(formModel.status) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-form-item>
             <n-form-item label="备注">
               <n-input
@@ -1647,7 +1648,7 @@ onMounted(async () => {
       </n-form-item>
       <n-form-item class="crud-page-spacer" />
       <n-form-item>
-        <n-button type="primary" :loading="inventoryLoading" @click="handleInventoryQuery">查询</n-button>
+        <n-button :loading="inventoryLoading" @click="handleInventoryQuery">查询</n-button>
       </n-form-item>
       <n-form-item>
         <n-button :disabled="inventoryLoading" @click="handleInventoryReset">重置</n-button>

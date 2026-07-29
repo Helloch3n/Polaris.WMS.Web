@@ -5,7 +5,9 @@ export default {
 </script>
 
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   NButton,
   NDataTable,
@@ -16,8 +18,7 @@ import {
   NPagination,
   NSelect,
   NSpace,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules, SelectOption } from 'naive-ui'
 import * as moveTaskApi from '../../../api/taskRouting/moveTask'
@@ -25,13 +26,30 @@ import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { withResizable } from '../../../utils/table'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { useTableSelection } from '../../../composables/useTableSelection'
 import { compareSortValue } from '../../../utils/tableColumn'
 
 type TaskRow = moveTaskApi.MoveTaskDto
 
 const message = useMessage()
+const route = useRoute()
 const loading = ref(false)
 const rows = ref<TaskRow[]>([])
+const getRowKey = (row: TaskRow) => row.id
+const {
+  checkedRowKeys,
+  selectedRows,
+  selectedCount,
+  handleCheckedRowKeysChange,
+  syncCheckedRowKeys,
+  toggleSingleRow,
+  clearSelection,
+} = useTableSelection(rows, getRowKey)
+const selectedTask = computed(() => selectedRows.value.length === 1 ? selectedRows.value[0] ?? null : null)
+const canCompleteSelected = computed(() =>
+  selectedTask.value?.status === moveTaskApi.MoveTaskStatus.Pending
+  || selectedTask.value?.status === moveTaskApi.MoveTaskStatus.InProgress,
+)
 
 const query = reactive({
   taskNo: '',
@@ -79,6 +97,7 @@ async function loadData() {
   try {
     const data = await moveTaskApi.getList(listParams.value)
     rows.value = data.items ?? []
+    syncCheckedRowKeys()
     query.total = data.totalCount ?? 0
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
@@ -118,6 +137,10 @@ function openCompleteModal(row: TaskRow) {
   completeForm.targetLocationCode = row.targetLocationCode
   completeForm.scannedLocationCode = row.targetLocationCode // Autofill for convenience
   completeVisible.value = true
+}
+
+function completeSelected() {
+  if (selectedTask.value && canCompleteSelected.value) openCompleteModal(selectedTask.value)
 }
 
 async function submitComplete() {
@@ -232,7 +255,7 @@ const columnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.status, b.status),
-    render: (row) => h(NTag, { type: getStatusTagType(row.status), size: 'small' }, { default: () => getStatusLabel(row.status) }),
+    render: (row) => h(WmsStatusTag, { type: getStatusTagType(row.status), size: 'small' }, { default: () => getStatusLabel(row.status) }),
   },
   creationTime: {
     title: createDraggableTitle('creationTime', '创建时间'),
@@ -245,30 +268,15 @@ const columnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
 
 const columns = computed<DataTableColumns<TaskRow>>(() =>
   withResizable([
+    {
+      type: 'selection',
+      fixed: 'left',
+      width: 44,
+    },
     ...columnSettings.value
       .filter((item) => item.visible)
       .map((item) => columnMap[item.key])
       .filter((item): item is DataTableColumns<TaskRow>[number] => Boolean(item)),
-    {
-      title: '操作',
-      key: 'actions',
-      width: 140,
-      align: 'center',
-      render: (row) => {
-        const canComplete = row.status === moveTaskApi.MoveTaskStatus.Pending || row.status === moveTaskApi.MoveTaskStatus.InProgress
-        if (!canComplete) return h('span', { style: 'color: #ccc' }, '-')
-
-        return h(
-          NButton,
-          {
-            size: 'small',
-            type: 'primary',
-            onClick: () => openCompleteModal(row),
-          },
-          { default: () => '完成拣货' }
-        )
-      },
-    },
   ]),
 )
 
@@ -284,12 +292,16 @@ function handleColumnVisibleChange(key: string, visible: boolean) {
 
 onMounted(() => {
   loadColumnSettings()
+  const status = route.query.status
+  if (status === 'Pending') {
+    query.status = moveTaskApi.MoveTaskStatus.Pending
+  }
   loadData()
 })
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item>
@@ -324,12 +336,19 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>
         </n-form-item>
       </n-form>
+    </template>
+
+    <template #actions-left>
+      <div class="crud-action-main">
+        <n-button type="primary" :disabled="!canCompleteSelected" @click="completeSelected">完成拣货</n-button>
+        <n-button :loading="loading" @click="loadData">刷新</n-button>
+      </div>
     </template>
 
     <template #actions-right>
@@ -344,7 +363,17 @@ onMounted(() => {
     </template>
 
     <template #data>
-      <n-data-table class="crud-table-flat" :loading="loading" :columns="columns" :data="rows" :bordered="false" />
+      <n-data-table
+        class="crud-table-flat"
+        :loading="loading"
+        :columns="columns"
+        :data="rows"
+        :bordered="false"
+        :row-key="getRowKey"
+        :checked-row-keys="checkedRowKeys"
+        :row-props="(row) => ({ onClick: (event) => toggleSingleRow(row, event) })"
+        @update:checked-row-keys="handleCheckedRowKeysChange"
+      />
     </template>
 
     <template #pager-right>

@@ -70,6 +70,20 @@ const workbenchActions: WorkbenchAction[] = [
     colorClass: 'bg-purple-50 text-purple-500',
   },
   {
+    label: '出库复核',
+    subLabel: 'Review',
+    icon: 'passed',
+    route: '/outbound/review',
+    colorClass: 'bg-emerald-50 text-emerald-600',
+  },
+  {
+    label: '出库交接',
+    subLabel: 'Handover',
+    icon: 'logistics',
+    route: '/outbound/handover',
+    colorClass: 'bg-orange-50 text-orange-600',
+  },
+  {
     label: '盘点作业',
     subLabel: 'Cycle Count',
     icon: 'completed',

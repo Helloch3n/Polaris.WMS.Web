@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -455,7 +456,7 @@ function buildColumnByKey(key: string): DataTableColumns<ContainerRow>[number] {
       render: (row) => {
         const containerType = resolveContainerType(row.containerType)
         return h(
-          NTag,
+          WmsStatusTag,
           { type: getContainerTypeTagType(containerType), size: 'small' },
           { default: () => containerType },
         )
@@ -517,7 +518,7 @@ function buildColumnByKey(key: string): DataTableColumns<ContainerRow>[number] {
       render: (row) => {
         const status = resolveStatus(row.status)
         return h(
-          NTag,
+          WmsStatusTag,
           { type: getStatusTagType(status), size: 'small' },
           { default: () => status },
         )
@@ -535,7 +536,7 @@ function buildColumnByKey(key: string): DataTableColumns<ContainerRow>[number] {
       render: (row) => {
         const locked = row.isLocked
         return h(
-          NTag,
+          WmsStatusTag,
           { type: locked ? 'warning' : 'success', size: 'small' },
           { default: () => (locked ? '是' : '否') },
         )
@@ -600,7 +601,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleSearch">查询</n-button>
+          <n-button :loading="loading" @click="handleSearch">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>

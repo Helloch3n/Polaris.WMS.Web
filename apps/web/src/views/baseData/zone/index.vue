@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableSortState } from 'naive-ui'
 import {
@@ -35,6 +36,7 @@ import {
   type ZoneDto,
   type CreateUpdateZoneDto,
 } from '../../../api/masterData/zone'
+import { resolveBusinessCategory } from '../../../utils/statusTag'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -278,7 +280,10 @@ const columnMap: Record<string, DataTableColumns<ZoneDto>[number]> = {
     width: 120,
     align: 'center',
     sorter: 'default',
-    render: (row) => h(NTag, { size: 'small' }, { default: () => zoneTypeMap[row.zoneType] ?? '-' }),
+    render: (row) => {
+      const meta = resolveBusinessCategory(row.zoneType, zoneTypeMap[row.zoneType] ?? '-')
+      return h(WmsStatusTag, { label: meta.label, type: meta.tagType })
+    },
   },
 }
 
@@ -353,7 +358,7 @@ onMounted(async () => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>

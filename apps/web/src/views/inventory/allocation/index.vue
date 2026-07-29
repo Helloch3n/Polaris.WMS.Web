@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -8,8 +9,7 @@ import {
   NInput,
   NPagination,
   NSelect,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
@@ -188,7 +188,7 @@ const columnMap: Record<string, DataTableColumns<AllocationRow>[number]> = {
     sorter: (a, b) => compareSortValue(resolveAllocationType(a.allocationType), resolveAllocationType(b.allocationType)),
     render: (row) => {
       const typeStr = resolveAllocationType(row.allocationType)
-      return h(NTag, { type: getAllocationTypeTagType(typeStr), size: 'small' }, { default: () => typeStr })
+      return h(WmsStatusTag, { type: getAllocationTypeTagType(typeStr), size: 'small' }, { default: () => typeStr })
     },
   },
   containerCode: {
@@ -298,7 +298,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>

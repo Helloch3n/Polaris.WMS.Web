@@ -1,30 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NConfigProvider, NDialogProvider, NMessageProvider, NNotificationProvider, darkTheme } from 'naive-ui'
+import { NConfigProvider, NDialogProvider, NGlobalStyle, NMessageProvider, NNotificationProvider, darkTheme } from 'naive-ui'
 import { zhCN, dateZhCN } from 'naive-ui'
 import { useSettingsStore } from './stores/settings'
 import { useBarcodeScanner } from './composables/useBarcodeScanner'
-import { createWmsThemeOverrides, getWmsCssVariables } from './theme/wmsTheme'
+import { wmsThemeOverrides } from './theme/wmsTheme'
 
 const settingsStore = useSettingsStore()
 useBarcodeScanner()
 
 const currentTheme = computed(() => {
-  return settingsStore.theme === 'dark' ? darkTheme : null
+  return settingsStore.resolvedTheme === 'dark' ? darkTheme : null
 })
-
-const themeOverrides = computed(() => createWmsThemeOverrides(settingsStore.theme))
-const appThemeVars = computed(() => getWmsCssVariables(settingsStore.theme))
+const themeOverrides = computed(() => wmsThemeOverrides[settingsStore.resolvedTheme])
 </script>
 
 <template>
-  <div class="wms-app-shell" :style="appThemeVars">
+  <div class="wms-app-shell">
     <n-config-provider
       :theme="currentTheme"
       :theme-overrides="themeOverrides"
       :locale="zhCN"
       :date-locale="dateZhCN"
     >
+      <n-global-style />
       <n-message-provider>
         <n-dialog-provider>
           <n-notification-provider>

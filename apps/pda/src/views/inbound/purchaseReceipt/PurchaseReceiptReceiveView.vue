@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { showFailToast, showSuccessToast } from 'vant'
-import { useRoute, useRouter } from 'vue-router'
-import { addPurchaseReceiptRecords, approveAndExecutePurchaseReceipt, getPurchaseReceiptDetail } from '@/api/inbound/purchaseReceipt'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { addPurchaseReceiptRecords, approveAndExecutePurchaseReceipt, getPurchaseReceiptDetail, startPurchaseReceipt } from '@/api/inbound/purchaseReceipt'
+import { getLocationByCode } from '@/api/wms/location'
+import { useAuthStore } from '@/stores/auth'
+import { PurchaseReceiptStatus } from '@/types/purchaseReceipt'
 import type {
   AddPurchaseReceiptRecordsDto,
+  PurchaseReceiptDraftSession,
   PurchaseReceiptDto,
   PurchaseReceiptEntryLine,
   PurchaseReceiptLpnRecord,
@@ -12,11 +16,14 @@ import type {
 } from '@/types/purchaseReceipt'
 
 const RECEIPT_CACHE_PREFIX = 'pda.purchase-receipt.active.'
+const RECEIPT_DRAFT_PREFIX = 'pda.purchase-receipt.draft.'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const receipt = ref<PurchaseReceiptDto | null>(null)
+const draftSession = ref<PurchaseReceiptDraftSession | null>(null)
 const entryLines = ref<PurchaseReceiptEntryLine[]>([])
 const loadErrorText = ref('')
 
@@ -39,17 +46,28 @@ const lpnDrawerVisible = ref(false)
 const lpnDrawerLineId = ref('')
 
 const hasReceipt = computed(() => Boolean(receipt.value))
+const hasWorkContext = computed(() => hasReceipt.value || Boolean(draftSession.value))
+const isCompleted = computed(() => receipt.value?.status === PurchaseReceiptStatus.Completed)
+const canFinish = computed(() => receipt.value?.status === PurchaseReceiptStatus.Receiving)
+const receiptStatusLabel = computed(() => {
+  if (receipt.value?.status === PurchaseReceiptStatus.Draft) return '草稿'
+  if (receipt.value?.status === PurchaseReceiptStatus.Receiving) return '收货中'
+  if (receipt.value?.status === PurchaseReceiptStatus.Completed) return '已完成'
+  return ''
+})
 
 const receiptNo = computed(() => receipt.value?.receiptNo || '--')
-const sourceDocType = computed(() => receipt.value?.sourceDocType || '--')
-const sourceDocNo = computed(() => receipt.value?.sourceDocNo || '--')
+const sourceDocType = computed(() => receipt.value?.sourceDocType || draftSession.value?.sourceDoc.sourceDocType || '--')
+const sourceDocNo = computed(() => receipt.value?.sourceDocNo || draftSession.value?.sourceDoc.sourceDocNo || '--')
 
 const supplierText = computed(() => {
-  if (!receipt.value) {
-    return '--'
+  if (receipt.value) {
+    return receipt.value.supplierName?.trim() || receipt.value.supplierId || '--'
   }
 
-  return receipt.value.supplierName?.trim() || receipt.value.supplierId || '--'
+  const source = draftSession.value?.sourceDoc
+  if (!source) return '--'
+  return source.supplierName?.trim() || source.supplierCode?.trim() || source.supplierId || '--'
 })
 
 const totalReceivedNow = computed(() =>
@@ -82,8 +100,17 @@ function resolveReceiptId(): string {
   return typeof rawId === 'string' ? rawId.trim() : ''
 }
 
+function resolveDraftSessionId(): string {
+  const rawId = route.params.draftSessionId
+  return typeof rawId === 'string' ? rawId.trim() : ''
+}
+
 function getCacheKey(receiptId: string): string {
   return `${RECEIPT_CACHE_PREFIX}${receiptId}`
+}
+
+function getDraftCacheKey(draftSessionId: string): string {
+  return `${RECEIPT_DRAFT_PREFIX}${draftSessionId}`
 }
 
 function parseCachedReceipt(raw: string): PurchaseReceiptDto | null {
@@ -97,7 +124,44 @@ function parseCachedReceipt(raw: string): PurchaseReceiptDto | null {
       return null
     }
 
+    if (parsed.status === undefined || parsed.status === null) {
+      parsed.status = PurchaseReceiptStatus.Receiving
+    }
+
     return parsed as PurchaseReceiptDto
+  } catch {
+    return null
+  }
+}
+
+async function establishWarehouseContext(receiptDto: PurchaseReceiptDto): Promise<boolean> {
+  if (receiptDto.warehouseId?.trim()) {
+    authStore.setCurrentWarehouseId(receiptDto.warehouseId)
+    return true
+  }
+
+  const locationCode = receiptDto.details
+    .flatMap(detail => detail.records ?? [])
+    .map(record => record.locationCode?.trim())
+    .find(Boolean)
+  if (!locationCode) return false
+
+  const location = await getLocationByCode(locationCode)
+  if (!location) return false
+  receiptDto.warehouseId = location.warehouseId
+  receiptDto.warehouseCode = location.warehouseCode ?? ''
+  receiptDto.warehouseName = location.warehouseName ?? ''
+  authStore.setCurrentWarehouseId(location.warehouseId)
+  return true
+}
+
+function parseDraftSession(raw: string): PurchaseReceiptDraftSession | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<PurchaseReceiptDraftSession>
+    if (!parsed || typeof parsed !== 'object') return null
+    if (!parsed.draftSessionId || !parsed.requestId || !parsed.receipt || !parsed.sourceDoc) return null
+    if (!Array.isArray(parsed.receipt.details) || !Array.isArray(parsed.sourceDoc.details)) return null
+    return parsed as PurchaseReceiptDraftSession
   } catch {
     return null
   }
@@ -181,14 +245,15 @@ function normalizeRecord(
 
 function toEntryLines(receiptDto: PurchaseReceiptDto): PurchaseReceiptEntryLine[] {
   return receiptDto.details.map((detail) => {
-    const lineKey = detail.sourceDetailId ?? detail.productId
+    const sourceDetailId = detail.sourceAsnLineId ?? detail.sourcePoLineId ?? detail.sourceDetailId ?? null
+    const lineKey = sourceDetailId ?? detail.productId
     const normalizedRecords = (detail.records ?? [])
       .map((record, index) => normalizeRecord(lineKey, record, index))
       .filter((record) => normalizeQuantity(record.quantity) > 0)
 
     const line: PurchaseReceiptEntryLine = {
       purchaseReceiptDetailId: detail.id,
-      sourceDetailId: detail.sourceDetailId ?? null,
+      sourceDetailId,
       productId: detail.productId,
       skuCode: detail.productCode ?? null,
       productCode: detail.productCode ?? null,
@@ -212,6 +277,28 @@ function toEntryLines(receiptDto: PurchaseReceiptDto): PurchaseReceiptEntryLine[
   })
 }
 
+function toDraftEntryLines(draft: PurchaseReceiptDraftSession): PurchaseReceiptEntryLine[] {
+  return draft.receipt.details.map((detail) => {
+    const sourceDetailId = detail.sourceAsnLineId ?? detail.sourcePoLineId ?? detail.sourceDetailId ?? null
+    const source = draft.sourceDoc.details.find(item => item.sourceDetailId === sourceDetailId)
+    return {
+      purchaseReceiptDetailId: null,
+      sourceDetailId,
+      productId: detail.productId,
+      skuCode: source?.skuCode ?? detail.productCode,
+      productCode: detail.productCode,
+      productName: detail.productName,
+      barcode: source?.barcode ?? null,
+      uom: source?.uom ?? null,
+      batchNo: detail.batchNo ?? null,
+      expectedQuantity: normalizeQuantity(detail.expectedQuantity),
+      alreadyReceivedQuantity: 0,
+      totalReceivedQuantity: 0,
+      lpnRecords: [],
+    }
+  })
+}
+
 function resetReceiveDraft() {
   receiveLineId.value = ''
   receiveLocationText.value = ''
@@ -223,6 +310,11 @@ function resetReceiveDraft() {
 }
 
 function openReceiveDialog(lineId: string) {
+  if (isCompleted.value) {
+    showFailToast('该采购收货单已完成，不能继续收货')
+    return
+  }
+
   const line = findLineById(lineId)
   if (!line) {
     return
@@ -240,20 +332,20 @@ function openReceiveDialog(lineId: string) {
 }
 
 async function confirmReceiveDialog(): Promise<boolean> {
-  const line = receiveLine.value
+  let line = receiveLine.value
   if (!line) {
     showFailToast('未找到当前操作明细')
     return false
   }
 
-  const receiptId = receipt.value?.id?.trim() || ''
-  if (!receiptId) {
+  let receiptId = receipt.value?.id?.trim() || ''
+  if (!draftSession.value && !receiptId) {
     showFailToast('未找到采购收货单 Id，请返回创建页重试')
     return false
   }
 
-  const detailId = line.purchaseReceiptDetailId?.trim() || ''
-  if (!detailId) {
+  let detailId = line.purchaseReceiptDetailId?.trim() || ''
+  if (!draftSession.value && !detailId) {
     showFailToast('未找到采购收货明细 Id，无法提交收货记录')
     return false
   }
@@ -306,10 +398,67 @@ async function confirmReceiveDialog(): Promise<boolean> {
 
   receiveSubmitting.value = true
   try {
+    const resolvedLocation = await getLocationByCode(location)
+    if (!resolvedLocation) {
+      showFailToast('目标库位不存在')
+      return false
+    }
+    if (receipt.value?.warehouseId && receipt.value.warehouseId !== resolvedLocation.warehouseId) {
+      showFailToast('目标库位不属于当前收货单仓库')
+      return false
+    }
+    if (draftSession.value) {
+      draftSession.value.receipt.warehouseId = resolvedLocation.warehouseId
+      sessionStorage.setItem(
+        getDraftCacheKey(draftSession.value.draftSessionId),
+        JSON.stringify(draftSession.value),
+      )
+    }
+    authStore.setCurrentWarehouseId(resolvedLocation.warehouseId)
+
     const createdRecords: PurchaseRecordDto[] = []
+    let createdRecordCount = 0
+    let firstPendingIndex = 0
+
+    if (draftSession.value) {
+      const draft = draftSession.value
+      const sourceDetailId = line.sourceDetailId?.trim() || ''
+      if (!sourceDetailId) {
+        showFailToast('当前明细缺少来源明细 Id，无法开始收货')
+        return false
+      }
+
+      const startedReceipt = await startPurchaseReceipt({
+        requestId: draft.requestId,
+        receipt: draft.receipt,
+        sourceAsnLineId: draft.sourceDoc.sourceDocType === 'ASN' ? sourceDetailId : null,
+        sourcePoLineId: draft.sourceDoc.sourceDocType === 'PO' ? sourceDetailId : null,
+        record: singleRecordInput,
+      })
+
+      receipt.value = startedReceipt
+      entryLines.value = toEntryLines(startedReceipt)
+      receiptId = startedReceipt.id
+      line = entryLines.value.find(item => item.sourceDetailId === sourceDetailId)
+      detailId = line?.purchaseReceiptDetailId?.trim() || ''
+      if (!line || !detailId) {
+        throw new Error('首次收货成功但未找到对应收货明细')
+      }
+
+      sessionStorage.setItem(getCacheKey(receiptId), JSON.stringify(startedReceipt))
+      sessionStorage.removeItem(getDraftCacheKey(draft.draftSessionId))
+      draftSession.value = null
+      firstPendingIndex = 1
+      createdRecordCount = 1
+
+      await router.replace({
+        name: 'PurchaseReceiptReceive',
+        params: { receiptId },
+      })
+    }
 
     // 后端返回单条 DTO，这里按件数逐条提交，确保前端展示严格来自返回结果。
-    for (let index = 0; index < pieceCount; index += 1) {
+    for (let index = firstPendingIndex; index < pieceCount; index += 1) {
       const payload: AddPurchaseReceiptRecordsDto = {
         purchaseReceiptId: receiptId,
         detailId,
@@ -318,6 +467,7 @@ async function confirmReceiveDialog(): Promise<boolean> {
 
       const submitted = await addPurchaseReceiptRecords(payload)
       createdRecords.push(...submitted)
+      createdRecordCount += submitted.length
     }
 
     for (const record of createdRecords) {
@@ -329,7 +479,19 @@ async function confirmReceiveDialog(): Promise<boolean> {
     }
 
     syncLineTotal(line)
-    showSuccessToast(`已生成 ${createdRecords.length} 条收货记录`)
+    const persistedDetail = receipt.value?.details.find(item => item.id === detailId)
+    if (persistedDetail && createdRecords.length > 0) {
+      persistedDetail.records.push(...createdRecords)
+      persistedDetail.receivedQuantity = normalizeQuantity(line.totalReceivedQuantity)
+    }
+    if (receipt.value) {
+      if (createdRecordCount > 0) {
+        receipt.value.status = PurchaseReceiptStatus.Receiving
+      }
+      sessionStorage.setItem(getCacheKey(receipt.value.id), JSON.stringify(receipt.value))
+    }
+
+    showSuccessToast(`已生成 ${createdRecordCount} 条收货记录`)
     resetReceiveDraft()
     return true
   } catch (error) {
@@ -360,6 +522,11 @@ function openBatchEditor(lineId: string) {
     return
   }
 
+  if (line.lpnRecords.length > 0) {
+    showFailToast('该明细已收货，批次不能修改')
+    return
+  }
+
   batchEditLineId.value = lineId
   editingBatchText.value = line.batchNo ?? ''
   batchEditorVisible.value = true
@@ -373,6 +540,19 @@ function confirmBatchEditor() {
   }
 
   line.batchNo = editingBatchText.value.trim() || null
+
+  const draft = draftSession.value
+  if (draft) {
+    const draftDetail = draft.receipt.details.find(
+      detail => detail.sourceAsnLineId === line.sourceDetailId
+        || detail.sourcePoLineId === line.sourceDetailId,
+    )
+    if (draftDetail) {
+      draftDetail.batchNo = line.batchNo
+      sessionStorage.setItem(getDraftCacheKey(draft.draftSessionId), JSON.stringify(draft))
+    }
+  }
+
   batchEditorVisible.value = false
 }
 
@@ -392,10 +572,19 @@ function closeLpnDrawer() {
 }
 
 function backToCreate() {
+  const draftSessionId = draftSession.value?.draftSessionId || resolveDraftSessionId()
+  if (draftSessionId) {
+    sessionStorage.removeItem(getDraftCacheKey(draftSessionId))
+  }
   router.replace({ name: 'PurchaseReceiptCreate' })
 }
 
 async function finishReceive() {
+  if (isCompleted.value) {
+    showFailToast('该采购收货单已完成')
+    return
+  }
+
   const receiptId = receipt.value?.id?.trim() || resolveReceiptId()
   if (!receiptId) {
     showFailToast('未找到采购收货单 Id，请返回创建页重试')
@@ -415,7 +604,24 @@ async function finishReceive() {
   }
 }
 
-async function loadReceiptFromCache() {
+async function loadWorkContext() {
+  const draftSessionId = resolveDraftSessionId()
+  if (draftSessionId) {
+    const cachedDraft = sessionStorage.getItem(getDraftCacheKey(draftSessionId))
+    const parsedDraft = cachedDraft ? parseDraftSession(cachedDraft) : null
+    if (!parsedDraft || parsedDraft.draftSessionId !== draftSessionId) {
+      loadErrorText.value = '收货临时会话已失效，请返回重新扫描。'
+      showFailToast(loadErrorText.value)
+      return
+    }
+
+    draftSession.value = parsedDraft
+    receipt.value = null
+    entryLines.value = toDraftEntryLines(parsedDraft)
+    loadErrorText.value = ''
+    return
+  }
+
   const receiptId = resolveReceiptId()
   if (!receiptId) {
     loadErrorText.value = '缺少收货单参数，请返回重新创建。'
@@ -427,15 +633,19 @@ async function loadReceiptFromCache() {
   if (cachedReceipt) {
     const parsedReceipt = parseCachedReceipt(cachedReceipt)
     if (parsedReceipt) {
-      receipt.value = parsedReceipt
-      entryLines.value = toEntryLines(parsedReceipt)
-      loadErrorText.value = ''
-      return
+      if (await establishWarehouseContext(parsedReceipt)) {
+        sessionStorage.setItem(getCacheKey(receiptId), JSON.stringify(parsedReceipt))
+        receipt.value = parsedReceipt
+        entryLines.value = toEntryLines(parsedReceipt)
+        loadErrorText.value = ''
+        return
+      }
     }
   }
 
   try {
     const fetchedReceipt = await getPurchaseReceiptDetail(receiptId)
+    await establishWarehouseContext(fetchedReceipt)
     sessionStorage.setItem(getCacheKey(receiptId), JSON.stringify(fetchedReceipt))
     receipt.value = fetchedReceipt
     entryLines.value = toEntryLines(fetchedReceipt)
@@ -448,21 +658,33 @@ async function loadReceiptFromCache() {
 }
 
 onMounted(() => {
-  void loadReceiptFromCache()
+  void loadWorkContext()
+})
+
+onBeforeRouteLeave(() => {
+  const activeDraft = draftSession.value
+  if (activeDraft) {
+    sessionStorage.removeItem(getDraftCacheKey(activeDraft.draftSessionId))
+  }
 })
 </script>
 
 <template>
   <div class="h-screen flex flex-col bg-gray-100">
-    <main v-if="hasReceipt" class="flex-1 overflow-y-auto pb-32">
+    <main v-if="hasWorkContext" class="flex-1 overflow-y-auto pb-32">
       <section class="bg-white p-4 border-b border-gray-100">
-        <div class="text-xs text-slate-500">采购收货单</div>
-        <div class="mt-1 text-lg font-black text-slate-900 break-all">{{ receiptNo }}</div>
-        <div class="mt-2 text-sm text-slate-600">
+        <template v-if="hasReceipt">
+          <div class="text-xs text-slate-500">采购收货单</div>
+          <div class="mt-1 text-lg font-black text-slate-900 break-all">{{ receiptNo }}</div>
+        </template>
+        <div :class="hasReceipt ? 'mt-2' : ''" class="text-sm text-slate-600">
           来源: {{ sourceDocType }} / {{ sourceDocNo }}
         </div>
         <div class="mt-1 text-sm text-slate-600 break-words">
           供方: {{ supplierText }}
+        </div>
+        <div v-if="hasReceipt" class="mt-1 text-sm" :class="isCompleted ? 'text-green-600' : 'text-sky-600'">
+          状态: {{ receiptStatusLabel }}
         </div>
       </section>
 
@@ -496,6 +718,7 @@ onMounted(() => {
         <button
           type="button"
           class="w-full py-6 rounded bg-gray-50 text-center active:bg-gray-200 transition-colors"
+          :disabled="isCompleted"
           @click="openReceiveDialog(getLineKey(line))"
         >
           <div class="text-4xl font-black leading-none" :class="progressClass(line)">
@@ -509,7 +732,9 @@ onMounted(() => {
         <div class="flex justify-between items-center text-sm gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded break-all"
+            class="px-3 py-1.5 rounded break-all disabled:bg-gray-100 disabled:text-gray-400"
+            :class="line.lpnRecords.length ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600'"
+            :disabled="isCompleted || line.lpnRecords.length > 0"
             @click="openBatchEditor(getLineKey(line))"
           >
             批次: {{ line.batchNo || '点击录入' }}
@@ -552,11 +777,11 @@ onMounted(() => {
           size="large"
           type="primary"
           class="!flex-[2]"
-          :disabled="!hasReceipt || finishingReceive"
+          :disabled="!canFinish || finishingReceive"
           :loading="finishingReceive"
           @click="finishReceive"
         >
-          完成收货
+          {{ isCompleted ? '已完成' : '完成收货' }}
         </van-button>
       </div>
     </footer>
@@ -598,6 +823,7 @@ onMounted(() => {
           clearable
           placeholder="请输入批次号（选填）"
           input-align="right"
+          :readonly="Boolean(receiveLine?.lpnRecords.length)"
           class="!bg-gray-50 !rounded-lg dialog-input"
         />
         <van-field

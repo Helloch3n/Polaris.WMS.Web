@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -269,7 +270,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isUnitPriceRequired, b.isUnitPriceRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isUnitPriceRequired) }, { default: () => formatRequired(row.isUnitPriceRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isUnitPriceRequired) }, { default: () => formatRequired(row.isUnitPriceRequired) }),
   },
   isProjectRequired: {
     title: createDraggableTitle('isProjectRequired', '需要项目'),
@@ -277,7 +278,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isProjectRequired, b.isProjectRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isProjectRequired) }, { default: () => formatRequired(row.isProjectRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isProjectRequired) }, { default: () => formatRequired(row.isProjectRequired) }),
   },
   isDepartmentRequired: {
     title: createDraggableTitle('isDepartmentRequired', '需要部门'),
@@ -285,7 +286,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isDepartmentRequired, b.isDepartmentRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isDepartmentRequired) }, { default: () => formatRequired(row.isDepartmentRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isDepartmentRequired) }, { default: () => formatRequired(row.isDepartmentRequired) }),
   },
   isProductionNoRequired: {
     title: createDraggableTitle('isProductionNoRequired', '需要生产号'),
@@ -293,7 +294,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 130,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isProductionNoRequired, b.isProductionNoRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isProductionNoRequired) }, { default: () => formatRequired(row.isProductionNoRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isProductionNoRequired) }, { default: () => formatRequired(row.isProductionNoRequired) }),
   },
   isWorkOrderOperationRequired: {
     title: createDraggableTitle('isWorkOrderOperationRequired', '需要工单工序'),
@@ -301,7 +302,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 150,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isWorkOrderOperationRequired, b.isWorkOrderOperationRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isWorkOrderOperationRequired) }, { default: () => formatRequired(row.isWorkOrderOperationRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isWorkOrderOperationRequired) }, { default: () => formatRequired(row.isWorkOrderOperationRequired) }),
   },
   isSupplierRequired: {
     title: createDraggableTitle('isSupplierRequired', '需要供应商'),
@@ -309,7 +310,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 130,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isSupplierRequired, b.isSupplierRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isSupplierRequired) }, { default: () => formatRequired(row.isSupplierRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isSupplierRequired) }, { default: () => formatRequired(row.isSupplierRequired) }),
   },
   isCustomerRequired: {
     title: createDraggableTitle('isCustomerRequired', '需要客户'),
@@ -317,7 +318,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isCustomerRequired, b.isCustomerRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isCustomerRequired) }, { default: () => formatRequired(row.isCustomerRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isCustomerRequired) }, { default: () => formatRequired(row.isCustomerRequired) }),
   },
   isWorkOrderAttributeRequired: {
     title: createDraggableTitle('isWorkOrderAttributeRequired', '需要工单属性'),
@@ -325,7 +326,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 150,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isWorkOrderAttributeRequired, b.isWorkOrderAttributeRequired),
-    render: (row) => h(NTag, { size: 'small', type: getRequiredTagType(row.isWorkOrderAttributeRequired) }, { default: () => formatRequired(row.isWorkOrderAttributeRequired) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getRequiredTagType(row.isWorkOrderAttributeRequired) }, { default: () => formatRequired(row.isWorkOrderAttributeRequired) }),
   },
 }
 
@@ -480,7 +481,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 /* eslint-disable vue/no-v-model-argument */
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
@@ -14,8 +15,7 @@ import {
   NPagination,
   NSpace,
   NSwitch,
-  NTag,
-  NTree,
+NTree,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, TreeOption } from 'naive-ui'
@@ -31,16 +31,27 @@ import type {
 } from '../../../api/identity/types'
 import * as permissionApi from '../../../api/permissionManagement/permissions'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { useTableSelection } from '../../../composables/useTableSelection'
 import { compareSortValue } from '../../../utils/tableColumn'
 import { withResizable } from '../../../utils/table'
+import { useAuthStore } from '../../../stores/auth'
 
 type RoleRow = IdentityRoleDto
 
 const message = useMessage()
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const rows = ref<RoleRow[]>([])
-const checkedRowKeys = ref<Array<string | number>>([])
+const {
+  checkedRowKeys,
+  selectedRows,
+  selectedCount,
+  handleCheckedRowKeysChange,
+  syncCheckedRowKeys,
+  toggleSingleRow,
+  clearSelection,
+} = useTableSelection(rows, getRoleRowKey)
 
 const query = reactive({
   filter: '',
@@ -72,11 +83,7 @@ const listParams = computed<GetIdentityRolesParams>(() => ({
   maxResultCount: query.pageSize,
 }))
 
-const selectedRole = computed(() => {
-  const id = checkedRowKeys.value[0]
-  if (!id) return null
-  return rows.value.find((item) => item.id === String(id)) ?? null
-})
+const selectedRole = computed(() => selectedRows.value.length === 1 ? selectedRows.value[0] ?? null : null)
 
 const filteredPermissionTree = computed<TreeOption[]>(() => {
   const keyword = permissionKeyword.value.trim().toLowerCase()
@@ -116,7 +123,7 @@ const columnMap: Record<string, DataTableColumns<RoleRow>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isDefault, b.isDefault),
-    render: (row) => h(NTag, { type: row.isDefault ? 'success' : 'default', size: 'small' }, { default: () => (row.isDefault ? '是' : '否') }),
+    render: (row) => h(WmsStatusTag, { type: row.isDefault ? 'success' : 'default', size: 'small' }, { default: () => (row.isDefault ? '是' : '否') }),
   },
   isPublic: {
     title: createDraggableTitle('isPublic', '公共'),
@@ -124,15 +131,15 @@ const columnMap: Record<string, DataTableColumns<RoleRow>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.isPublic, b.isPublic),
-    render: (row) => h(NTag, { type: row.isPublic ? 'success' : 'default', size: 'small' }, { default: () => (row.isPublic ? '是' : '否') }),
+    render: (row) => h(WmsStatusTag, { type: row.isPublic ? 'success' : 'default', size: 'small' }, { default: () => (row.isPublic ? '是' : '否') }),
   },
 }
 
 const columns = computed<DataTableColumns<RoleRow>>(() => withResizable([
   {
     type: 'selection',
-    width: 48,
-    multiple: false,
+    fixed: 'left',
+    width: 44,
   },
   ...columnSettings.value
     .filter((item) => item.visible)
@@ -156,11 +163,7 @@ async function loadData() {
     const data = await rolesApi.getList(listParams.value)
     rows.value = data.items ?? []
     query.total = data.totalCount ?? 0
-
-    const selectedId = checkedRowKeys.value[0] ? String(checkedRowKeys.value[0]) : ''
-    if (selectedId && !rows.value.some((item) => item.id === selectedId)) {
-      checkedRowKeys.value = []
-    }
+    syncCheckedRowKeys()
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载角色列表失败')
   } finally {
@@ -202,16 +205,6 @@ function openPermissionDrawerSelected() {
     return
   }
   openPermissionDrawer(selectedRole.value)
-}
-
-function handleCheckedRowKeys(keys: Array<string | number>) {
-  if (keys.length <= 1) {
-    checkedRowKeys.value = keys
-    return
-  }
-
-  const lastKey = keys[keys.length - 1]
-  checkedRowKeys.value = lastKey === undefined ? [] : [lastKey]
 }
 
 function getRoleRowKey(row: RoleRow) {
@@ -417,6 +410,7 @@ async function savePermissions() {
         })),
       },
     )
+    await authStore.loadApplicationConfiguration(true)
     message.success('保存权限成功')
     permissionDrawerVisible.value = false
   } catch (e) {
@@ -433,12 +427,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>
@@ -472,8 +466,9 @@ onMounted(() => {
         :data="rows"
         :row-key="getRoleRowKey"
         :checked-row-keys="checkedRowKeys"
+        :row-props="(row) => ({ onClick: (event) => toggleSingleRow(row, event) })"
         :bordered="false"
-        @update:checked-row-keys="handleCheckedRowKeys"
+        @update:checked-row-keys="handleCheckedRowKeysChange"
       />
     </template>
 

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   NButton,
   NDataTable,
@@ -8,8 +10,7 @@ import {
   NInput,
   NModal,
   NSelect,
-  NTag,
-  useDialog,
+useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules, SelectOption } from 'naive-ui'
@@ -18,6 +19,7 @@ import * as PutawayService from '../../../api/putaway/putaway'
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 
@@ -27,6 +29,7 @@ type TaskRow = PutawayService.PutawayTaskDto
 
 const message = useMessage()
 const dialog = useDialog()
+const route = useRoute()
 
 const activeTab = ref<'source' | 'tasks' | 'all'>('source')
 
@@ -35,6 +38,42 @@ const sourceRows = ref<AvailableContainerRow[]>([])
 
 const taskLoading = ref(false)
 const taskRows = ref<TaskRow[]>([])
+
+const sourceSelection = useTableSelection(sourceRows, (row) => row.containerNo)
+const taskSelection = useTableSelection(taskRows, (row) => row.id)
+const selectedSource = computed(
+  () => sourceSelection.selectedCount.value === 1 ? sourceSelection.selectedRows.value[0] : undefined,
+)
+const selectedTask = computed(
+  () => taskSelection.selectedCount.value === 1 ? taskSelection.selectedRows.value[0] : undefined,
+)
+const selectedCount = computed(() =>
+  activeTab.value === 'source'
+    ? sourceSelection.selectedCount.value
+    : taskSelection.selectedCount.value,
+)
+
+function getSourceRowKey(row: AvailableContainerRow) {
+  return row.containerNo
+}
+
+function getTaskRowKey(row: TaskRow) {
+  return row.id
+}
+
+const canCompleteSelected = computed(() => {
+  if (!selectedTask.value) return false
+  const status = getStatus(selectedTask.value.status)
+  return status === 'Pending' || status === 'InProgress'
+})
+
+function clearCurrentSelection() {
+  if (activeTab.value === 'source') {
+    sourceSelection.clearSelection()
+  } else {
+    taskSelection.clearSelection()
+  }
+}
 const taskStatusOptions = computed<SelectOption[]>(() => {
   if (activeTab.value === 'tasks') {
     return [
@@ -145,6 +184,7 @@ async function loadSource() {
     const res = await PutawayService.getAvailableContainers({
     })
     sourceRows.value = res.items ?? []
+    sourceSelection.syncCheckedRowKeys()
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载待上架资源失败')
   } finally {
@@ -196,6 +236,7 @@ async function loadTasks() {
       containerNo: taskQuery.containerNo.trim() || undefined,
     })
     taskRows.value = res.items ?? []
+    taskSelection.syncCheckedRowKeys()
     taskQuery.total = res.totalCount ?? 0
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载任务失败')
@@ -293,6 +334,7 @@ function onTabChange(name: string) {
 
 function switchTab(tab: 'source' | 'tasks' | 'all') {
   if (activeTab.value === tab) return
+  clearCurrentSelection()
   onTabChange(tab)
 }
 
@@ -331,22 +373,15 @@ const sourceColumnMap: Record<string, DataTableColumns<AvailableContainerRow>[nu
 }
 
 const sourceColumns = computed<DataTableColumns<AvailableContainerRow>>(() => withResizable([
+  {
+    type: 'selection',
+    fixed: 'left',
+    width: 44,
+  },
   ...sourceColumnConfig.columnSettings.value
     .filter((item) => item.visible)
     .map((item) => sourceColumnMap[item.key])
     .filter((item): item is DataTableColumns<AvailableContainerRow>[number] => Boolean(item)),
-  {
-    title: '操作',
-    key: 'actions',
-    width: 140,
-    align: 'center',
-    render: (row: AvailableContainerRow) =>
-      h(
-        NButton,
-        { size: 'small', type: 'primary', onClick: () => createTask(row) },
-        { default: () => '生成任务' },
-      ),
-  },
 ]))
 
 const taskColumnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
@@ -387,7 +422,7 @@ const taskColumnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
     render: (row: TaskRow) => {
       const status = getStatus(row.status)
       return h(
-        NTag,
+        WmsStatusTag,
         { type: getStatusType(status), size: 'small' },
         { default: () => getStatusText(status) },
       )
@@ -403,26 +438,15 @@ const taskColumnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
 }
 
 const taskColumns = computed<DataTableColumns<TaskRow>>(() => withResizable([
+  {
+    type: 'selection',
+    fixed: 'left',
+    width: 44,
+  },
   ...taskColumnConfig.columnSettings.value
     .filter((item) => item.visible)
     .map((item) => taskColumnMap[item.key])
     .filter((item): item is DataTableColumns<TaskRow>[number] => Boolean(item)),
-  {
-    title: '操作',
-    key: 'actions',
-    width: 140,
-    align: 'center',
-    render: (row: TaskRow) => {
-      const status = getStatus(row.status)
-      const canComplete = status === 'Pending' || status === 'InProgress'
-      if (!canComplete) return h('span', '-')
-      return h(
-        NButton,
-        { size: 'small', type: 'success', onClick: () => openCompleteModal(row) },
-        { default: () => '完成上架' },
-      )
-    },
-  },
 ]))
 
 function handleSourceColumnConfigShowChange(value: boolean) {
@@ -448,18 +472,26 @@ function handleTaskColumnVisibleChange(key: string, visible: boolean) {
 onMounted(async () => {
   sourceColumnConfig.loadColumnSettings()
   taskColumnConfig.loadColumnSettings()
+  const tab = route.query.tab
+  const status = route.query.status
+  if ((tab === 'tasks' || tab === 'all') && typeof status === 'string') {
+    activeTab.value = tab
+    taskQuery.status = status
+    await loadTasks()
+    return
+  }
   await loadSource()
 })
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearCurrentSelection">
     <template #search>
       <n-form inline class="crud-search-form" @submit.prevent="onQueryTasks">
         <template v-if="activeTab === 'source'">
           <n-form-item class="crud-page-spacer" />
           <n-form-item>
-            <n-button type="primary" :loading="sourceLoading" @click="onQuerySource">查询</n-button>
+            <n-button :loading="sourceLoading" @click="onQuerySource">查询</n-button>
           </n-form-item>
           <n-form-item>
             <n-button :loading="sourceLoading" @click="onResetSource">重置</n-button>
@@ -496,7 +528,7 @@ onMounted(async () => {
           </n-form-item>
           <n-form-item class="crud-page-spacer" />
           <n-form-item>
-            <n-button type="primary" :loading="taskLoading" @click="onQueryTasks">查询</n-button>
+            <n-button :loading="taskLoading" @click="onQueryTasks">查询</n-button>
           </n-form-item>
           <n-form-item>
             <n-button :disabled="taskLoading" @click="onResetTasks">重置</n-button>
@@ -510,6 +542,28 @@ onMounted(async () => {
         <n-button :type="activeTab === 'source' ? 'primary' : 'default'" @click="switchTab('source')">待上架资源</n-button>
         <n-button :type="activeTab === 'tasks' ? 'primary' : 'default'" @click="switchTab('tasks')">执行任务</n-button>
         <n-button :type="activeTab === 'all' ? 'primary' : 'default'" @click="switchTab('all')">全部</n-button>
+        <n-button
+          v-if="activeTab === 'source'"
+          type="primary"
+          :disabled="!selectedSource"
+          @click="selectedSource && createTask(selectedSource)"
+        >
+          生成任务
+        </n-button>
+        <n-button
+          v-else
+          type="success"
+          :disabled="!canCompleteSelected"
+          @click="selectedTask && openCompleteModal(selectedTask)"
+        >
+          完成上架
+        </n-button>
+        <n-button
+          :loading="activeTab === 'source' ? sourceLoading : taskLoading"
+          @click="activeTab === 'source' ? loadSource() : onRefreshTasks()"
+        >
+          刷新
+        </n-button>
       </div>
     </template>
 
@@ -539,7 +593,13 @@ onMounted(async () => {
         :loading="sourceLoading"
         :columns="sourceColumns"
         :data="sourceRows"
+        :row-key="getSourceRowKey"
+        :checked-row-keys="sourceSelection.checkedRowKeys.value"
         :bordered="false"
+        :row-props="(row) => ({
+          onClick: (event) => sourceSelection.toggleSingleRow(row, event),
+        })"
+        @update:checked-row-keys="sourceSelection.handleCheckedRowKeysChange"
       />
       <n-data-table
         v-else
@@ -547,7 +607,13 @@ onMounted(async () => {
         :loading="taskLoading"
         :columns="taskColumns"
         :data="taskRows"
+        :row-key="getTaskRowKey"
+        :checked-row-keys="taskSelection.checkedRowKeys.value"
         :bordered="false"
+        :row-props="(row) => ({
+          onClick: (event) => taskSelection.toggleSingleRow(row, event),
+        })"
+        @update:checked-row-keys="taskSelection.handleCheckedRowKeysChange"
       />
     </template>
 

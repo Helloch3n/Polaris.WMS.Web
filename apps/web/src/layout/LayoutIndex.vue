@@ -14,57 +14,56 @@ import {
   NSelect,
 } from 'naive-ui'
 import {
-  ArchiveOutline,
-  BagAddOutline,
-  BagCheckOutline,
-  BagHandleOutline,
-  BarcodeOutline,
-  BrowsersOutline,
-  BusinessOutline,
-  CashOutline,
-  CartOutline,
-  CheckmarkDoneCircleOutline,
-  CloseCircleOutline,
-  CloseOutline as CloseIcon,
-  ChevronBackOutline,
-  ChevronForwardOutline,
-  ClipboardOutline,
-  ConstructOutline,
-  CubeOutline,
-  DocumentTextOutline,
-  FileTrayFullOutline,
-  FileTrayStackedOutline,
-  GitBranchOutline,
-  GitCompareOutline,
-  GitMergeOutline,
-  GitNetworkOutline,
-  GridOutline,
-  HomeOutline,
-  LayersOutline,
-  ListCircleOutline,
-  LocateOutline,
-  LogOutOutline as LogoutIcon,
-  MenuOutline as MenuIcon,
-  MoonOutline as MoonIcon,
-  NavigateCircleOutline,
-  PeopleOutline,
-  PersonOutline,
-  RefreshOutline,
-  ReaderOutline,
-  ReceiptOutline,
-  ServerOutline,
-  SettingsOutline,
-  ShieldCheckmarkOutline,
-  ShieldOutline,
-  StatsChartOutline,
-  StorefrontOutline,
-  SunnyOutline as SunIcon,
-  SwapHorizontalOutline,
-  SyncOutline,
-  TrailSignOutline,
-  TrashBinOutline,
-  WalletOutline,
-} from '@vicons/ionicons5'
+  ArchiveBoxIcon,
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  ArrowRightStartOnRectangleIcon as LogoutIcon,
+  ArrowUpTrayIcon,
+  ArrowUturnLeftIcon,
+  ArrowsRightLeftIcon,
+  BanknotesIcon,
+  Bars3Icon as MenuIcon,
+  BookOpenIcon,
+  BuildingOffice2Icon,
+  BuildingStorefrontIcon,
+  ChartBarIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CircleStackIcon,
+  ClipboardDocumentListIcon,
+  Cog6ToothIcon,
+  ComputerDesktopIcon,
+  CubeIcon,
+  DocumentCheckIcon,
+  DocumentTextIcon,
+  HomeIcon,
+  InboxStackIcon,
+  ListBulletIcon,
+  MapPinIcon,
+  MagnifyingGlassIcon,
+  MoonIcon,
+  PaperAirplaneIcon,
+  QrCodeIcon,
+  RectangleGroupIcon,
+  ServerIcon,
+  ShareIcon,
+  ShieldCheckIcon,
+  ShoppingBagIcon,
+  ShoppingCartIcon,
+  Square3Stack3DIcon,
+  Squares2X2Icon,
+  SunIcon,
+  TrashIcon,
+  TruckIcon,
+  UserGroupIcon,
+  UserIcon,
+  WalletIcon,
+  WrenchScrewdriverIcon,
+  XCircleIcon,
+  XMarkIcon as CloseIcon,
+} from '@heroicons/vue/24/outline'
 import type { MenuOption, SelectOption } from 'naive-ui'
 import { useAuthStore } from '../stores/auth'
 import { useTabsStore } from '../stores/tabs'
@@ -72,7 +71,7 @@ import { useSettingsStore } from '../stores/settings'
 import { organizationUnitsApi } from '../api/identity'
 import * as warehouseApi from '../api/masterData/warehouse'
 import * as usersApi from '../api/identity/users'
-import polarisLogoUrl from '../assets/polaris-logo.svg'
+import PolarisLogo from '../components/PolarisLogo.vue'
 import request from '../utils/request'
 import CommandPalette from '../components/CommandPalette.vue'
 
@@ -81,6 +80,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const tabsStore = useTabsStore()
 const settingsStore = useSettingsStore()
+const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null)
 
 function unwrapMaybeRef<T>(source: T | { value: T }): T {
   if (source && typeof source === 'object' && 'value' in source) {
@@ -247,7 +247,7 @@ async function loadCurrentUserDepartments() {
     }))
 
     departmentOptions.value = canViewAllDepartments.value
-      ? [{ label: '全部车间', value: '' }, ...baseOptions]
+      ? [{ label: '全部部门', value: '' }, ...baseOptions]
       : baseOptions
 
     if (!departmentOptions.value.length) {
@@ -273,8 +273,13 @@ async function loadCurrentUserDepartments() {
 }
 
 const isCollapsed = ref(false)
+const isMenuCollapsed = ref(false)
+const desiredCollapsed = ref(false)
+const expandedMenuKeys = ref<Array<string | number>>([])
 const refreshKey = ref(0)
 const viewKey = computed(() => `${route.fullPath}-${refreshKey.value}`)
+let siderTransitionVersion = 0
+let expandFrameId: number | null = null
 
 type AppMenuOption = MenuOption & {
   requiredPolicy?: string
@@ -282,49 +287,52 @@ type AppMenuOption = MenuOption & {
 }
 
 const menuIconByPath = new Map<string, any>([
-  ['/master-data', BusinessOutline],
-  ['/master-data/product', CubeOutline],
-  ['/master-data/supplier', StorefrontOutline],
-  ['/master-data/warehouse', HomeOutline],
-  ['/master-data/zone', GridOutline],
-  ['/master-data/location', LocateOutline],
-  ['/master-data/account-alias', WalletOutline],
-  ['/master-data/cost-center', CashOutline],
-  ['/inboundManagement', BagAddOutline],
-  ['/inboundManagement/purchase-receipt', ReceiptOutline],
-  ['/inboundManagement/asn', BarcodeOutline],
-  ['/inboundManagement/purchase-order', ClipboardOutline],
-  ['/inboundManagement/production-inbound', FileTrayFullOutline],
-  ['/inboundManagement/return', SwapHorizontalOutline],
-  ['/inboundManagement/misc-inbound-orders', ArchiveOutline],
-  ['/inboundManagement/putaway', NavigateCircleOutline],
-  ['/internalManagement', ConstructOutline],
-  ['/internalManagement/move-task', GitCompareOutline],
-  ['/internalManagement/routing-strategy', GitBranchOutline],
-  ['/internalManagement/order', SwapHorizontalOutline],
-  ['/internalManagement/stocktake', CheckmarkDoneCircleOutline],
-  ['/internalManagement/pallet-merge', GitMergeOutline],
-  ['/outboundManagement', BagCheckOutline],
-  ['/outboundManagement/sales-order', CartOutline],
-  ['/outboundManagement/sales-shipment', BagHandleOutline],
-  ['/outboundManagement/wave', StatsChartOutline],
-  ['/outboundManagement/pick-list', ListCircleOutline],
-  ['/outboundManagement/pick-task', CheckmarkDoneCircleOutline],
-  ['/outboundManagement/review', ShieldCheckmarkOutline],
-  ['/outboundManagement/handover', TrailSignOutline],
-  ['/outboundManagement/misc-outbound-orders', ArchiveOutline],
-  ['/inventoryManagement', FileTrayStackedOutline],
-  ['/inventoryManagement/container', CubeOutline],
-  ['/inventoryManagement/inventory', LayersOutline],
-  ['/inventoryManagement/transactions', ReaderOutline],
-  ['/inventoryManagement/allocation', GitNetworkOutline],
-  ['/system', SettingsOutline],
-  ['/system/role', ShieldOutline],
-  ['/system/organization-unit', PeopleOutline],
-  ['/system/user', PersonOutline],
-  ['/system/data-sync-task', SyncOutline],
-  ['/system/operation-log', DocumentTextOutline],
-  ['/system/interface-log', ServerOutline],
+  ['/master-data', BuildingOffice2Icon],
+  ['/master-data/product', CubeIcon],
+  ['/master-data/supplier', BuildingStorefrontIcon],
+  ['/master-data/customer', UserGroupIcon],
+  ['/master-data/warehouse', HomeIcon],
+  ['/master-data/zone', Squares2X2Icon],
+  ['/master-data/location', MapPinIcon],
+  ['/master-data/account-alias', WalletIcon],
+  ['/master-data/cost-center', BanknotesIcon],
+  ['/inboundManagement', ArrowDownTrayIcon],
+  ['/inboundManagement/purchase-receipt', DocumentCheckIcon],
+  ['/inboundManagement/asn', QrCodeIcon],
+  ['/inboundManagement/purchase-order', ClipboardDocumentListIcon],
+  ['/inboundManagement/production-inbound', InboxStackIcon],
+  ['/inboundManagement/return', ArrowsRightLeftIcon],
+  ['/inboundManagement/misc-inbound-orders', ArchiveBoxIcon],
+  ['/inboundManagement/putaway', PaperAirplaneIcon],
+  ['/internalManagement', WrenchScrewdriverIcon],
+  ['/internalManagement/move-task', ArrowsRightLeftIcon],
+  ['/internalManagement/routing-strategy', ShareIcon],
+  ['/internalManagement/order', ArrowsRightLeftIcon],
+  ['/internalManagement/stocktake', CheckCircleIcon],
+  ['/internalManagement/pallet-merge', Square3Stack3DIcon],
+  ['/outboundManagement', ArrowUpTrayIcon],
+  ['/outboundManagement/sales-order', ShoppingCartIcon],
+  ['/outboundManagement/sales-delivery-plan', DocumentTextIcon],
+  ['/outboundManagement/sales-allocation-order', ShoppingBagIcon],
+  ['/outboundManagement/wave', ChartBarIcon],
+  ['/outboundManagement/pick-list', ListBulletIcon],
+  ['/outboundManagement/pick-task', CheckCircleIcon],
+  ['/outboundManagement/review', ShieldCheckIcon],
+  ['/outboundManagement/handover', TruckIcon],
+  ['/outboundManagement/purchase-return', ArrowUturnLeftIcon],
+  ['/outboundManagement/misc-outbound-orders', ArchiveBoxIcon],
+  ['/inventoryManagement', CircleStackIcon],
+  ['/inventoryManagement/container', CubeIcon],
+  ['/inventoryManagement/inventory', Square3Stack3DIcon],
+  ['/inventoryManagement/transactions', BookOpenIcon],
+  ['/inventoryManagement/allocation', ShareIcon],
+  ['/system', Cog6ToothIcon],
+  ['/system/role', ShieldCheckIcon],
+  ['/system/organization-unit', UserGroupIcon],
+  ['/system/user', UserIcon],
+  ['/system/data-sync-task', ArrowPathIcon],
+  ['/system/operation-log', DocumentTextIcon],
+  ['/system/interface-log', ServerIcon],
 ])
 
 function renderMenuIcon(path: string) {
@@ -414,6 +422,11 @@ const menuOptions = computed(() => {
   return buildMenuFromRoutes(children, '/')
 })
 
+function getMenuNodeProps(option: MenuOption) {
+  const isRootMenuEntry = menuOptions.value.some((rootOption) => rootOption.key === option.key)
+  return isRootMenuEntry ? { class: 'root-menu-entry' } : {}
+}
+
 async function onLogout() {
   await authStore.logout({ redirect: true })
 }
@@ -452,12 +465,37 @@ function renderDropdownIcon(icon: any) {
   return () => h(NIcon, { size: 15 }, { default: () => h(icon) })
 }
 
+function renderThemeOptionLabel(label: string, selected: boolean) {
+  return () => h(
+    'div',
+    {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '24px',
+        minWidth: '104px',
+      },
+    },
+    [
+      h('span', label),
+      selected
+        ? h(
+            NIcon,
+            { size: 16, color: 'var(--wms-text-primary)' },
+            { default: () => h(CheckIcon) },
+          )
+        : null,
+    ],
+  )
+}
+
 const contextMenuOptions = [
-  { label: '刷新当前', key: 'refresh-current', icon: renderDropdownIcon(RefreshOutline) },
+  { label: '刷新当前', key: 'refresh-current', icon: renderDropdownIcon(ArrowPathIcon) },
   { type: 'divider', key: 'divider-refresh' },
-  { label: '关闭当前', key: 'close-current', icon: renderDropdownIcon(CloseCircleOutline) },
-  { label: '关闭其他', key: 'close-others', icon: renderDropdownIcon(BrowsersOutline) },
-  { label: '关闭所有', key: 'close-all', icon: renderDropdownIcon(TrashBinOutline), props: { class: 'is-danger' } },
+  { label: '关闭当前', key: 'close-current', icon: renderDropdownIcon(XCircleIcon) },
+  { label: '关闭其他', key: 'close-others', icon: renderDropdownIcon(RectangleGroupIcon) },
+  { label: '关闭所有', key: 'close-all', icon: renderDropdownIcon(TrashIcon), props: { class: 'is-danger' } },
 ]
 
 function getContextMenuProps() {
@@ -567,18 +605,108 @@ function scrollTabs(direction: 'left' | 'right') {
 let tabsResizeObserver: ResizeObserver | null = null
 
 // ---- 用户下拉菜单 ----
-const userDropdownOptions = [
-  { label: '退出登录', key: 'logout', icon: () => h(NIcon, { size: 14 }, { default: () => h(LogoutIcon) }) },
-]
+const userDropdownOptions = computed(() => [
+  {
+    label: username.value,
+    key: 'account',
+    disabled: true,
+    icon: renderDropdownIcon(UserIcon),
+  },
+  { type: 'divider', key: 'divider-account' },
+  {
+    label: `主题：${settingsStore.themeLabel}`,
+    key: 'theme',
+    icon: renderDropdownIcon(
+      settingsStore.themePreference === 'system'
+        ? ComputerDesktopIcon
+        : settingsStore.themePreference === 'dark'
+          ? MoonIcon
+          : SunIcon,
+    ),
+    children: [
+      {
+        label: renderThemeOptionLabel('亮色', settingsStore.themePreference === 'light'),
+        key: 'theme-light',
+        icon: renderDropdownIcon(SunIcon),
+      },
+      {
+        label: renderThemeOptionLabel('暗色', settingsStore.themePreference === 'dark'),
+        key: 'theme-dark',
+        icon: renderDropdownIcon(MoonIcon),
+      },
+      {
+        label: renderThemeOptionLabel('系统', settingsStore.themePreference === 'system'),
+        key: 'theme-system',
+        icon: renderDropdownIcon(ComputerDesktopIcon),
+      },
+    ],
+  },
+  { type: 'divider', key: 'divider-theme' },
+  { label: '退出登录', key: 'logout', icon: renderDropdownIcon(LogoutIcon) },
+])
 
 function handleUserDropdownSelect(key: string) {
-  if (key === 'logout') {
+  if (key === 'theme-light') {
+    settingsStore.setThemePreference('light')
+  } else if (key === 'theme-dark') {
+    settingsStore.setThemePreference('dark')
+  } else if (key === 'theme-system') {
+    settingsStore.setThemePreference('system')
+  } else if (key === 'logout') {
     onLogout()
   }
 }
 
 function toggleSider() {
-  isCollapsed.value = !isCollapsed.value
+  desiredCollapsed.value = !desiredCollapsed.value
+  const transitionVersion = ++siderTransitionVersion
+
+  if (expandFrameId !== null) {
+    window.cancelAnimationFrame(expandFrameId)
+    expandFrameId = null
+  }
+
+  if (desiredCollapsed.value) {
+    expandedMenuKeys.value = []
+    if (isCollapsed.value) {
+      isMenuCollapsed.value = true
+      return
+    }
+    isCollapsed.value = true
+    return
+  }
+
+  // 先恢复固定画布中的完整菜单，再从下一帧开始向右打开裁剪窗口。
+  isMenuCollapsed.value = false
+  nextTick(() => {
+    if (transitionVersion !== siderTransitionVersion || desiredCollapsed.value) return
+    expandFrameId = window.requestAnimationFrame(() => {
+      expandFrameId = null
+      if (transitionVersion !== siderTransitionVersion || desiredCollapsed.value) return
+      isCollapsed.value = false
+    })
+  })
+}
+
+function handleSiderAfterLeave() {
+  if (!desiredCollapsed.value || !isCollapsed.value) return
+  expandedMenuKeys.value = []
+  isMenuCollapsed.value = true
+}
+
+function handleSiderAfterEnter() {
+  if (desiredCollapsed.value || isCollapsed.value) return
+  isMenuCollapsed.value = false
+}
+
+function handleMenuExpandedKeys(keys: Array<string | number>) {
+  if (!isMenuCollapsed.value) {
+    expandedMenuKeys.value = keys
+  }
+}
+
+function openCommandPalette() {
+  commandPaletteRef.value?.open()
 }
 
 onMounted(() => {
@@ -596,6 +724,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (expandFrameId !== null) {
+    window.cancelAnimationFrame(expandFrameId)
+    expandFrameId = null
+  }
   const el = tabsScrollRef.value
   if (el) el.removeEventListener('scroll', checkTabsOverflow)
   tabsResizeObserver?.disconnect()
@@ -606,36 +738,82 @@ onBeforeUnmount(() => {
   <n-layout class="layout" has-sider>
     <!-- ========== 侧边栏 ========== -->
     <n-layout-sider width="216" :collapsed-width="60" :collapsed="isCollapsed" collapse-mode="width" class="sidebar"
-      :class="{ collapsed: isCollapsed }" bordered>
-      <div class="logo-wrap">
-        <!-- Expanded State -->
-        <template v-if="!isCollapsed">
-          <span class="logo-text">极星仓储</span>
-          <n-button class="sider-toggle-btn" size="small" quaternary @click="toggleSider">
-            <template #icon>
-              <n-icon size="16">
-                <MenuIcon />
-              </n-icon>
-            </template>
-          </n-button>
-        </template>
+      content-class="sidebar-content" :class="{ collapsed: isCollapsed, 'menu-collapsed': isMenuCollapsed }"
+      bordered @after-enter="handleSiderAfterEnter" @after-leave="handleSiderAfterLeave">
+      <div class="sidebar-canvas">
+        <div class="logo-wrap">
+          <div class="expanded-logo-content" :aria-hidden="isCollapsed">
+            <span class="logo-text">极星仓储</span>
+            <n-button class="sider-toggle-btn" size="small" quaternary @click="toggleSider">
+              <template #icon>
+                <n-icon size="16">
+                  <MenuIcon />
+                </n-icon>
+              </template>
+            </n-button>
+          </div>
 
-        <!-- Collapsed State -->
-        <template v-else>
-          <div class="collapsed-logo-container" @click="toggleSider">
-            <img class="brand-logo-collapsed" :src="polarisLogoUrl" alt="logo" />
+          <button
+            type="button"
+            class="collapsed-logo-container"
+            :aria-hidden="!isCollapsed"
+            :tabindex="isCollapsed ? 0 : -1"
+            aria-label="展开菜单栏"
+            @click="toggleSider"
+          >
+            <PolarisLogo class="brand-logo-collapsed" />
             <div class="hover-icon-overlay">
               <n-icon size="16">
                 <MenuIcon />
               </n-icon>
             </div>
-          </div>
-        </template>
+          </button>
+        </div>
+
+        <n-menu
+          class="menu"
+          :options="menuOptions"
+          :collapsed="isMenuCollapsed"
+          :value="route.path"
+          :expanded-keys="isMenuCollapsed ? [] : expandedMenuKeys"
+          :collapsed-width="60"
+          :icon-size="17"
+          :collapsed-icon-size="17"
+          :root-indent="14.5"
+          :node-props="getMenuNodeProps"
+          @update:value="onMenuUpdate"
+          @update:expanded-keys="handleMenuExpandedKeys"
+        />
+
+        <div v-if="isMenuCollapsed" class="collapsed-sidebar-footer">
+          <n-button
+            class="collapsed-search-btn"
+            quaternary
+            circle
+            title="查找（⌘K）"
+            @click="openCommandPalette"
+          >
+            <template #icon>
+              <n-icon size="18"><MagnifyingGlassIcon /></n-icon>
+            </template>
+          </n-button>
+        </div>
+
+        <div class="sidebar-account">
+          <n-dropdown
+            placement="right-end"
+            :options="userDropdownOptions"
+            trigger="click"
+            @select="handleUserDropdownSelect"
+          >
+            <button class="user-account-trigger" type="button" :aria-label="`账户：${username}`">
+              <span class="user-avatar">{{ username.charAt(0).toUpperCase() }}</span>
+              <span class="sidebar-account-name">{{ username }}</span>
+              <span class="user-hover-name" role="tooltip">{{ username }}</span>
+            </button>
+          </n-dropdown>
+        </div>
       </div>
-
-      <n-menu class="menu" :options="menuOptions" :collapsed="isCollapsed" :value="route.path"
-        @update:value="onMenuUpdate" :collapsed-width="60" />
-
     </n-layout-sider>
 
     <n-layout>
@@ -644,7 +822,7 @@ onBeforeUnmount(() => {
         <div class="header-left">
           <div class="header-tabs">
             <n-button v-show="showScrollLeft" class="tab-scroll-btn tab-scroll-left" text size="tiny" @click="scrollTabs('left')">
-              <n-icon size="14"><ChevronBackOutline /></n-icon>
+              <n-icon size="14"><ChevronLeftIcon /></n-icon>
             </n-button>
             <div ref="tabsScrollRef" class="tabs-scroll" @scroll="checkTabsOverflow">
               <div
@@ -673,7 +851,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <n-button v-show="showScrollRight" class="tab-scroll-btn tab-scroll-right" text size="tiny" @click="scrollTabs('right')">
-              <n-icon size="14"><ChevronForwardOutline /></n-icon>
+              <n-icon size="14"><ChevronRightIcon /></n-icon>
             </n-button>
           </div>
         </div>
@@ -681,10 +859,10 @@ onBeforeUnmount(() => {
         <div class="header-right">
           <div class="work-context">
             <div class="context-field">
-              <span class="context-label">仓库</span>
               <n-select
                 class="warehouse-select context-select"
                 size="tiny"
+                aria-label="仓库"
                 :value="currentWarehouseId"
                 :options="warehouseOptions"
                 :loading="warehouseLoading"
@@ -694,38 +872,21 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <div class="context-divider" />
-
             <div class="context-field">
-              <span class="context-label">车间</span>
               <n-select
                 class="department-select context-select"
                 size="tiny"
+                aria-label="部门"
                 :value="currentDepartmentId"
                 :options="departmentOptions"
                 :loading="departmentLoading"
                 clearable
-                placeholder="全部车间"
+                placeholder="全部部门"
                 @update:value="handleDepartmentChange"
               />
             </div>
           </div>
 
-          <n-button class="theme-toggle-btn" size="small" quaternary circle title="切换主题" @click="settingsStore.toggleTheme">
-            <template #icon>
-              <n-icon size="16">
-                <SunIcon v-if="settingsStore.theme === 'dark'" />
-                <MoonIcon v-else />
-              </n-icon>
-            </template>
-          </n-button>
-
-          <n-dropdown placement="bottom-end" :options="userDropdownOptions" trigger="click" @select="handleUserDropdownSelect">
-            <div class="user-badge" style="cursor: pointer;">
-              <div class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
-              <span class="user-name">{{ username }}</span>
-            </div>
-          </n-dropdown>
         </div>
       </n-layout-header>
 
@@ -745,7 +906,7 @@ onBeforeUnmount(() => {
       </n-layout-content>
     </n-layout>
   </n-layout>
-  <CommandPalette />
+  <CommandPalette ref="commandPaletteRef" />
 </template>
 
 <style scoped>
@@ -767,24 +928,57 @@ onBeforeUnmount(() => {
               8px 0 22px rgba(15, 23, 42, 0.03) !important;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start !important;
+  overflow: hidden !important;
   background-color: var(--wms-surface-sider);
 }
 
-.sidebar.collapsed .logo-wrap {
-  justify-content: center;
-  padding: 0;
+/* 动态侧栏只是裁剪窗口，内部画布始终保持展开宽度。 */
+.sidebar :deep(.sidebar-content) {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: clip !important;
+}
+
+.sidebar-canvas {
+  display: flex;
+  flex: 0 0 216px;
+  flex-direction: column;
+  width: 216px;
+  min-width: 216px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Logo 区域 */
 .logo-wrap {
+  position: relative;
+  width: 216px;
   height: 48px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.expanded-logo-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 216px;
+  height: 48px;
+  box-sizing: border-box;
   padding: 0 10px 0 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--wms-border-subtle) 86%, transparent);
-  flex-shrink: 0;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.1s ease;
+}
+
+.sidebar.collapsed .expanded-logo-content {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .logo-text {
@@ -799,45 +993,62 @@ onBeforeUnmount(() => {
 }
 
 .sider-toggle-btn {
+  --n-color-hover: var(--wms-surface-hover) !important;
+  --n-color-pressed: var(--wms-surface-hover) !important;
+  --n-text-color-hover: var(--wms-text-primary) !important;
+  --n-text-color-pressed: var(--wms-text-primary) !important;
   width: 32px;
   height: 32px;
   flex-shrink: 0;
   border-radius: 8px;
-  color: var(--wms-text-secondary);
+  color: var(--wms-text-primary);
   transition: color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
 }
 
 .sider-toggle-btn:hover {
-  color: var(--wms-brand);
-  background: var(--wms-brand-subtle);
+  color: var(--wms-text-primary);
+  background: var(--wms-surface-hover);
 }
 
 /* 折叠状态下的 Logo 容器及悬浮切换 */
 .collapsed-logo-container {
-  position: relative;
+  position: absolute;
+  top: 8px;
+  left: 14px;
   width: 32px;
   height: 32px;
+  padding: 0;
+  border: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border-radius: 8px;
-  color: var(--wms-text-secondary);
-  transition: color 0.16s ease, background-color 0.16s ease;
+  color: var(--wms-text-primary);
+  background: transparent;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: color 0.16s ease, background-color 0.16s ease, opacity 0.1s ease;
+}
+
+.sidebar.collapsed .collapsed-logo-container {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .collapsed-logo-container:hover {
-  color: var(--wms-brand);
-  background-color: var(--wms-brand-subtle);
+  color: var(--wms-text-primary);
+  background-color: var(--wms-surface-hover);
 }
 
 .brand-logo-collapsed {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
+  width: 20px;
+  height: 15px;
+  color: var(--wms-text-primary);
   transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 1;
-  filter: drop-shadow(0 1px 3px color-mix(in srgb, var(--wms-brand) 14%, transparent));
 }
 
 .hover-icon-overlay {
@@ -870,6 +1081,7 @@ onBeforeUnmount(() => {
   border-right: none;
   padding: 8px 7px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   font-size: 13px;
   scrollbar-width: thin;
@@ -903,101 +1115,166 @@ onBeforeUnmount(() => {
   line-height: 32px !important;
   margin: 1px 0;
   border-radius: 6px;
-  color: var(--wms-text-secondary);
+  color: var(--wms-text-primary);
 }
 
-.menu :deep(.n-menu-item-content:hover),
-.menu :deep(.n-submenu-title:hover) {
-  background: color-mix(in srgb, var(--wms-brand-subtle) 54%, transparent) !important;
+.menu :deep(.n-menu-item-content-header),
+.menu :deep(.n-menu-item-content__icon) {
   color: var(--wms-text-primary) !important;
 }
 
+.menu :deep(.n-menu-item-content:hover),
+.menu :deep(.n-submenu-title:hover),
 .menu :deep(.n-menu-item-content.n-menu-item-content--selected),
-.menu :deep(.n-submenu-title.n-submenu-title--selected) {
-  background: color-mix(in srgb, var(--wms-brand-subtle) 82%, transparent) !important;
-  color: var(--wms-brand) !important;
-  font-weight: 600;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wms-brand) 12%, transparent);
+.menu :deep(.n-submenu-title.n-submenu-title--selected),
+.menu :deep(.n-menu-item-content.n-menu-item-content--child-active),
+.menu :deep(.n-submenu-title.n-submenu-title--child-active) {
+  background: transparent !important;
+  color: var(--wms-text-primary) !important;
+  font-weight: 500;
+  box-shadow: none !important;
 }
 
+.menu :deep(.n-menu-item-content:hover::before),
+.menu :deep(.n-submenu-title:hover::before),
+.menu :deep(.n-menu-item-content.n-menu-item-content--selected::before),
+.menu :deep(.n-submenu-title.n-submenu-title--selected::before),
+.menu :deep(.n-menu-item-content.n-menu-item-content--child-active::before),
+.menu :deep(.n-submenu-title.n-submenu-title--child-active::before) {
+  background-color: var(--wms-surface-hover) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.menu :deep(.n-menu-item-content:hover .n-menu-item-content-header),
+.menu :deep(.n-submenu-title:hover .n-menu-item-content-header),
 .menu :deep(.n-menu-item-content.n-menu-item-content--selected .n-menu-item-content-header),
-.menu :deep(.n-submenu-title.n-submenu-title--selected .n-menu-item-content-header) {
-  color: var(--wms-brand) !important;
-  font-weight: 600;
+.menu :deep(.n-submenu-title.n-submenu-title--selected .n-menu-item-content-header),
+.menu :deep(.n-menu-item-content.n-menu-item-content--child-active .n-menu-item-content-header),
+.menu :deep(.n-submenu-title.n-submenu-title--child-active .n-menu-item-content-header) {
+  color: var(--wms-text-primary) !important;
+  font-weight: 500;
+}
+
+.menu :deep(.n-menu-item-content:hover .n-menu-item-content__icon),
+.menu :deep(.n-submenu-title:hover .n-menu-item-content__icon),
+.menu :deep(.n-menu-item-content.n-menu-item-content--selected .n-menu-item-content__icon),
+.menu :deep(.n-submenu-title.n-submenu-title--selected .n-menu-item-content__icon),
+.menu :deep(.n-menu-item-content.n-menu-item-content--child-active .n-menu-item-content__icon),
+.menu :deep(.n-submenu-title.n-submenu-title--child-active .n-menu-item-content__icon) {
+  color: var(--wms-text-primary) !important;
+}
+
+.menu :deep(.n-menu-item-content:hover .n-submenu-arrow),
+.menu :deep(.n-submenu-title:hover .n-submenu-arrow),
+.menu :deep(.n-menu-item-content.n-menu-item-content--selected .n-submenu-arrow),
+.menu :deep(.n-submenu-title.n-submenu-title--selected .n-submenu-arrow),
+.menu :deep(.n-menu-item-content.n-menu-item-content--child-active .n-submenu-arrow),
+.menu :deep(.n-submenu-title.n-submenu-title--child-active .n-submenu-arrow),
+.menu :deep(.n-menu-item-content:hover .n-menu-item-content__arrow),
+.menu :deep(.n-submenu-title:hover .n-menu-item-content__arrow),
+.menu :deep(.n-menu-item-content.n-menu-item-content--selected .n-menu-item-content__arrow),
+.menu :deep(.n-submenu-title.n-submenu-title--selected .n-menu-item-content__arrow),
+.menu :deep(.n-menu-item-content.n-menu-item-content--child-active .n-menu-item-content__arrow),
+.menu :deep(.n-submenu-title.n-submenu-title--child-active .n-menu-item-content__arrow) {
+  color: var(--wms-text-primary) !important;
 }
 
 .menu :deep(.n-menu-item-content.n-menu-item-content--selected::after),
 .menu :deep(.n-submenu-title.n-submenu-title--selected::after) {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 7px;
-  bottom: 7px;
-  width: 2px;
-  background-color: var(--wms-brand);
-  border-radius: 999px;
-  transition: background-color 0.18s ease;
+  display: none !important;
 }
 
 .menu :deep(.n-submenu-children) {
   position: relative;
   border-left: none;
-  margin-left: 8px;
-  padding-left: 8px;
+  margin-left: 0;
+  padding-left: 0;
   transition: color 0.18s ease, background-color 0.18s ease;
 }
 
 .menu :deep(.n-submenu-children .n-menu-item-content) {
   height: 30px !important;
   line-height: 30px !important;
-  color: var(--wms-text-muted);
+  padding-left: 44px !important;
+  padding-right: 10px !important;
+  color: var(--wms-text-primary);
 }
 
-.menu :deep(.n-submenu-arrow) {
-  color: var(--wms-text-muted);
+.menu :deep(.n-submenu-arrow),
+.menu :deep(.n-menu-item-content__arrow) {
+  color: var(--wms-text-primary) !important;
   transform-origin: center;
 }
 
-.sidebar.collapsed .menu {
-  padding: 8px 0;
-  width: 100% !important;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow: hidden !important;
+/* 一级菜单始终采用收缩态的 40px 垂直节奏，避免展开后逐项下移。 */
+.menu > :deep(.n-submenu) {
+  margin-top: 0 !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item),
-.sidebar.collapsed .menu :deep(.n-submenu) {
-  width: 100% !important;
+.menu :deep(.root-menu-entry) {
+  margin-top: 0 !important;
+}
+
+.menu :deep(.root-menu-entry.n-menu-item) {
   display: flex !important;
-  justify-content: center !important;
+  height: 40px !important;
+}
+
+.menu :deep(.root-menu-entry > .n-menu-item-content),
+.menu :deep(.root-menu-entry > .n-submenu-title) {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  transition-property: color, background-color, border-color !important;
+}
+
+.sidebar.menu-collapsed .menu {
+  padding: 8px 0;
+  width: 60px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+.sidebar.menu-collapsed .menu :deep(.n-menu-item),
+.sidebar.menu-collapsed .menu :deep(.n-submenu) {
+  width: 60px !important;
+  display: flex !important;
+  justify-content: flex-start !important;
   padding: 0 !important;
   margin: 0 !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item-content),
-.sidebar.collapsed .menu :deep(.n-submenu-title) {
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
-  margin: 4px auto !important;
+  margin: 4px 14px !important;
   padding: 0 !important;
   border-radius: 8px;
+  transition-property: color, background-color, border-color !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item-content::before),
-.sidebar.collapsed .menu :deep(.n-submenu-title::before) {
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content::before),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title::before) {
   left: 0 !important;
   right: 0 !important;
   border-radius: 8px !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item-content__icon),
-.sidebar.collapsed .menu :deep(.n-submenu-title__icon) {
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content__icon),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title__icon),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title__prefix) {
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -1006,26 +1283,148 @@ onBeforeUnmount(() => {
   height: 18px !important;
   min-width: 18px !important;
   min-height: 18px !important;
+  transition: none !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item-content__icon .n-icon),
-.sidebar.collapsed .menu :deep(.n-submenu-title__icon .n-icon) {
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content__icon .n-icon),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title__icon .n-icon) {
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item-content-header),
-.sidebar.collapsed .menu :deep(.n-submenu-title__text),
-.sidebar.collapsed .menu :deep(.n-submenu-arrow),
-.sidebar.collapsed .menu :deep(.n-menu-item-content__arrow) {
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content-header),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title__text),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-arrow),
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content__arrow) {
   display: none !important;
 }
 
-.sidebar.collapsed .menu :deep(.n-menu-item-content::after),
-.sidebar.collapsed .menu :deep(.n-submenu-title::after) {
+.sidebar.menu-collapsed .menu :deep(.n-menu-item-content::after),
+.sidebar.menu-collapsed .menu :deep(.n-submenu-title::after) {
   display: none !important;
+}
+
+.collapsed-sidebar-footer {
+  display: flex;
+  justify-content: center;
+  width: 60px;
+  padding: 0 0 8px;
+  flex-shrink: 0;
+}
+
+.collapsed-search-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--wms-text-secondary);
+}
+
+.collapsed-search-btn:hover {
+  color: var(--wms-text-primary);
+  background: var(--wms-surface-hover);
+}
+
+.sidebar-account {
+  display: flex;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  margin-top: auto;
+  width: 216px;
+  height: 42px;
+  padding: 4px 10px 5px;
+  box-sizing: border-box;
+}
+
+.sidebar.menu-collapsed .sidebar-account {
+  width: 60px;
+}
+
+.user-account-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
+  height: 32px;
+  min-width: 0;
+  padding: 2px 6px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 8px;
+  color: var(--wms-text-primary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.user-account-trigger:hover,
+.user-account-trigger:focus-visible {
+  color: var(--wms-text-primary);
+  background: var(--wms-surface-hover);
+  outline: none;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--wms-brand), var(--wms-op-outbound));
+  color: var(--wms-text-inverse);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-account-name {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-hover-name {
+  position: absolute;
+  left: 20px;
+  bottom: calc(100% + 8px);
+  z-index: 1000;
+  padding: 5px 8px;
+  border: 1px solid var(--wms-border-subtle);
+  border-radius: 6px;
+  background: var(--wms-surface-elevated);
+  box-shadow: var(--wms-shadow-md);
+  color: var(--wms-text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.user-account-trigger:hover .user-hover-name,
+.user-account-trigger:focus-visible .user-hover-name {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.sidebar:not(.menu-collapsed) .user-hover-name {
+  display: none;
+}
+
+.sidebar.menu-collapsed .sidebar-account-name {
+  display: none;
 }
 
 /* ============================
@@ -1063,15 +1462,22 @@ onBeforeUnmount(() => {
 }
 
 .tab-scroll-btn {
+  --n-text-color: var(--wms-text-primary) !important;
+  --n-text-color-hover: var(--wms-text-primary) !important;
+  --n-text-color-pressed: var(--wms-text-primary) !important;
+  --n-text-color-focus: var(--wms-text-primary) !important;
+  --n-ripple-color: transparent !important;
   flex-shrink: 0;
   width: 22px;
   height: 22px;
-  color: var(--wms-text-muted);
+  color: var(--wms-text-primary) !important;
   z-index: 1;
 }
 
-.tab-scroll-btn:hover {
-  color: var(--wms-brand);
+.tab-scroll-btn:hover,
+.tab-scroll-btn:active,
+.tab-scroll-btn:focus-visible {
+  color: var(--wms-text-primary) !important;
 }
 
 .tabs-scroll {
@@ -1096,15 +1502,15 @@ onBeforeUnmount(() => {
   padding: 0 14px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--wms-text-secondary);
+  color: var(--wms-text-primary);
   border-radius: 6px;
   cursor: grab;
   user-select: none;
   white-space: nowrap;
-  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+  transition: color 0.18s ease, background-color 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
   position: relative;
   flex-shrink: 0;
-  border: 1px solid transparent;
+  border: none;
   margin-right: 2px;
 }
 
@@ -1118,22 +1524,14 @@ onBeforeUnmount(() => {
 }
 
 .tab-item.active {
-  color: var(--wms-brand);
-  background: color-mix(in srgb, var(--wms-brand-subtle) 82%, transparent);
+  color: var(--wms-text-primary);
+  background: var(--wms-surface-hover);
   font-weight: 600;
-  border-color: transparent;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wms-brand) 12%, transparent);
+  box-shadow: none;
 }
 
 .tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 14px;
-  right: 14px;
-  height: 2px;
-  background-color: var(--wms-brand);
-  border-radius: 1px;
+  display: none;
 }
 
 .tab-item.dragging {
@@ -1142,9 +1540,9 @@ onBeforeUnmount(() => {
 }
 
 .tab-item.drag-over {
-  color: var(--wms-brand);
-  background: color-mix(in srgb, var(--wms-brand-subtle) 68%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wms-brand) 18%, transparent);
+  color: var(--wms-text-primary);
+  background: var(--wms-surface-hover);
+  box-shadow: inset 0 0 0 1px var(--wms-border);
 }
 
 .tab-item.drag-over::before {
@@ -1155,7 +1553,7 @@ onBeforeUnmount(() => {
   bottom: 7px;
   width: 2px;
   border-radius: 999px;
-  background: var(--wms-brand);
+  background: var(--wms-border-strong);
 }
 
 .tab-label {
@@ -1169,8 +1567,8 @@ onBeforeUnmount(() => {
   width: 14px;
   height: 14px;
   border-radius: 4px;
-  color: var(--wms-text-muted);
-  transition: all 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  color: var(--wms-text-primary);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
   margin-left: 2px;
   opacity: 0;
   transform: scale(0.8);
@@ -1229,7 +1627,7 @@ onBeforeUnmount(() => {
 }
 
 :global(.tab-context-menu .n-dropdown-option-body:hover .n-dropdown-option-body__prefix) {
-  color: var(--wms-brand);
+  color: var(--wms-text-primary);
 }
 
 :global(.tab-context-menu .n-dropdown-divider) {
@@ -1260,35 +1658,15 @@ onBeforeUnmount(() => {
 .work-context {
   display: flex;
   align-items: center;
-  gap: 0;
-  height: 32px;
-  padding: 0 4px;
-  border: 1px solid var(--wms-border-subtle);
-  border-radius: 8px;
-  background-color: var(--wms-surface-muted);
+  gap: 6px;
+  height: 30px;
 }
 
 .context-field {
   display: flex;
   align-items: center;
-  gap: 6px;
   min-width: 0;
-  padding: 0 4px;
-}
-
-.context-label {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--wms-text-secondary);
-  line-height: 1;
-}
-
-.context-divider {
-  width: 1px;
-  height: 16px;
-  margin: 0 2px;
-  background-color: var(--wms-border-subtle);
+  padding: 0;
 }
 
 .warehouse-select,
@@ -1303,8 +1681,8 @@ onBeforeUnmount(() => {
 .context-select :deep(.n-base-selection) {
   border: none !important;
   box-shadow: none !important;
-  background-color: transparent !important;
-  border-radius: 5px !important;
+  background-color: var(--wms-surface-muted) !important;
+  border-radius: 6px !important;
   transition: background-color 0.2s ease !important;
 }
 
@@ -1312,36 +1690,11 @@ onBeforeUnmount(() => {
   background-color: var(--wms-surface-hover) !important;
 }
 
-.user-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--wms-brand), var(--wms-op-outbound));
-  color: var(--wms-text-inverse);
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-name {
-  font-size: 13px;
-  color: var(--wms-text-secondary);
-  font-weight: 500;
-}
-
 /* ============================
    主内容区
    ============================ */
 .main {
-  padding: 8px 10px;
+  padding: 0;
   height: calc(100vh - 48px);
   min-height: 0;
   overflow: hidden;
@@ -1350,7 +1703,17 @@ onBeforeUnmount(() => {
 .main-view {
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: auto;
+}
+
+.main-view > :deep(*) {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  min-width: 0;
 }
 
 @media (max-width: 1180px) {
@@ -1362,10 +1725,6 @@ onBeforeUnmount(() => {
   .department-select {
     width: 108px;
   }
-
-  .context-label {
-    display: none;
-  }
 }
 
 @media (max-width: 960px) {
@@ -1373,8 +1732,5 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  .context-divider {
-    display: none;
-  }
 }
 </style>

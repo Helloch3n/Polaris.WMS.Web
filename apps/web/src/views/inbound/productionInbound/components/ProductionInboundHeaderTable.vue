@@ -11,6 +11,7 @@ import type { SelectOption } from 'naive-ui'
 import * as productionInboundApi from '../../../../api/inbound/productionInbound'
 import CopyableText from '../../../../components/CopyableText.vue'
 import WmsStatusTag from '../../../../components/WmsStatusTag.vue'
+import { resolveProductionInboundType } from '../../../../utils/statusTag'
 
 const props = withDefaults(defineProps<{
   mode?: 'readonly' | 'editable'
@@ -159,7 +160,10 @@ function updateTargetWarehouse(value: string | number | null) {
       />
     </n-descriptions-item>
     <n-descriptions-item v-else label="入库类型">
-      {{ resolveInboundTypeLabel(props.model?.inboundType) }}
+      <WmsStatusTag
+        :label="resolveInboundTypeLabel(props.model?.inboundType)"
+        :type="resolveProductionInboundType(props.model?.inboundType).tagType"
+      />
     </n-descriptions-item>
 
     <n-descriptions-item v-if="props.mode === 'editable'">

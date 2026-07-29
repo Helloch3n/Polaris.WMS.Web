@@ -104,7 +104,7 @@ const detailColumns = computed<DataTableColumns<productionInboundApi.ProductionI
     title: '是否需要检验',
     key: 'needInspection',
     width: 140,
-    render: (row) => h(WmsStatusTag, { label: row.needInspection ? '是' : '否', type: row.needInspection ? 'warning' : 'success' }),
+    render: (row) => h(WmsStatusTag, { label: row.needInspection ? '是' : '否', type: row.needInspection ? 'warning' : 'default' }),
   },
   {
     title: '实际库位编码',
@@ -190,7 +190,7 @@ onMounted(() => {
         <template #summary>
           <div class="detail-action-bar">
             <n-button @click="handleBack">返回列表</n-button>
-            <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+            <n-button :loading="loading" @click="loadDetail">刷新</n-button>
             <n-button v-if="canUpdate && isDraftStatus" type="warning" secondary @click="handleEdit">编辑</n-button>
             <n-button v-if="canApprove && isDraftStatus" type="success" :loading="approving" @click="handleApproveAndExecute">审核并执行</n-button>
           </div>

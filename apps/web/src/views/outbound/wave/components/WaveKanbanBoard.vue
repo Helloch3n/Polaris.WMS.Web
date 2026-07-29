@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NTag, NButton, NIcon, NEmpty, NSpin } from 'naive-ui'
-import { CalendarOutline, ChatboxEllipsesOutline, LayersOutline, ArrowForwardOutline } from '@vicons/ionicons5'
+import {
+  ArrowRightIcon,
+  CalendarIcon,
+  ChatBubbleLeftEllipsisIcon,
+  Square3Stack3DIcon,
+} from '@heroicons/vue/24/outline'
 import * as waveApi from '../../../../api/outbound/wave'
 
 const props = defineProps<{
@@ -142,15 +147,15 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
                 
                 <div class="card-meta">
                   <div class="meta-item">
-                    <n-icon size="14"><CalendarOutline /></n-icon>
+                    <n-icon size="14"><CalendarIcon /></n-icon>
                     <span>{{ formatDateTime(wave.creationTime) }}</span>
                   </div>
                   <div v-if="wave.lines && wave.lines.length > 0" class="meta-item">
-                    <n-icon size="14"><LayersOutline /></n-icon>
+                    <n-icon size="14"><Square3Stack3DIcon /></n-icon>
                     <span>{{ wave.lines.length }}品 / 共 {{ getWaveQtySum(wave) }} 件</span>
                   </div>
                   <div v-if="wave.remark" class="meta-item remark">
-                    <n-icon size="14"><ChatboxEllipsesOutline /></n-icon>
+                    <n-icon size="14"><ChatBubbleLeftEllipsisIcon /></n-icon>
                     <span class="remark-text">{{ wave.remark }}</span>
                   </div>
                 </div>
@@ -181,7 +186,7 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
                   @click="handleCreatePickList(wave)"
                 >
                   <template #icon>
-                    <n-icon><ArrowForwardOutline /></n-icon>
+                    <n-icon><ArrowRightIcon /></n-icon>
                   </template>
                   释放波次单 (生成拣货单)
                 </n-button>
@@ -221,7 +226,7 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
   flex: 1;
   min-width: 250px;
   max-width: 320px;
-  background-color: #f1f5f9;
+  background-color: var(--wms-surface-muted);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -229,30 +234,18 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
-:global(html.dark) .kanban-column {
-  background-color: #0f172a;
-}
-
 .column-header {
   padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.04);
-}
-
-:global(html.dark) .column-header {
-  border-bottom-color: rgba(255, 255, 255, 0.04);
+  border-bottom: 2px solid var(--wms-border-subtle);
 }
 
 .column-title {
   font-weight: 700;
   font-size: 14px;
-  color: #334155;
-}
-
-:global(html.dark) .column-title {
-  color: #cbd5e1;
+  color: var(--wms-text-secondary);
 }
 
 .column-count {
@@ -269,18 +262,13 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
 }
 
 .kanban-card {
-  background-color: #ffffff;
+  background-color: var(--wms-surface-panel);
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--wms-border-subtle);
   border-top-width: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
-}
-
-:global(html.dark) .kanban-card {
-  background-color: #1e293b;
-  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .kanban-card:hover {
@@ -296,12 +284,8 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
 .card-wave-no {
   font-weight: 700;
   font-size: 14px;
-  color: #0f172a;
+  color: var(--wms-text-primary);
   margin-bottom: 8px;
-}
-
-:global(html.dark) .card-wave-no {
-  color: #f1f5f9;
 }
 
 .card-meta {
@@ -316,23 +300,14 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #64748b;
-}
-
-:global(html.dark) .meta-item {
-  color: #94a3b8;
+  color: var(--wms-text-muted);
 }
 
 .meta-item.remark {
-  background-color: #f8fafc;
+  background-color: var(--wms-surface-muted);
   padding: 4px 8px;
   border-radius: 4px;
-  border-left: 2px solid #cbd5e1;
-}
-
-:global(html.dark) .meta-item.remark {
-  background-color: #0f172a;
-  border-left-color: #475569;
+  border-left: 2px solid var(--wms-border-strong);
 }
 
 .remark-text {
@@ -344,11 +319,7 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
 
 .card-progress-section {
   font-size: 11px;
-  color: #64748b;
-}
-
-:global(html.dark) .card-progress-section {
-  color: #94a3b8;
+  color: var(--wms-text-muted);
 }
 
 .progress-info {
@@ -359,12 +330,7 @@ function handleCreatePickList(wave: waveApi.WaveOrderDto) {
 
 .card-actions {
   padding: 8px 12px;
-  background-color: #f8fafc;
-  border-top: 1px solid #f1f5f9;
-}
-
-:global(html.dark) .card-actions {
-  background-color: #0f172a;
-  border-top-color: rgba(255, 255, 255, 0.04);
+  background-color: var(--wms-surface-muted);
+  border-top: 1px solid var(--wms-border-subtle);
 }
 </style>

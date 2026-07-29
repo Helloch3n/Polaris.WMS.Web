@@ -1,5 +1,8 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
-import { createDiscreteApi } from 'naive-ui'
+import { computed } from 'vue'
+import { createDiscreteApi, darkTheme } from 'naive-ui'
+import { sharedResolvedTheme } from '../stores/settings'
+import { wmsThemeOverrides } from '../theme/wmsTheme'
 import {
   ACCESS_TOKEN_STORAGE_KEY,
   CURRENT_DEPARTMENT_STORAGE_KEY,
@@ -72,7 +75,11 @@ export const http: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'https://localhost:44346',
 })
 
-const { message: notify } = createDiscreteApi(['message'])
+const discreteConfig = computed(() => ({
+  theme: sharedResolvedTheme.value === 'dark' ? darkTheme : null,
+  themeOverrides: wmsThemeOverrides[sharedResolvedTheme.value],
+}))
+const { message: notify } = createDiscreteApi(['message'], { configProviderProps: discreteConfig })
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean

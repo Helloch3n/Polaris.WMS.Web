@@ -4,18 +4,17 @@ import type { FieldInstance } from 'vant'
 import { showFailToast, showSuccessToast } from 'vant'
 import { useRouter } from 'vue-router'
 import {
-  createPurchaseReceipt,
   identifySourceDocByScan,
 } from '@/api/inbound/purchaseReceipt'
 import type {
   CreatePurchaseReceiptDetailDto,
   CreatePurchaseReceiptDto,
-  PurchaseReceiptDto,
+  PurchaseReceiptDraftSession,
   PurchaseReceiptSourceDetail,
   PurchaseReceiptSourceDocument,
 } from '@/types/purchaseReceipt'
 
-const RECEIPT_CACHE_PREFIX = 'pda.purchase-receipt.active.'
+const RECEIPT_DRAFT_PREFIX = 'pda.purchase-receipt.draft.'
 
 const router = useRouter()
 const sourceDocInputRef = ref<FieldInstance>()
@@ -112,12 +111,16 @@ function buildCreateDetails(doc: PurchaseReceiptSourceDocument): CreatePurchaseR
   }, [])
 }
 
-function cacheCreatedReceipt(receipt: PurchaseReceiptDto) {
-  if (!receipt.id) {
-    return
+function createClientId(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
   }
 
-  sessionStorage.setItem(`${RECEIPT_CACHE_PREFIX}${receipt.id}`, JSON.stringify(receipt))
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80
+  const hex = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
 function resetSourceDoc() {
@@ -176,24 +179,23 @@ async function startReceive() {
 
   creating.value = true
   try {
-    const receipt = await createPurchaseReceipt(payload)
-    const receiptId = typeof receipt.id === 'string' ? receipt.id.trim() : ''
-
-    if (!receiptId) {
-      showFailToast('创建成功但未返回收货单 Id，无法跳转收货页面')
-      return
+    const draftSessionId = createClientId()
+    const draft: PurchaseReceiptDraftSession = {
+      draftSessionId,
+      requestId: createClientId(),
+      receipt: payload,
+      sourceDoc: sourceDoc.value,
     }
-
-    cacheCreatedReceipt(receipt)
-    showSuccessToast(`收货单已创建: ${receipt.receiptNo || receiptId}`)
+    sessionStorage.setItem(`${RECEIPT_DRAFT_PREFIX}${draftSessionId}`, JSON.stringify(draft))
+    showSuccessToast('已进入收货')
 
     await router.push({
-      name: 'PurchaseReceiptReceive',
-      params: { receiptId },
+      name: 'PurchaseReceiptReceiveDraft',
+      params: { draftSessionId },
     })
   } catch (error) {
-    console.error('创建采购收货单失败:', error)
-    showFailToast('创建失败，请稍后重试')
+    console.error('创建收货临时会话失败:', error)
+    showFailToast('无法进入收货，请稍后重试')
   } finally {
     creating.value = false
   }
@@ -292,7 +294,7 @@ onMounted(() => {
 
     <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 pb-safe z-30">
       <div v-if="sourceDoc" class="text-xs text-slate-500 mb-2">
-        将基于当前来源单据创建采购收货单，然后进入收货页面
+        首条收货记录确认后将自动生成采购收货单
       </div>
       <div class="flex gap-2">
         <van-button

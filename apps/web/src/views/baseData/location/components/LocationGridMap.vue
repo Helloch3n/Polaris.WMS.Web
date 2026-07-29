@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../../components/WmsStatusTag.vue'
 import { computed } from 'vue'
-import { NSpace, NTag, NTooltip, NEmpty, NSpin, NBadge } from 'naive-ui'
+import { NSpace, NTooltip, NEmpty, NSpin, NBadge } from 'naive-ui'
 import { LocationStatus, type LocationDto } from '../../../../api/masterData/location'
 
 const props = defineProps<{
@@ -214,12 +215,15 @@ function handleCellClick(loc: LocationDto) {
                             <div class="tooltip-row">
                               <span class="lbl">混放属性:</span>
                               <span class="val">
-                                <n-tag size="tiny" :type="getLoc(rack.grid.gridMap, level, bin).allowMixedProducts ? 'success' : 'warning'">
-                                  {{ getLoc(rack.grid.gridMap, level, bin).allowMixedProducts ? '允混品' : '单品' }}
-                                </n-tag>
-                                <n-tag size="tiny" :type="getLoc(rack.grid.gridMap, level, bin).allowMixedBatches ? 'success' : 'warning'" style="margin-left:4px;">
-                                  {{ getLoc(rack.grid.gridMap, level, bin).allowMixedBatches ? '允混批' : '单批' }}
-                                </n-tag>
+                                <WmsStatusTag
+                                  :type="getLoc(rack.grid.gridMap, level, bin).allowMixedProducts ? 'success' : 'warning'"
+                                  :label="getLoc(rack.grid.gridMap, level, bin).allowMixedProducts ? '允混品' : '单品'"
+                                />
+                                <WmsStatusTag
+                                  :type="getLoc(rack.grid.gridMap, level, bin).allowMixedBatches ? 'success' : 'warning'"
+                                  :label="getLoc(rack.grid.gridMap, level, bin).allowMixedBatches ? '允混批' : '单批'"
+                                  style="margin-left: 4px"
+                                />
                               </span>
                             </div>
                           </div>
@@ -241,35 +245,23 @@ function handleCellClick(loc: LocationDto) {
 <style scoped>
 .location-grid-map-container {
   padding: 10px;
-  background: #ffffff;
+  background: var(--wms-surface-panel);
   border-radius: 8px;
   min-height: 400px;
   height: 100%;
   overflow-y: auto;
 }
 
-:global(html.dark) .location-grid-map-container {
-  background: #1e293b;
-}
-
 .legend-bar {
   padding: 10px 14px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--wms-border-subtle);
   margin-bottom: 16px;
   font-size: 13px;
 }
 
-:global(html.dark) .legend-bar {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
 .legend-title {
   font-weight: 600;
-  color: #475569;
-}
-
-:global(html.dark) .legend-title {
-  color: #cbd5e1;
+  color: var(--wms-text-secondary);
 }
 
 .legend-item {
@@ -286,15 +278,10 @@ function handleCellClick(loc: LocationDto) {
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.legend-color.idle { background-color: #f1f5f9; }
-.legend-color.partial { background-color: #93c5fd; }
-.legend-color.full { background-color: #2563eb; }
-.legend-color.locked { background-color: #fca5a5; }
-
-:global(html.dark) .legend-color.idle { background-color: #334155; }
-:global(html.dark) .legend-color.partial { background-color: #1e3a8a; }
-:global(html.dark) .legend-color.full { background-color: #3b82f6; }
-:global(html.dark) .legend-color.locked { background-color: rgba(239, 68, 68, 0.3); }
+.legend-color.idle { background-color: var(--wms-location-idle); }
+.legend-color.partial { background-color: var(--wms-location-partial); }
+.legend-color.full { background-color: var(--wms-location-full); }
+.legend-color.locked { background-color: var(--wms-location-locked); }
 
 .empty-wrap {
   padding: 60px;
@@ -310,16 +297,11 @@ function handleCellClick(loc: LocationDto) {
 }
 
 .aisle-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--wms-border-subtle);
   border-radius: 10px;
   padding: 16px;
-  background-color: #f8fafc;
+  background-color: var(--wms-surface-muted);
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-}
-
-:global(html.dark) .aisle-card {
-  border-color: rgba(255, 255, 255, 0.08);
-  background-color: #0f172a;
 }
 
 .aisle-header {
@@ -332,11 +314,7 @@ function handleCellClick(loc: LocationDto) {
 .aisle-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
-}
-
-:global(html.dark) .aisle-title {
-  color: #f1f5f9;
+  color: var(--wms-text-primary);
 }
 
 .racks-container {
@@ -346,32 +324,22 @@ function handleCellClick(loc: LocationDto) {
 }
 
 .rack-card {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--wms-border-subtle);
   border-radius: 8px;
   padding: 12px;
-  background-color: #ffffff;
+  background-color: var(--wms-surface-panel);
   flex: 1 1 300px;
   min-width: 280px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.01);
 }
 
-:global(html.dark) .rack-card {
-  border-color: rgba(255, 255, 255, 0.06);
-  background-color: #1e293b;
-}
-
 .rack-header {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--wms-text-secondary);
   margin-bottom: 12px;
-  border-bottom: 1px dashed #e2e8f0;
+  border-bottom: 1px dashed var(--wms-border);
   padding-bottom: 6px;
-}
-
-:global(html.dark) .rack-header {
-  color: #cbd5e1;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .shelf-grid-wrapper {
@@ -434,7 +402,7 @@ function handleCellClick(loc: LocationDto) {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
 }
 
@@ -446,58 +414,32 @@ function handleCellClick(loc: LocationDto) {
 
 .empty-placeholder {
   background-color: transparent;
-  border: 1px dashed #e2e8f0;
+  border: 1px dashed var(--wms-border);
   cursor: default;
-}
-
-:global(html.dark) .empty-placeholder {
-  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .cell-code {
   font-size: 9px;
   font-weight: 500;
-  color: #475569;
-}
-
-:global(html.dark) .cell-code {
-  color: #cbd5e1;
+  color: var(--wms-text-secondary);
 }
 
 /* Cell Status Colors */
 .status-idle {
-  background-color: #f1f5f9;
+  background-color: var(--wms-location-idle);
 }
 .status-partial {
-  background-color: #bfdbfe;
+  background-color: var(--wms-location-partial);
 }
 .status-full {
-  background-color: #2563eb;
+  background-color: var(--wms-location-full);
 }
 .status-locked {
-  background-color: #fee2e2;
-  border-color: #fca5a5;
-}
-
-:global(html.dark) .status-idle {
-  background-color: #334155;
-}
-:global(html.dark) .status-partial {
-  background-color: #1e3a8a;
-}
-:global(html.dark) .status-full {
-  background-color: #3b82f6;
-}
-:global(html.dark) .status-locked {
-  background-color: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.4);
+  background-color: var(--wms-location-locked);
+  border-color: var(--wms-location-locked-border);
 }
 
 .status-full .cell-code {
-  color: #ffffff;
-}
-
-:global(html.dark) .status-full .cell-code {
   color: #ffffff;
 }
 

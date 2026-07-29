@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMessage } from 'naive-ui'
+import * as dashboardApi from '../../api/dashboard'
 
 const router = useRouter()
+const message = useMessage()
 
 type OpsMetric = {
   label: string
   value: string | number
   hint: string
   tone: 'pending' | 'progress' | 'success' | 'error'
+  route: string
 }
 
 type FlowItem = {
@@ -23,6 +27,7 @@ type TodoItem = {
   detail: string
   count: string
   tone: 'pending' | 'progress' | 'error'
+  route: string
 }
 
 type QuickAction = {
@@ -38,44 +43,34 @@ const inboundFlows = ref<FlowItem[]>([])
 const internalFlows = ref<FlowItem[]>([])
 const outboundFlows = ref<FlowItem[]>([])
 const todoItems = ref<TodoItem[]>([])
-const quickActions = ref<QuickAction[]>([])
+const quickActions: QuickAction[] = [
+  { label: '生产入库', route: '/inboundManagement/production-inbound', description: '查看生产入库单与执行进度', operation: 'inbound' },
+  { label: '采购收货', route: '/inboundManagement/purchase-receipt', description: '进入到货签收与明细确认', operation: 'inbound' },
+  { label: '库存查询', route: '/inventoryManagement/inventory', description: '查看实时库存、批次和库位分布', operation: 'inventory' },
+  { label: '波次管理', route: '/outboundManagement/wave', description: '跟踪出库波次释放和执行', operation: 'outbound' },
+]
 
-function loadDashboardSnapshot() {
+async function loadDashboardSnapshot() {
   loading.value = true
   try {
+    const summary = await dashboardApi.getOperationsSummary()
     opsMetrics.value = [
-      { label: '待审核单据', value: 8, hint: '采购入库 / 其他出库', tone: 'pending' },
-      { label: '待分配任务', value: 24, hint: '待上架 / 待拣货', tone: 'progress' },
-      { label: '库存预警', value: 6, hint: '低于安全库存', tone: 'error' },
-      { label: '今日完成率', value: '82%', hint: '入库 / 出库 / 调拨', tone: 'success' },
+      { label: '待上架', value: summary.pendingPutawayCount, hint: '待执行上架任务', tone: 'pending', route: '/inboundManagement/putaway?tab=all&status=Pending' },
+      { label: '待搬运', value: summary.pendingMoveCount, hint: '待执行库内搬运任务', tone: 'progress', route: '/internalManagement/move-task?status=Pending' },
+      { label: '待拣货', value: summary.pendingPickCount, hint: '待执行拣货任务', tone: 'pending', route: '/outboundManagement/pick-task?status=Pending' },
+      { label: '待复核', value: summary.pendingReviewCount, hint: '待完成出库复核单', tone: 'success', route: '/outboundManagement/review?status=Created' },
     ]
-    inboundFlows.value = [
-      { label: '采购收货', done: 38, total: 52, operation: 'inbound' },
-      { label: '生产入库', done: 18, total: 24, operation: 'inbound' },
-      { label: '上架任务', done: 24, total: 32, operation: 'inbound' },
-    ]
-    internalFlows.value = [
-      { label: '调拨执行', done: 11, total: 16, operation: 'internal' },
-      { label: '盘点处理', done: 7, total: 10, operation: 'internal' },
-      { label: '搬运任务', done: 19, total: 25, operation: 'internal' },
-    ]
-    outboundFlows.value = [
-      { label: '波次释放', done: 12, total: 18, operation: 'outbound' },
-      { label: '拣货执行', done: 18, total: 27, operation: 'outbound' },
-      { label: '出库复核', done: 16, total: 21, operation: 'outbound' },
-    ]
+    inboundFlows.value = summary.inboundFlows.map((item) => ({ ...item, operation: 'inbound' }))
+    internalFlows.value = summary.internalFlows.map((item) => ({ ...item, operation: 'internal' }))
+    outboundFlows.value = summary.outboundFlows.map((item) => ({ ...item, operation: 'outbound' }))
     todoItems.value = [
-      { title: '待审核单据', detail: '采购入库单、其他出库单待审核', count: '08', tone: 'pending' },
-      { title: '异常任务', detail: '搬运与上架任务超过计划时长', count: '04', tone: 'error' },
-      { title: '库存预警', detail: '6 个物料低于安全库存', count: '06', tone: 'error' },
-      { title: '待分配任务', detail: '待上架、待拣货任务需要分配', count: '24', tone: 'progress' },
+      { title: '待上架', detail: '等待执行的上架任务', count: String(summary.pendingPutawayCount).padStart(2, '0'), tone: 'pending', route: '/inboundManagement/putaway?tab=all&status=Pending' },
+      { title: '待搬运', detail: '等待执行的库内搬运任务', count: String(summary.pendingMoveCount).padStart(2, '0'), tone: 'progress', route: '/internalManagement/move-task?status=Pending' },
+      { title: '待拣货', detail: '等待执行的拣货任务', count: String(summary.pendingPickCount).padStart(2, '0'), tone: 'pending', route: '/outboundManagement/pick-task?status=Pending' },
+      { title: '待复核', detail: '等待完成的出库复核单', count: String(summary.pendingReviewCount).padStart(2, '0'), tone: 'progress', route: '/outboundManagement/review?status=Created' },
     ]
-    quickActions.value = [
-      { label: '生产入库', route: '/inboundManagement/production-inbound', description: '查看生产入库单与执行进度', operation: 'inbound' },
-      { label: '采购收货', route: '/inboundManagement/purchase-receipt', description: '进入到货签收与明细确认', operation: 'inbound' },
-      { label: '库存查询', route: '/inventoryManagement/inventory', description: '查看实时库存、批次和库位分布', operation: 'inventory' },
-      { label: '波次管理', route: '/outboundManagement/wave', description: '跟踪出库波次释放和执行', operation: 'outbound' },
-    ]
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '加载运营工作台数据失败')
   } finally {
     loading.value = false
   }
@@ -101,7 +96,7 @@ onMounted(() => {
       <div>
         <div class="ops-kicker">运营工作台</div>
         <h1 class="ops-title">今日作业总览</h1>
-        <p class="ops-subtitle">聚合待办、异常、库存风险和关键流程进度，优先处理影响出入库效率的事项。</p>
+        <p class="ops-subtitle">聚合待上架、待搬运、待拣货、待复核和关键流程进度，优先处理影响出入库效率的事项。</p>
       </div>
       <div class="ops-date">
         {{ new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }) }}
@@ -109,11 +104,11 @@ onMounted(() => {
     </section>
 
     <section class="metric-grid">
-      <div v-for="item in opsMetrics" :key="item.label" class="metric-card" :data-tone="item.tone">
+      <button v-for="item in opsMetrics" :key="item.label" class="metric-card" :data-tone="item.tone" type="button" @click="navigateTo(item.route)">
         <div class="metric-label">{{ item.label }}</div>
         <div class="metric-value">{{ item.value }}</div>
         <div class="metric-hint">{{ item.hint }}</div>
-      </div>
+      </button>
     </section>
 
     <section class="workbench-grid">
@@ -171,13 +166,13 @@ onMounted(() => {
           <span>按处理优先级排序</span>
         </div>
         <div class="todo-list">
-          <div v-for="item in todoItems" :key="item.title" class="todo-item" :data-tone="item.tone">
+          <button v-for="item in todoItems" :key="item.title" class="todo-item" :data-tone="item.tone" type="button" @click="navigateTo(item.route)">
             <div class="todo-count">{{ item.count }}</div>
             <div class="todo-body">
               <div class="todo-title">{{ item.title }}</div>
               <div class="todo-detail">{{ item.detail }}</div>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
     </section>
@@ -271,8 +266,13 @@ onMounted(() => {
 
 .metric-card {
   position: relative;
+  width: 100%;
   padding: 14px 16px 14px 18px;
   overflow: hidden;
+  font: inherit;
+  color: var(--wms-text-primary);
+  text-align: left;
+  cursor: pointer;
 }
 
 .metric-card::before {
@@ -426,10 +426,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 10px;
   border: 1px solid var(--wms-border-subtle);
   border-radius: 8px;
   background: var(--wms-surface-muted);
+  color: var(--wms-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .todo-item[data-tone='pending'] {

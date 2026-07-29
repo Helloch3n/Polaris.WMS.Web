@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableSortState } from 'naive-ui'
 import {
@@ -386,7 +387,7 @@ const columnMap: Record<string, DataTableColumns<RoutingStrategyDto>[number]> = 
     sorter: 'default',
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         { size: 'small', type: row.isActive ? 'success' : 'error' },
         { default: () => (row.isActive ? '已启用' : '已禁用') },
       ),
@@ -466,7 +467,7 @@ onMounted(async () => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>

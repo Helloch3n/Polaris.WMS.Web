@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -8,8 +9,7 @@ import {
   NDescriptionsItem,
   NEmpty,
   NSpin,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
@@ -109,16 +109,16 @@ onMounted(() => {
       <div style="width: 100%">
         <div style="display: flex; gap: 8px; align-items: center">
           <n-button @click="handleBack">返回列表</n-button>
-          <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+          <n-button :loading="loading" @click="loadDetail">刷新</n-button>
         </div>
 
         <n-spin :show="loading" style="margin-top: 10px; width: 100%">
           <n-descriptions bordered :column="3" label-placement="left">
             <n-descriptions-item label="采购单号">{{ detail?.poNo || '-' }}</n-descriptions-item>
             <n-descriptions-item label="状态">
-              <n-tag size="small" :type="getPoStatusTagType(detail?.status)">
+              <WmsStatusTag size="small" :type="getPoStatusTagType(detail?.status)">
                 {{ resolvePoStatusLabel(detail?.status) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item label="下单日期">{{ formatDate(detail?.orderDate) }}</n-descriptions-item>
             <n-descriptions-item label="预计交期">{{ formatDate(detail?.expectedDeliveryDate) }}</n-descriptions-item>

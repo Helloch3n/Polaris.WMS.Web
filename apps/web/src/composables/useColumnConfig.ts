@@ -79,15 +79,19 @@ export function useColumnConfig(options: UseColumnConfigOptions) {
   const dragOverColumnKey = ref<string | null>(null)
 
   const columnSettings = ref<ColumnSetting[]>(
-    ensureUniqueTitles(
+    createDefaultSettings(),
+  )
+
+  function createDefaultSettings() {
+    return ensureUniqueTitles(
       preferredKeys.map((key) => ({
         key,
         title: '',
         visible: defaultVisible(key),
       })),
       resolveTitle,
-    ),
-  )
+    )
+  }
 
   function saveColumnSettings() {
     localStorage.setItem(storageKey, JSON.stringify(columnSettings.value))
@@ -95,21 +99,35 @@ export function useColumnConfig(options: UseColumnConfigOptions) {
 
   function loadColumnSettings() {
     const raw = localStorage.getItem(storageKey)
-    if (!raw) return
+    if (!raw) {
+      columnSettings.value = createDefaultSettings()
+      saveColumnSettings()
+      return
+    }
+
     try {
       const parsed = JSON.parse(raw) as Array<Partial<ColumnSetting>>
-      if (!Array.isArray(parsed)) return
+      if (!Array.isArray(parsed)) {
+        columnSettings.value = createDefaultSettings()
+        saveColumnSettings()
+        return
+      }
+
       const allowedKeys = new Set(preferredKeys)
+      const restoredKeys = new Set<string>()
       const normalized: ColumnSetting[] = []
       for (const item of parsed) {
         if (
           !item ||
           typeof item.key !== 'string' ||
           typeof item.visible !== 'boolean' ||
-          !allowedKeys.has(item.key)
+          !allowedKeys.has(item.key) ||
+          restoredKeys.has(item.key)
         ) {
           continue
         }
+
+        restoredKeys.add(item.key)
         normalized.push({
           key: item.key,
           title: '',
@@ -126,21 +144,16 @@ export function useColumnConfig(options: UseColumnConfigOptions) {
 
       const merged = [...normalized, ...missingDefaults]
 
-      if (merged.length > 0) {
-        columnSettings.value = ensureUniqueTitles(
-          ensureMinVisible(merged, minVisible, preferredKeys, defaultVisible),
-          resolveTitle,
-        )
-      }
+      columnSettings.value = merged.length > 0
+        ? ensureUniqueTitles(
+            ensureMinVisible(merged, minVisible, preferredKeys, defaultVisible),
+            resolveTitle,
+          )
+        : createDefaultSettings()
+      saveColumnSettings()
     } catch {
-      columnSettings.value = ensureUniqueTitles(
-        preferredKeys.map((key) => ({
-          key,
-          title: '',
-          visible: defaultVisible(key),
-        })),
-        resolveTitle,
-      )
+      columnSettings.value = createDefaultSettings()
+      saveColumnSettings()
     }
   }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -9,8 +10,7 @@ import {
   NDataTable,
   NInput,
   NSpace,
-  NTag,
-  useDialog,
+useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -129,13 +129,13 @@ const columns: DataTableColumns<stocktakeApi.StocktakeOrderDetailDto> = [
     minWidth: 110,
     render: (row) => {
       if (row.countStatus === stocktakeApi.CountStatus.NotCounted) {
-        return h(NTag, { size: 'small', type: 'default' }, { default: () => '未盘' })
+        return h(WmsStatusTag, { size: 'small', type: 'default' }, { default: () => '未盘' })
       }
       if (row.countStatus === stocktakeApi.CountStatus.Matched) {
-        return h(NTag, { size: 'small', type: 'success' }, { default: () => '吻合' })
+        return h(WmsStatusTag, { size: 'small', type: 'success' }, { default: () => '吻合' })
       }
       if (row.countStatus === stocktakeApi.CountStatus.Discrepancy) {
-        return h(NTag, { size: 'small', type: 'error' }, { default: () => '差异' })
+        return h(WmsStatusTag, { size: 'small', type: 'error' }, { default: () => '差异' })
       }
       return '-'
     },
@@ -361,9 +361,9 @@ onMounted(() => {
         <n-descriptions-item label="单据号">{{ order?.orderNo }}</n-descriptions-item>
         <n-descriptions-item label="仓库">{{ order?.warehouseName }} ({{ order?.warehouseCode }})</n-descriptions-item>
         <n-descriptions-item label="盘点状态">
-          <n-tag :type="getStatusTagType(order?.status)" round size="small">
+          <WmsStatusTag :type="getStatusTagType(order?.status)" round size="small">
             {{ resolveStatusLabel(order?.status) }}
-          </n-tag>
+          </WmsStatusTag>
         </n-descriptions-item>
         <n-descriptions-item label="盘点模式">{{ resolveModeLabel(order?.mode) }}</n-descriptions-item>
         <n-descriptions-item label="快照冻结时间">{{ formatDateTime(order?.frozenTime) }}</n-descriptions-item>

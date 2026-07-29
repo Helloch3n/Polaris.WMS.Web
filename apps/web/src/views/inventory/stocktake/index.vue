@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -9,8 +10,7 @@ import {
   NInput,
   NPagination,
   NSelect,
-  NTag,
-  useDialog,
+useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps } from 'naive-ui'
@@ -55,9 +55,23 @@ function getRowKey(row: StocktakeRow) {
 
 const {
   checkedRowKeys,
+  selectedRows,
+  selectedCount,
   handleCheckedRowKeysChange,
   syncCheckedRowKeys,
+  toggleSingleRow,
+  clearSelection,
 } = useTableSelection(rows, getRowKey)
+
+const selectedStocktake = computed(() => selectedCount.value === 1 ? selectedRows.value[0] : undefined)
+const canStartSelected = computed(
+  () => selectedStocktake.value?.status === stocktakeApi.StocktakeOrderStatus.Draft,
+)
+const canCancelSelected = computed(() => {
+  const status = selectedStocktake.value?.status
+  return status === stocktakeApi.StocktakeOrderStatus.Draft
+    || status === stocktakeApi.StocktakeOrderStatus.Locked
+})
 
 const statusOptions = [
   { label: '草稿', value: stocktakeApi.StocktakeOrderStatus.Draft },
@@ -131,16 +145,7 @@ const columnMap: Record<string, DataTableColumns<StocktakeRow>[number]> = {
     key: 'orderNo',
     minWidth: 180,
     sorter: (a, b) => compareSortValue(a.orderNo, b.orderNo),
-    render: (row) =>
-      h(
-        NButton,
-        {
-          text: true,
-          type: 'primary',
-          onClick: () => openDetail(row),
-        },
-        { default: () => row.orderNo },
-      ),
+    render: (row) => row.orderNo,
   },
   warehouseName: {
     title: createDraggableTitle('warehouseName', '仓库'),
@@ -160,7 +165,7 @@ const columnMap: Record<string, DataTableColumns<StocktakeRow>[number]> = {
     minWidth: 120,
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         {
           type: getStatusTagType(row.status),
           round: true,
@@ -199,65 +204,6 @@ const columns = computed<DataTableColumns<StocktakeRow>>(() => withResizable(
       .filter((item) => item.visible)
       .map((item) => columnMap[item.key])
       .filter((item): item is DataTableColumns<StocktakeRow>[number] => Boolean(item)),
-    {
-      title: '操作',
-      key: 'actions',
-      width: 200,
-      fixed: 'right',
-      render: (row) => {
-        const btnList = []
-        
-        btnList.push(
-          h(
-            NButton,
-            {
-              size: 'small',
-              type: 'primary',
-              ghost: true,
-              style: { marginRight: '6px' },
-              onClick: () => openDetail(row),
-            },
-            { default: () => '详情' },
-          ),
-        )
-
-        if (row.status === stocktakeApi.StocktakeOrderStatus.Draft) {
-          btnList.push(
-            h(
-              NButton,
-              {
-                size: 'small',
-                type: 'warning',
-                ghost: true,
-                style: { marginRight: '6px' },
-                onClick: () => handleStart(row),
-              },
-              { default: () => '锁定并执行' },
-            ),
-          )
-        }
-
-        if (
-          row.status === stocktakeApi.StocktakeOrderStatus.Draft ||
-          row.status === stocktakeApi.StocktakeOrderStatus.Locked
-        ) {
-          btnList.push(
-            h(
-              NButton,
-              {
-                size: 'small',
-                type: 'error',
-                ghost: true,
-                onClick: () => handleCancel(row),
-              },
-              { default: () => '取消' },
-            ),
-          )
-        }
-
-        return h('div', null, btnList)
-      },
-    },
   ],
 ))
 
@@ -349,7 +295,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item>
@@ -372,7 +318,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>
@@ -381,7 +327,23 @@ onMounted(() => {
     </template>
     <template #actions-left>
       <div class="crud-action-main">
-        <n-button type="primary" @click="handleCreate">新增盘点单</n-button>
+        <n-button type="primary" @click="handleCreate">新增</n-button>
+        <n-button :disabled="!selectedStocktake" @click="selectedStocktake && openDetail(selectedStocktake)">查看</n-button>
+        <n-button
+          type="warning"
+          :disabled="!canStartSelected"
+          @click="selectedStocktake && handleStart(selectedStocktake)"
+        >
+          锁定并执行
+        </n-button>
+        <n-button
+          type="error"
+          :disabled="!canCancelSelected"
+          @click="selectedStocktake && handleCancel(selectedStocktake)"
+        >
+          取消
+        </n-button>
+        <n-button :loading="loading" @click="loadData">刷新</n-button>
       </div>
     </template>
     <template #actions-right>
@@ -403,6 +365,10 @@ onMounted(() => {
         :row-key="getRowKey"
         :checked-row-keys="checkedRowKeys"
         :bordered="false"
+        :row-props="(row) => ({
+          onClick: (event) => toggleSingleRow(row, event),
+          onDblclick: () => openDetail(row),
+        })"
         @update:checked-row-keys="handleCheckedRowKeysChange"
       />
     </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { NButton, NDataTable, NForm, NFormItem, NInput, NPagination, useMessage } from 'naive-ui'
 import type { DataTableColumns, PaginationProps } from 'naive-ui'
 
@@ -8,6 +8,8 @@ import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
+import { resolveBusinessCategory, resolveCommonStatus } from '../../../utils/statusTag'
 
 type RowItem = { id: string; apiName: string; method: string; status: string; creationTime?: string }
 const message = useMessage()
@@ -24,8 +26,26 @@ const { showColumnConfig, columnSettings, loadColumnSettings, handleVisibleChang
 
 const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
   apiName: { title: createDraggableTitle('apiName', '接口'), key: 'apiName', minWidth: 220, sorter: (a, b) => compareSortValue(a.apiName, b.apiName) },
-  method: { title: createDraggableTitle('method', '方法'), key: 'method', minWidth: 100, sorter: (a, b) => compareSortValue(a.method, b.method) },
-  status: { title: createDraggableTitle('status', '状态'), key: 'status', minWidth: 120, sorter: (a, b) => compareSortValue(a.status, b.status) },
+  method: {
+    title: createDraggableTitle('method', '方法'),
+    key: 'method',
+    minWidth: 100,
+    sorter: (a, b) => compareSortValue(a.method, b.method),
+    render: (row) => {
+      const meta = resolveBusinessCategory(row.method)
+      return h(WmsStatusTag, { label: meta.label, type: meta.tagType })
+    },
+  },
+  status: {
+    title: createDraggableTitle('status', '状态'),
+    key: 'status',
+    minWidth: 120,
+    sorter: (a, b) => compareSortValue(a.status, b.status),
+    render: (row) => {
+      const meta = resolveCommonStatus(row.status)
+      return h(WmsStatusTag, { label: meta.label, type: meta.tagType })
+    },
+  },
   creationTime: { title: createDraggableTitle('creationTime', '时间'), key: 'creationTime', minWidth: 180, sorter: (a, b) => compareSortValue(a.creationTime, b.creationTime) },
 }
 
@@ -47,7 +67,7 @@ onMounted(() => { loadColumnSettings(); loadData() })
       <n-form inline class="crud-search-form">
         <n-form-item><n-input :value="keyword" clearable placeholder="请输入接口名称" @update:value="(value) => (keyword = value)" @keyup.enter="handleQuery" /></n-form-item>
         <n-form-item class="crud-page-spacer" />
-        <n-form-item><n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button></n-form-item>
+        <n-form-item><n-button :loading="loading" @click="handleQuery">查询</n-button></n-form-item>
         <n-form-item><n-button @click="handleReset">重置</n-button></n-form-item>
       </n-form>
     </template>

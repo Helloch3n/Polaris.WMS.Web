@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -8,8 +9,7 @@ import {
   NDescriptionsItem,
   NEmpty,
   NSpin,
-  NTag,
-  useDialog,
+useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -259,7 +259,7 @@ onMounted(() => {
           >
             审核执行
           </n-button>
-          <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+          <n-button :loading="loading" @click="loadDetail">刷新</n-button>
         </div>
 
         <n-spin :show="loading">
@@ -279,9 +279,9 @@ onMounted(() => {
             <n-descriptions-item label="成本中心名称">{{ detail?.costCenterName || '-' }}</n-descriptions-item>
             <n-descriptions-item label="业务类型">{{ detail ? resolveOperationTypeLabel(detail.type) : '-' }}</n-descriptions-item>
             <n-descriptions-item label="状态">
-              <n-tag size="small" :type="detail ? getStatusTagType(detail.status) : 'default'">
+              <WmsStatusTag size="small" :type="detail ? getStatusTagType(detail.status) : 'default'">
                 {{ detail ? resolveStatusLabel(detail.status) : '-' }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item label="备注" :span="2">{{ detail?.remark || '-' }}</n-descriptions-item>
           </n-descriptions>

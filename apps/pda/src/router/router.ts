@@ -37,6 +37,12 @@ const router = createRouter({
           meta: { title: '采购收货', hideTabbar: true }
         },
         {
+          path: 'inbound/purchase-receipt/receive-draft/:draftSessionId',
+          name: 'PurchaseReceiptReceiveDraft',
+          component: () => import('@/views/inbound/purchaseReceipt/PurchaseReceiptReceiveView.vue'),
+          meta: { title: '采购收货执行', hideTabbar: true }
+        },
+        {
           path: 'inbound/purchase-receipt/receive/:receiptId',
           name: 'PurchaseReceiptReceive',
           component: () => import('@/views/inbound/purchaseReceipt/PurchaseReceiptReceiveView.vue'),
@@ -155,6 +161,30 @@ const router = createRouter({
           name: 'MiscOutboundExecute',
           component: () => import('@/views/outbound/miscOutbound/MiscOutboundExecuteView.vue'),
           meta: { title: '其他发货执行', hideTabbar: true }
+        },
+        {
+          path: 'outbound/review',
+          name: 'PdaReviewList',
+          component: () => import('@/views/outbound/review/ReviewListView.vue'),
+          meta: { title: '出库复核', hideTabbar: true }
+        },
+        {
+          path: 'outbound/review/:id',
+          name: 'PdaReviewExecute',
+          component: () => import('@/views/outbound/review/ReviewExecuteView.vue'),
+          meta: { title: '复核执行', hideTabbar: true }
+        },
+        {
+          path: 'outbound/handover',
+          name: 'PdaHandoverList',
+          component: () => import('@/views/outbound/handover/HandoverListView.vue'),
+          meta: { title: '出库交接', hideTabbar: true }
+        },
+        {
+          path: 'outbound/handover/:id',
+          name: 'PdaHandoverExecute',
+          component: () => import('@/views/outbound/handover/HandoverExecuteView.vue'),
+          meta: { title: '交接装车', hideTabbar: true }
         }
       ]
     },
@@ -168,7 +198,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  document.title = (to.meta.title as string) || 'Polaris WMS PDA'
+  document.title = (to.meta.title as string) || '极星仓储'
   
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
     next('/login')

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -22,6 +23,7 @@ import { useColumnConfig } from '../../../composables/useColumnConfig'
 import { useTableSelection } from '../../../composables/useTableSelection'
 import { compareSortValue } from '../../../utils/tableColumn'
 import CreateReceiptModal from './components/CreateReceiptModal.vue'
+import { resolveBusinessCategory } from '../../../utils/statusTag'
 
 type ReceiptRow = receiptApi.Receipt & {
   id?: string
@@ -220,7 +222,10 @@ const columnMap: Record<string, DataTableColumns<ReceiptRow>[number]> = {
     width: 140,
     align: 'center',
     sorter: (a, b) => compareSortValue(resolveType(a.type), resolveType(b.type)),
-    render: (row) => h(NTag, { size: 'small' }, { default: () => resolveType(row.type) }),
+    render: (row) => {
+      const meta = resolveBusinessCategory(row.type, resolveType(row.type))
+      return h(WmsStatusTag, { label: meta.label, type: meta.tagType })
+    },
   },
   status: {
     title: createDraggableTitle('status', '状态'),
@@ -230,7 +235,7 @@ const columnMap: Record<string, DataTableColumns<ReceiptRow>[number]> = {
     sorter: (a, b) => compareSortValue(resolveStatus(a.status), resolveStatus(b.status)),
     render: (row) => {
       const status = resolveStatus(row.status)
-      return h(NTag, { type: getStatusTagType(status), size: 'small' }, { default: () => status })
+      return h(WmsStatusTag, { type: getStatusTagType(status), size: 'small' }, { default: () => status })
     },
   },
   sourceBillNo: {
@@ -298,7 +303,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>

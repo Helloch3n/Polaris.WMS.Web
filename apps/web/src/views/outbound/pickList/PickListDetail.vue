@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, onMounted, ref, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -8,8 +9,7 @@ import {
   NDescriptionsItem,
   NEmpty,
   NSpin,
-  NTag,
-  useMessage,
+useMessage,
   useDialog,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -139,7 +139,7 @@ const columns = computed<DataTableColumns<DetailRow>>(() => withResizable([
     width: 110,
     align: 'center',
     render: (row) => h(
-      NTag,
+      WmsStatusTag,
       { size: 'small', type: row.isPicked ? 'success' : 'warning' },
       { default: () => row.isPicked ? '已拣货' : '待拣货' }
     )
@@ -164,6 +164,11 @@ async function loadDetail() {
 
 async function handleCreateReview() {
   if (!detail.value) return
+  if (detail.value.outboundReviewOrderId) {
+    message.warning(`该拣货单已创建复核单 ${detail.value.outboundReviewOrderNo || ''}`)
+    return
+  }
+
   dialog.warning({
     title: '创建出库复核单',
     content: `确认针对拣货单 ${detail.value.pickNo} 创建出库复核单吗？`,
@@ -172,11 +177,11 @@ async function handleCreateReview() {
     onPositiveClick: async () => {
       creatingReview.value = true
       try {
-        await reviewApi.create({
+        const review = await reviewApi.create({
           pickListId: detail.value!.id
         })
-        message.success('创建出库复核单成功')
-        loadDetail()
+        message.success(`出库复核单 ${review.reviewNo} 创建成功`)
+        await loadDetail()
       } catch (error) {
         message.error(error instanceof Error ? error.message : '创建复核单失败')
       } finally {
@@ -206,9 +211,10 @@ onMounted(() => {
             v-if="detail?.status === pickListApi.PickListStatus.Picked"
             type="warning"
             :loading="creatingReview"
+            :disabled="Boolean(detail?.outboundReviewOrderId)"
             @click="handleCreateReview"
           >
-            创建复核单
+            {{ detail?.outboundReviewOrderId ? `已创建复核单 ${detail.outboundReviewOrderNo || ''}` : '创建复核单' }}
           </n-button>
         </div>
 
@@ -217,9 +223,9 @@ onMounted(() => {
             <n-descriptions-item label="拣货单号">{{ detail?.pickNo || '-' }}</n-descriptions-item>
             <n-descriptions-item label="出库暂存位">{{ detail?.targetLocationCode || '-' }}</n-descriptions-item>
             <n-descriptions-item label="状态">
-              <n-tag size="small" :type="getStatusTagType(detail?.status)">
+              <WmsStatusTag size="small" :type="getStatusTagType(detail?.status)">
                 {{ getStatusLabel(detail?.status) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
             <n-descriptions-item label="创建时间">{{ formatDateTime(detail?.creationTime) }}</n-descriptions-item>
             <n-descriptions-item label="明细条数">{{ detailRows.length }}</n-descriptions-item>

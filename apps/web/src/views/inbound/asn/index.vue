@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -184,7 +185,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     sorter: (a, b) => compareSortValue(resolveAsnStatusLabel(a.status), resolveAsnStatusLabel(b.status)),
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         { size: 'small', type: getAsnStatusTagType(row.status) },
         { default: () => resolveAsnStatusLabel(row.status) },
       ),
@@ -240,7 +241,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">{{ t('common.query') }}</n-button>
+          <n-button :loading="loading" @click="onQuery">{{ t('common.query') }}</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">{{ t('common.reset') }}</n-button>

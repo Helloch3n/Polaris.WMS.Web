@@ -529,21 +529,32 @@ onMounted(() => {
 <style scoped>
 .organization-page {
   display: flex;
-  gap: 16px;
-  padding: 12px;
-  height: calc(100vh - 100px);
-  background: #f5f7fb;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--wms-surface-panel);
 }
 
 .left-panel {
   width: 320px;
   flex-shrink: 0;
+  height: 100%;
+  border-right: 1px solid var(--wms-border-subtle);
+  border-radius: 0;
+  box-shadow: none;
   overflow: auto;
 }
 
 .right-panel {
   flex: 1;
+  height: 100%;
   min-width: 0;
+  border-radius: 0;
+  box-shadow: none;
   overflow: auto;
 }
 

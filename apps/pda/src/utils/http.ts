@@ -19,6 +19,10 @@ http.interceptors.request.use((config) => {
     config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${authStore.accessToken}`
   }
+  if (authStore.currentWarehouseId) {
+    config.headers = config.headers ?? {}
+    config.headers['X-Current-Warehouse'] = authStore.currentWarehouseId
+  }
   return config
 })
 

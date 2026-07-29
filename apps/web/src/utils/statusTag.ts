@@ -2,7 +2,6 @@
  * 通用状态标签解析器
  * 将枚举值（数字/字符串）映射为中文标签 + NTag type
  */
-
 export type TagType = 'default' | 'info' | 'success' | 'warning' | 'error' | 'primary'
 
 export interface StatusMeta {
@@ -20,6 +19,32 @@ interface StatusEntry {
 }
 
 const FALLBACK: StatusMeta = { label: '-', tagType: 'default' }
+
+const CATEGORY_TYPES: TagType[] = ['primary', 'info', 'warning', 'success']
+
+/**
+ * 为不表达好坏的业务类别生成稳定配色。
+ * 同一显示文本在所有页面始终得到同一种颜色。
+ */
+export function resolveBusinessCategory(raw: unknown, label?: string): StatusMeta {
+  const text = label ?? (raw == null || raw === '' ? '-' : String(raw))
+  if (text === '-') return FALLBACK
+  const hash = Array.from(text).reduce((sum, char) => sum + (char.codePointAt(0) ?? 0), 0)
+  return { label: text, tagType: CATEGORY_TYPES[hash % CATEGORY_TYPES.length] ?? 'default' }
+}
+
+export const resolveCommonStatus = createStatusResolver([
+  { value: 'Draft', aliases: ['草稿'], label: '草稿', tagType: 'default' },
+  { value: 'Pending', aliases: ['待处理', '待执行'], label: '待处理', tagType: 'warning' },
+  { value: 'InProgress', aliases: ['Processing', '处理中', '执行中', '进行中'], label: '处理中', tagType: 'info' },
+  { value: 'Completed', aliases: ['完成', '已完成'], label: '已完成', tagType: 'success' },
+  { value: 'Success', aliases: ['Succeeded', '成功'], label: '成功', tagType: 'success' },
+  { value: 'Failed', aliases: ['Failure', '失败'], label: '失败', tagType: 'error' },
+  { value: 'Cancelled', aliases: ['Canceled', '取消', '已取消'], label: '已取消', tagType: 'default' },
+  { value: 'Closed', aliases: ['关闭', '已关闭'], label: '已关闭', tagType: 'default' },
+  { value: 'Enabled', aliases: ['Active', '启用'], label: '启用', tagType: 'success' },
+  { value: 'Disabled', aliases: ['Inactive', '停用'], label: '停用', tagType: 'default' },
+])
 
 /**
  * 创建状态解析器，自动处理 string / number 双向匹配
@@ -131,6 +156,25 @@ export const resolveInventoryType = createStatusResolver([
   { value: 0, aliases: ['SemiFinished'], label: '半成品', tagType: 'warning' },
   { value: 1, aliases: ['Finished'], label: '成品', tagType: 'success' },
   { value: 2, aliases: ['ProcessContainer'], label: '工序盘', tagType: 'info' },
+])
+
+export const resolveInventoryTransactionType = createStatusResolver([
+  { value: 0, aliases: ['Receipt', 'In'], label: '入库', tagType: 'success' },
+  { value: 1, aliases: ['Issue', 'Out'], label: '出库', tagType: 'error' },
+  { value: 2, aliases: ['Transfer', 'Move'], label: '移库', tagType: 'info' },
+  { value: 3, aliases: ['Adjust', 'Check'], label: '盘点', tagType: 'warning' },
+  { value: 4, aliases: ['Feed'], label: '材料投入', tagType: 'primary' },
+  { value: 5, aliases: ['Return'], label: '材料退回', tagType: 'warning' },
+  { value: 6, aliases: ['QcInspect'], label: '质检判定', tagType: 'info' },
+  { value: 7, aliases: ['PurchaseReturn'], label: '采购退货', tagType: 'error' },
+])
+
+export const resolveInventoryTransactionStatus = createStatusResolver([
+  { value: 0, aliases: ['Good'], label: '良品', tagType: 'success' },
+  { value: 1, aliases: ['Frozen'], label: '冻结', tagType: 'info' },
+  { value: 2, aliases: ['Hold'], label: '待检', tagType: 'warning' },
+  { value: 3, aliases: ['Quarantine'], label: '隔离', tagType: 'warning' },
+  { value: 4, aliases: ['Scrap'], label: '报废', tagType: 'error' },
 ])
 
 /* ──────────────────── 容器 ──────────────────── */

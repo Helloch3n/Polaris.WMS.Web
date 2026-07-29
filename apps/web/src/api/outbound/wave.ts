@@ -12,9 +12,9 @@ export type WaveOrderStatus = typeof WaveOrderStatus[keyof typeof WaveOrderStatu
 export interface WaveOrderLineDto {
   id: string
   waveOrderId: string
-  salesShipmentId: string
-  salesShipmentNo: string
-  salesShipmentDetailId: string
+  salesAllocationOrderId: string
+  salesAllocationOrderNo: string
+  salesAllocationDetailId: string
   customerId: string
   customerCode: string
   customerName: string
@@ -28,13 +28,16 @@ export interface WaveOrderDto {
   id: string
   waveNo: string
   status: WaveOrderStatus
+  warehouseId: string
+  warehouseCode: string
+  warehouseName: string
   remark?: string | null
   creationTime: string
   lines: WaveOrderLineDto[]
 }
 
 export interface CreateWaveOrderInput {
-  salesShipmentIds: string[]
+  salesAllocationOrderIds: string[]
   remark?: string | null
 }
 

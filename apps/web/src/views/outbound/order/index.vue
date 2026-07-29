@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="outbound-list-page">
     <BaseCrudPage>
       <template #search>
         <n-form inline class="crud-search-form">
@@ -35,7 +35,7 @@
           </n-form-item>
           <n-form-item class="crud-page-spacer" />
           <n-form-item>
-            <n-button type="primary" :loading="loading" @click="loadOrders">查询</n-button>
+            <n-button :loading="loading" @click="loadOrders">查询</n-button>
           </n-form-item>
           <n-form-item>
             <n-button @click="resetSearch">重置</n-button>
@@ -46,6 +46,15 @@
       <template #actions-left>
         <div class="crud-action-main">
           <n-button v-if="canCreate" type="primary" @click="openCreate">新增</n-button>
+          <n-button :disabled="!selectedOrder" @click="selectedOrder && openDrawer(selectedOrder)">查看</n-button>
+          <n-button
+            v-if="canDelete"
+            type="error"
+            :disabled="!canDeleteSelectedOrder"
+            @click="selectedOrder && handleDelete(selectedOrder)"
+          >
+            删除
+          </n-button>
         </div>
       </template>
 
@@ -61,7 +70,17 @@
       </template>
 
       <template #data>
-        <n-data-table class="crud-table-flat" :columns="columns" :data="orders" :bordered="false" :loading="loading" />
+        <n-data-table
+          class="crud-table-flat"
+          :columns="columns"
+          :data="orders"
+          :bordered="false"
+          :loading="loading"
+          :row-key="(row) => row.id"
+          :checked-row-keys="selectedOrderKeys"
+          :row-props="(row) => ({ onDblclick: () => openDrawer(row) })"
+          @update:checked-row-keys="(keys) => { selectedOrderKeys = keys as string[] }"
+        />
       </template>
 
       <template #pager-right>
@@ -144,9 +163,9 @@
           <n-descriptions-item label="订单号">{{ currentOrder?.orderNo }}</n-descriptions-item>
           <n-descriptions-item label="客户">{{ currentOrder?.customerName }} ({{ currentOrder?.customerCode }})</n-descriptions-item>
           <n-descriptions-item label="状态">
-            <n-tag :type="currentOrder ? getStatusTagType(currentOrder.status) : 'default'">
+            <WmsStatusTag :type="currentOrder ? getStatusTagType(currentOrder.status) : 'default'">
               {{ currentOrder ? getStatusLabel(currentOrder.status) : '-' }}
-            </n-tag>
+            </WmsStatusTag>
           </n-descriptions-item>
           <n-descriptions-item label="订单日期">{{ formatDateTime(currentOrder?.orderDate) }}</n-descriptions-item>
           <n-descriptions-item label="计划发货时间">{{ formatDateTime(currentOrder?.expectedDeliveryTime) || '-' }}</n-descriptions-item>
@@ -160,6 +179,7 @@
           :data="currentOrder?.details || []"
           size="small"
           :bordered="false"
+          :scroll-x="1180"
         />
       </n-drawer-content>
     </n-drawer>
@@ -167,8 +187,10 @@
 </template>
 
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 /* eslint-disable vue/no-v-model-argument */
 import { computed, h, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   NButton,
   NDataTable,
@@ -188,8 +210,7 @@ import {
   NPagination,
   NSelect,
   NSpace,
-  NTag,
-  useMessage,
+useMessage,
   useDialog,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules, PaginationProps, SelectOption } from 'naive-ui'
@@ -205,6 +226,7 @@ import { compareSortValue } from '../../../utils/tableColumn'
 
 const message = useMessage()
 const dialog = useDialog()
+const router = useRouter()
 
 const { hasPermission } = usePermission()
 
@@ -219,6 +241,14 @@ const pagination = reactive<PaginationProps>({
 
 const orders = ref<salesOrderApi.SalesOrderDto[]>([])
 const loading = ref(false)
+const selectedOrderKeys = ref<string[]>([])
+const selectedOrder = computed(() => {
+  if (selectedOrderKeys.value.length !== 1) return null
+  return orders.value.find((order) => order.id === selectedOrderKeys.value[0]) ?? null
+})
+const canDeleteSelectedOrder = computed(() =>
+  selectedOrder.value?.status === salesOrderApi.SalesOrderStatus.Open,
+)
 
 const searchForm = reactive({
   orderNo: '',
@@ -347,7 +377,7 @@ const columnMap: Record<string, DataTableColumns<salesOrderApi.SalesOrderDto>[nu
     sorter: (a, b) => compareSortValue(a.status, b.status),
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         { type: getStatusTagType(row.status), size: 'small' },
         { default: () => getStatusLabel(row.status) },
       ),
@@ -376,22 +406,15 @@ const columnMap: Record<string, DataTableColumns<salesOrderApi.SalesOrderDto>[nu
 }
 
 const columns = computed<DataTableColumns<salesOrderApi.SalesOrderDto>>(() => withResizable([
+  {
+    type: 'selection',
+    fixed: 'left',
+    width: 44,
+  },
   ...columnSettings.value
     .filter((item) => item.visible)
     .map((item) => columnMap[item.key])
     .filter((item): item is DataTableColumns<salesOrderApi.SalesOrderDto>[number] => Boolean(item)),
-  {
-    title: '操作',
-    key: 'actions',
-    width: 160,
-    align: 'center',
-    render: (row) => [
-      h(NButton, { size: 'small', type: 'info', quaternary: true, onClick: () => openDrawer(row) }, { default: () => '详情' }),
-      row.status === salesOrderApi.SalesOrderStatus.Open && canDelete.value
-        ? h(NButton, { size: 'small', type: 'error', quaternary: true, onClick: () => handleDelete(row) }, { default: () => '删除' })
-        : null,
-    ],
-  },
 ]))
 
 function handleColumnConfigShowChange(value: boolean) {
@@ -411,7 +434,9 @@ const detailItemColumns: DataTableColumns<salesOrderApi.SalesOrderDetailDto> = [
   { title: '单位', key: 'unit', width: 80, align: 'center' },
   { title: '需求数量', key: 'qty', width: 100, align: 'right' },
   { title: '已分配数量', key: 'allocatedQty', width: 110, align: 'right' },
+  { title: '发货中占用', key: 'plannedShipmentQty', width: 120, align: 'right' },
   { title: '已出库数量', key: 'shippedQty', width: 110, align: 'right' },
+  { title: '可发数量', key: 'availableToShipQty', width: 110, align: 'right' },
   { title: '备注', key: 'remark', minWidth: 120, render: (row) => row.remark || '-' },
 ]
 
@@ -427,6 +452,7 @@ const itemFormColumns = computed<DataTableColumns<FormItem>>(() => [
       remote: true,
       loading: productLoading.value,
       placeholder: '选择物料',
+      onFocus: () => loadProductOptions(),
       onSearch: handleProductSearch,
       onUpdateValue: (val: string | null) => {
         if (!val) {
@@ -494,17 +520,8 @@ const itemFormColumns = computed<DataTableColumns<FormItem>>(() => [
   }
 ])
 
-async function openDrawer(row: salesOrderApi.SalesOrderDto) {
-  loading.value = true
-  try {
-    const order = await salesOrderApi.get(row.id)
-    currentOrder.value = order
-    drawerVisible.value = true
-  } catch (e) {
-    message.error(e instanceof Error ? e.message : '加载详情失败')
-  } finally {
-    loading.value = false
-  }
+function openDrawer(row: salesOrderApi.SalesOrderDto) {
+  router.push({ name: 'SalesOrderDetail', params: { id: row.id } })
 }
 
 function addItem() {
@@ -535,6 +552,7 @@ async function loadOrders() {
       status: searchForm.status ?? undefined,
     })
     orders.value = result.items ?? []
+    selectedOrderKeys.value = []
     pagination.itemCount = result.totalCount ?? 0
   } finally {
     loading.value = false
@@ -557,13 +575,13 @@ function resetSearch() {
 
 const productLoading = ref(false)
 
-async function handleProductSearch(query: string) {
-  if (!query) return
+async function loadProductOptions(keyword?: string) {
   productLoading.value = true
   try {
     const res = await productApi.getProductList({
-      filter: query,
-      maxResultCount: 20
+      filter: keyword?.trim() || undefined,
+      maxResultCount: 50,
+      skipCount: 0,
     })
     productOptions.value = (res.items ?? []).map(p => ({
       label: `${p.code} - ${p.name}`,
@@ -581,6 +599,10 @@ async function handleProductSearch(query: string) {
   }
 }
 
+function handleProductSearch(keyword: string) {
+  loadProductOptions(keyword)
+}
+
 async function loadCustomers() {
   try {
     const res = await customerApi.getList({
@@ -595,21 +617,8 @@ async function loadCustomers() {
   }
 }
 
-async function openCreate() {
-  // Generate code or clear
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const code = `SO${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`
-  
-  createForm.orderNo = code
-  createForm.customerId = ''
-  createForm.orderDate = now.getTime()
-  createForm.expectedDeliveryTime = now.getTime() + 24 * 60 * 60 * 1000 // default next day
-  createForm.remark = ''
-  createForm.items = []
-  addItem() // Add first row
-  
-  createVisible.value = true
+function openCreate() {
+  router.push({ name: 'SalesOrderCreate' })
 }
 
 async function submitCreate() {
@@ -684,4 +693,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.outbound-list-page {
+  height: 100%;
+  min-height: 0;
+}
 </style>

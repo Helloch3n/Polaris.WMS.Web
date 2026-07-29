@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
@@ -13,8 +14,7 @@ import {
   NPopconfirm,
   NSelect,
   NSwitch,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 
@@ -29,6 +29,7 @@ import {
   type IdentityUserUpdateDto,
 } from '../../../api/identity'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { useTableSelection } from '../../../composables/useTableSelection'
 import { compareSortValue } from '../../../utils/tableColumn'
 import { withResizable } from '../../../utils/table'
 
@@ -52,7 +53,15 @@ const resettingPassword = ref(false)
 const assigningRoles = ref(false)
 const assignRoleLoading = ref(false)
 const roleOptions = ref<Array<{ label: string; value: string }>>([])
-const checkedRowKeys = ref<Array<string | number>>([])
+const {
+  checkedRowKeys,
+  selectedRows,
+  selectedCount,
+  handleCheckedRowKeysChange,
+  syncCheckedRowKeys,
+  toggleSingleRow,
+  clearSelection,
+} = useTableSelection(rows, getUserRowKey)
 
 const createVisible = ref(false)
 const editVisible = ref(false)
@@ -101,11 +110,7 @@ const listParams = computed<GetIdentityUsersParams>(() => ({
   maxResultCount: query.pageSize,
 }))
 
-const selectedUser = computed(() => {
-  const id = checkedRowKeys.value[0]
-  if (!id) return null
-  return rows.value.find((item) => item.id === String(id)) ?? null
-})
+const selectedUser = computed(() => selectedRows.value.length === 1 ? selectedRows.value[0] ?? null : null)
 
 const assignRoleCountText = computed(() => `已选择 ${assignRoleNames.value.length} 个角色`)
 
@@ -199,7 +204,7 @@ const columnMap: Record<string, DataTableColumns<UserRow>[number]> = {
     sorter: (a, b) => compareSortValue(a.isActive, b.isActive),
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         { type: row.isActive === false ? 'default' : 'success', size: 'small' },
         { default: () => (row.isActive === false ? '禁用' : '启用') },
       ),
@@ -209,8 +214,8 @@ const columnMap: Record<string, DataTableColumns<UserRow>[number]> = {
 const columns = computed<DataTableColumns<UserRow>>(() => withResizable([
   {
     type: 'selection',
-    width: 48,
-    multiple: false,
+    fixed: 'left',
+    width: 44,
   },
   ...columnSettings.value
     .filter((item) => item.visible)
@@ -234,11 +239,7 @@ async function loadUsers() {
     const data = await usersApi.getList(listParams.value)
     rows.value = data.items ?? []
     query.total = data.totalCount ?? 0
-
-    const selectedId = checkedRowKeys.value[0] ? String(checkedRowKeys.value[0]) : ''
-    if (selectedId && !rows.value.some((item) => item.id === selectedId)) {
-      checkedRowKeys.value = []
-    }
+    syncCheckedRowKeys()
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载用户失败')
   } finally {
@@ -540,16 +541,6 @@ async function submitResetPassword() {
   }
 }
 
-function handleCheckedRowKeys(keys: Array<string | number>) {
-  if (keys.length <= 1) {
-    checkedRowKeys.value = keys
-    return
-  }
-
-  const lastKey = keys[keys.length - 1]
-  checkedRowKeys.value = lastKey === undefined ? [] : [lastKey]
-}
-
 function getUserRowKey(row: UserRow) {
   return row.id
 }
@@ -557,7 +548,7 @@ function getUserRowKey(row: UserRow) {
 watch(
   () => query.page,
   () => {
-    checkedRowKeys.value = []
+    clearSelection()
   },
 )
 
@@ -569,12 +560,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="onReset">重置</n-button>
@@ -616,8 +607,9 @@ onMounted(() => {
         :data="rows"
         :row-key="getUserRowKey"
         :checked-row-keys="checkedRowKeys"
+        :row-props="(row) => ({ onClick: (event) => toggleSingleRow(row, event) })"
         :bordered="false"
-        @update:checked-row-keys="handleCheckedRowKeys"
+        @update:checked-row-keys="handleCheckedRowKeysChange"
       />
     </template>
 
@@ -823,7 +815,7 @@ onMounted(() => {
   padding: 10px 12px;
   background: #f8fafc;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .role-item:hover {

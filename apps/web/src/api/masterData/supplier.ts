@@ -14,6 +14,7 @@ export interface PagedAndSortedResultRequestDto {
 }
 
 export interface SupplierDto {
+  id?: string
   code: string
   name: string
   contactPerson: string

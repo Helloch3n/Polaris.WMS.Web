@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -14,8 +15,7 @@ import {
   NModal,
   NProgress,
   NSelect,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules, InputInst, SelectOption } from 'naive-ui'
 
@@ -484,7 +484,7 @@ const columnMap: Record<string, DataTableColumns<ReceiptDetailRow>[number]> = {
     sorter: (a, b) => compareSortValue(a.isReceived, b.isReceived),
     render: (row) =>
       h(
-        NTag,
+        WmsStatusTag,
         { type: row.isReceived ? 'success' : 'warning', size: 'small' },
         { default: () => (row.isReceived ? '已完成' : '待收货') },
       ),
@@ -581,9 +581,9 @@ onMounted(async () => {
               {{ receipt?.supplierName ?? '-' }}
             </n-descriptions-item>
             <n-descriptions-item label="状态">
-              <n-tag :type="getStatusTagType(resolveStatus(receipt?.status))" size="small">
+              <WmsStatusTag :type="getStatusTagType(resolveStatus(receipt?.status))" size="small">
                 {{ resolveStatus(receipt?.status) }}
-              </n-tag>
+              </WmsStatusTag>
             </n-descriptions-item>
           </n-descriptions>
         </div>

@@ -3,7 +3,7 @@ import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { NButton, NCheckbox, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
-import polarisLogoUrl from '../assets/polaris-logo.svg'
+import PolarisLogo from '../components/PolarisLogo.vue'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
@@ -82,9 +82,8 @@ onMounted(async () => {
       />
 
       <div class="brand-content">
-        <img class="brand-logo-icon" :src="polarisLogoUrl" alt="" />
+        <PolarisLogo class="brand-logo-icon" />
         <h1 class="brand-name">极星仓储</h1>
-        <p class="brand-slogan">简洁 · 稳定 · 高效</p>
       </div>
     </div>
 
@@ -92,8 +91,7 @@ onMounted(async () => {
     <div class="login-form-panel">
       <div class="login-card">
         <div class="login-card-header">
-          <h2 class="text-2xl font-extrabold text-slate-900">欢迎登录</h2>
-          <p class="mt-1.5 text-sm text-gray-400">极星仓储管理系统</p>
+          <h2 class="login-title text-2xl font-extrabold">欢迎登录</h2>
         </div>
 
         <n-form ref="formRef" :model="form" :rules="rules" label-placement="top" autocomplete="off" class="space-y-1">
@@ -135,7 +133,7 @@ onMounted(async () => {
           </n-button>
         </n-form>
 
-        <div class="login-footer">© {{ new Date().getFullYear() }} 极星仓储 · 仅限内部使用</div>
+        <div class="login-footer">© {{ new Date().getFullYear() }} 极星仓储</div>
       </div>
     </div>
   </div>
@@ -143,10 +141,41 @@ onMounted(async () => {
 
 <style scoped>
 .login-shell {
+  --login-page-bg: #f5f7fb;
+  --login-form-bg-start: #f8fafc;
+  --login-form-bg-end: #ffffff;
+  --login-card-bg: rgba(255, 255, 255, 0.92);
+  --login-card-border: rgba(148, 163, 184, 0.14);
+  --login-card-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  --login-field-bg: #f8fafc;
+  --login-field-focus-bg: #ffffff;
+  --login-field-border: #e2e8f0;
+  --login-title: #0f172a;
+  --login-footer: #cbd5e1;
+  --login-brand-start: #0f2f78;
+  --login-brand-middle: #1550c9;
+  --login-brand-end: #3b82f6;
   min-height: 100vh;
   display: flex;
   overflow: hidden;
-  background: #f5f7fb;
+  background: var(--login-page-bg);
+}
+
+:global(:root[data-theme='dark'] .login-shell) {
+  --login-page-bg: #000000;
+  --login-form-bg-start: #050505;
+  --login-form-bg-end: #0b0b0b;
+  --login-card-bg: rgba(13, 13, 13, 0.94);
+  --login-card-border: rgba(255, 255, 255, 0.1);
+  --login-card-shadow: 0 28px 72px rgba(0, 0, 0, 0.42);
+  --login-field-bg: #111111;
+  --login-field-focus-bg: #171717;
+  --login-field-border: #303030;
+  --login-title: #f5f5f5;
+  --login-footer: #666666;
+  --login-brand-start: #030303;
+  --login-brand-middle: #090909;
+  --login-brand-end: #111111;
 }
 
 .login-brand-panel {
@@ -160,7 +189,7 @@ onMounted(async () => {
   padding: 40px;
   background:
     radial-gradient(circle at 44% 34%, rgba(255, 255, 255, 0.16), transparent 0 24%),
-    linear-gradient(145deg, #0f2f78 0%, #1550c9 48%, #3b82f6 100%);
+    linear-gradient(145deg, var(--login-brand-start) 0%, var(--login-brand-middle) 48%, var(--login-brand-end) 100%);
 }
 
 .brand-halo {
@@ -199,26 +228,19 @@ onMounted(async () => {
 }
 
 .brand-logo-icon {
-  width: 132px;
-  height: 132px;
-  filter: drop-shadow(0 22px 56px rgba(56, 189, 248, 0.22));
+  width: 136px;
+  height: 102px;
+  color: #ffffff;
+  filter: drop-shadow(0 18px 44px rgba(15, 23, 42, 0.2));
 }
 
 .brand-name {
-  margin: 44px 0 0;
+  margin: 20px 0 0;
   font-size: 3rem;
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #ffffff;
-}
-
-.brand-slogan {
-  margin: 18px 0 0;
-  font-size: 1rem;
-  line-height: 1.6;
-  letter-spacing: 0.32em;
-  color: rgba(219, 234, 254, 0.88);
 }
 
 /* ===== 右侧登录面板 ===== */
@@ -228,7 +250,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--login-form-bg-start) 0%, var(--login-form-bg-end) 100%);
 }
 
 .login-card {
@@ -236,14 +258,18 @@ onMounted(async () => {
   max-width: 100%;
   padding: 40px 36px 28px;
   border-radius: 28px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: var(--login-card-bg);
+  box-shadow: var(--login-card-shadow);
+  border: 1px solid var(--login-card-border);
   backdrop-filter: blur(14px);
 }
 
 .login-card-header {
   margin-bottom: 26px;
+}
+
+.login-title {
+  color: var(--login-title);
 }
 
 .remember-item {
@@ -255,7 +281,7 @@ onMounted(async () => {
   width: 100%;
   overflow: hidden;
   border-radius: 16px;
-  background: #f8fafc;
+  background: var(--login-field-bg);
   transition: background-color 0.2s ease;
 }
 
@@ -263,14 +289,14 @@ onMounted(async () => {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--login-field-border);
   border-radius: inherit;
   pointer-events: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .login-field-shell:focus-within {
-  background: #ffffff;
+  background: var(--login-field-focus-bg);
 }
 
 .login-field-shell:focus-within::after {
@@ -360,7 +386,7 @@ onMounted(async () => {
 .login-footer {
   margin-top: 26px;
   text-align: center;
-  color: #cbd5e1;
+  color: var(--login-footer);
   font-size: 12px;
 }
 
@@ -403,19 +429,15 @@ onMounted(async () => {
   }
 
   .brand-logo-icon {
-    width: 112px;
-    height: 112px;
+    width: 120px;
+    height: 90px;
   }
 
   .brand-name {
-    margin-top: 32px;
+    margin-top: 18px;
     font-size: 2.25rem;
   }
 
-  .brand-slogan {
-    font-size: 0.92rem;
-    letter-spacing: 0.22em;
-  }
 }
 
 @media (max-width: 640px) {

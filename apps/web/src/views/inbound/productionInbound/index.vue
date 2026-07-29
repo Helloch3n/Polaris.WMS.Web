@@ -24,6 +24,7 @@ import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 import { usePermission } from '../../../composables/usePermission'
+import { resolveProductionInboundType } from '../../../utils/statusTag'
 
 type RowItem = productionInboundApi.ProductionInboundDto
 
@@ -181,7 +182,10 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     key: 'inboundType',
     minWidth: 160,
     sorter: (a, b) => compareSortValue(normalizeInboundTypeValue(a.inboundType), normalizeInboundTypeValue(b.inboundType)),
-    render: (row) => resolveInboundTypeLabel(row.inboundType),
+    render: (row) => {
+      const meta = resolveProductionInboundType(row.inboundType)
+      return h(WmsStatusTag, { label: resolveInboundTypeLabel(row.inboundType), type: meta.tagType })
+    },
   },
   sourceDepartmentCode: {
     title: createDraggableTitle('sourceDepartmentCode', t('productionInbound.columns.sourceDepartmentCode')),
@@ -400,7 +404,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">{{ t('common.query') }}</n-button>
+          <n-button :loading="loading" @click="handleQuery">{{ t('common.query') }}</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">{{ t('common.reset') }}</n-button>

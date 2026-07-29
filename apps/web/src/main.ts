@@ -6,9 +6,6 @@ import { permissionDirective } from './directives/permission'
 import './style.css'
 import App from './App.vue'
 
-const storedTheme = localStorage.getItem('wms-theme')
-document.documentElement.classList.toggle('dark', storedTheme === 'dark')
-
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)

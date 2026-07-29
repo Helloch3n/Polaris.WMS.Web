@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { NInput, NIcon } from 'naive-ui'
-import { SearchOutline, NavigateOutline, TerminalOutline } from '@vicons/ionicons5'
+import { CommandLineIcon, CursorArrowRaysIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { useSettingsStore } from '../stores/settings'
 
 const router = useRouter()
@@ -28,8 +28,9 @@ const routesList = computed(() => {
 
 // Build list of static commands
 const commandList = [
-  { type: 'command', title: '/dark', description: '切换至极客暗黑主题', action: () => settingsStore.setTheme('dark') },
-  { type: 'command', title: '/light', description: '切换至清爽明亮主题', action: () => settingsStore.setTheme('light') },
+  { type: 'command', title: '/dark', description: '切换至暗色主题', action: () => settingsStore.setThemePreference('dark') },
+  { type: 'command', title: '/light', description: '切换至亮色主题', action: () => settingsStore.setThemePreference('light') },
+  { type: 'command', title: '/system', description: '主题跟随操作系统', action: () => settingsStore.setThemePreference('system') },
   { type: 'command', title: '/compact', description: '表格紧凑模式', action: () => settingsStore.setTableSize('small') },
   { type: 'command', title: '/medium', description: '表格默认模式', action: () => settingsStore.setTableSize('medium') },
   { type: 'command', title: '/loose', description: '表格宽松模式', action: () => settingsStore.setTableSize('large') },
@@ -69,6 +70,12 @@ function toggleVisible() {
     nextTick(() => {
       inputRef.value?.focus()
     })
+  }
+}
+
+function open() {
+  if (!visible.value) {
+    toggleVisible()
   }
 }
 
@@ -155,6 +162,8 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
 })
+
+defineExpose({ open })
 </script>
 
 <template>
@@ -174,7 +183,7 @@ onUnmounted(() => {
             >
               <template #prefix>
                 <n-icon size="20" class="text-slate-400 mr-1">
-                  <SearchOutline />
+                  <MagnifyingGlassIcon />
                 </n-icon>
               </template>
             </n-input>
@@ -194,10 +203,10 @@ onUnmounted(() => {
             >
               <div class="palette-item-icon">
                 <n-icon v-if="item.type === 'command'" size="16">
-                  <TerminalOutline />
+                  <CommandLineIcon />
                 </n-icon>
                 <n-icon v-else size="16">
-                  <NavigateOutline />
+                  <CursorArrowRaysIcon />
                 </n-icon>
               </div>
               <div class="palette-item-content">
@@ -243,8 +252,8 @@ onUnmounted(() => {
 .command-palette-modal {
   width: 90%;
   max-width: 600px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--wms-surface-elevated);
+  border: 1px solid var(--wms-border-subtle);
   border-radius: 14px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 40px rgba(0, 0, 0, 0.03);
   overflow: hidden;
@@ -253,29 +262,14 @@ onUnmounted(() => {
   max-height: 480px;
 }
 
-/* Dark mode overrides */
-:global(html.dark) .command-palette-modal {
-  background: #1e293b;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-}
-
 .palette-search-wrapper {
   padding: 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-:global(html.dark) .palette-search-wrapper {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--wms-border-subtle);
 }
 
 .palette-input :deep(.n-input) {
-  background: #f8fafc !important;
+  background: var(--wms-surface-muted) !important;
   border-radius: 8px;
-}
-
-:global(html.dark) .palette-input :deep(.n-input) {
-  background: #0f172a !important;
 }
 
 .palette-results-wrapper {
@@ -293,42 +287,28 @@ onUnmounted(() => {
   border-radius: 8px;
   cursor: pointer;
   margin-bottom: 2px;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .palette-item.active {
-  background-color: #f1f5f9;
-}
-
-:global(html.dark) .palette-item.active {
-  background-color: #334155;
+  background-color: var(--wms-surface-hover);
 }
 
 .palette-item-icon {
-  color: #64748b;
+  color: var(--wms-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  background-color: #f8fafc;
+  background-color: var(--wms-surface-muted);
   flex-shrink: 0;
 }
 
-:global(html.dark) .palette-item-icon {
-  background-color: #0f172a;
-  color: #94a3b8;
-}
-
 .palette-item.active .palette-item-icon {
-  background-color: #ffffff;
-  color: #2563eb;
-}
-
-:global(html.dark) .palette-item.active .palette-item-icon {
-  background-color: #1e293b;
-  color: #3b82f6;
+  background-color: var(--wms-surface-panel);
+  color: var(--wms-text-primary);
 }
 
 .palette-item-content {
@@ -339,23 +319,15 @@ onUnmounted(() => {
 .palette-item-title {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
-}
-
-:global(html.dark) .palette-item-title {
-  color: #f1f5f9;
+  color: var(--wms-text-primary);
 }
 
 .palette-item-desc {
   font-size: 12px;
-  color: #64748b;
+  color: var(--wms-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-:global(html.dark) .palette-item-desc {
-  color: #94a3b8;
 }
 
 .palette-item-tag {
@@ -372,51 +344,31 @@ onUnmounted(() => {
   color: #0284c7;
 }
 
-:global(html.dark) .palette-item-tag {
-  background-color: rgba(239, 68, 68, 0.2);
-}
-
-:global(html.dark) .palette-item-tag.path {
-  background-color: rgba(2, 132, 199, 0.2);
-}
-
 .palette-empty {
   padding: 32px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--wms-text-muted);
   font-size: 14px;
 }
 
 .palette-footer {
   padding: 10px 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background-color: #f8fafc;
+  border-top: 1px solid var(--wms-border-subtle);
+  background-color: var(--wms-surface-muted);
   display: flex;
   gap: 16px;
   font-size: 11px;
-  color: #64748b;
-}
-
-:global(html.dark) .palette-footer {
-  border-top-color: rgba(255, 255, 255, 0.08);
-  background-color: #0f172a;
-  color: #94a3b8;
+  color: var(--wms-text-muted);
 }
 
 .palette-footer kbd {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  background: var(--wms-surface-panel);
+  border: 1px solid var(--wms-border);
   border-radius: 3px;
   padding: 1px 4px;
   font-family: inherit;
   font-size: 10px;
   box-shadow: 0 1px 0 rgba(0,0,0,0.1);
-}
-
-:global(html.dark) .palette-footer kbd {
-  background: #1e293b;
-  border-color: #475569;
-  color: #f1f5f9;
 }
 
 /* Animations */

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -213,7 +214,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     sorter: (a, b) => compareSortValue(normalizeStatusValue(a.status), normalizeStatusValue(b.status)),
     render: (row) => {
       const label = resolveStatusLabel(row.status)
-      return h(NTag, { size: 'small', type: getStatusTagType(row.status) }, { default: () => label })
+      return h(WmsStatusTag, { size: 'small', type: getStatusTagType(row.status) }, { default: () => label })
     },
   },
   creationTime: {
@@ -468,7 +469,7 @@ onMounted(() => {
         </n-form-item>
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button @click="handleReset">重置</n-button>

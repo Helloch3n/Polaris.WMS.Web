@@ -13,10 +13,10 @@ export type PickListStatus = typeof PickListStatus[keyof typeof PickListStatus] 
 export interface PickListLineDto {
   id: string
   pickListId: string
-  salesShipmentId: string
-  salesShipmentNo: string
-  salesShipmentDetailId: string
-  salesShipmentAllocationId: string
+  salesAllocationOrderId: string
+  salesAllocationOrderNo: string
+  salesAllocationDetailId: string
+  salesAllocationReservationId: string
   productId: string
   productCode: string
   productName: string
@@ -42,6 +42,8 @@ export interface PickListDto {
   targetLocationId: string
   targetLocationCode: string
   status: PickListStatus
+  outboundReviewOrderId?: string | null
+  outboundReviewOrderNo?: string | null
   remark?: string | null
   creationTime: string
   creatorId?: string

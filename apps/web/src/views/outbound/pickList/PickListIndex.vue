@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -9,8 +10,7 @@ import {
   NInput,
   NPagination,
   NSelect,
-  NTag,
-  useDialog,
+useDialog,
   useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, PaginationProps, SelectOption } from 'naive-ui'
@@ -77,7 +77,11 @@ const {
 
 const canViewDetail = computed(() => selectedCount.value === 1)
 const canReleaseSelected = computed(() => selectedRows.value.length === 1 && selectedRows.value[0]?.status === pickListApi.PickListStatus.Created)
-const canCreateReviewSelected = computed(() => selectedRows.value.length === 1 && selectedRows.value[0]?.status === pickListApi.PickListStatus.Picked)
+const canCreateReviewSelected = computed(() =>
+  selectedRows.value.length === 1
+  && selectedRows.value[0]?.status === pickListApi.PickListStatus.Picked
+  && !selectedRows.value[0]?.outboundReviewOrderId,
+)
 
 function getStatusLabel(status: number) {
   switch (status) {
@@ -165,7 +169,7 @@ const columnMap: Record<string, DataTableColumns<RowItem>[number]> = {
     width: 120,
     align: 'center',
     sorter: (a, b) => compareSortValue(a.status, b.status),
-    render: (row) => h(NTag, { size: 'small', type: getStatusTagType(row.status) }, { default: () => getStatusLabel(row.status) }),
+    render: (row) => h(WmsStatusTag, { size: 'small', type: getStatusTagType(row.status) }, { default: () => getStatusLabel(row.status) }),
   },
   detailCount: {
     title: createDraggableTitle('detailCount', '明细数'),
@@ -193,57 +197,6 @@ const columns = computed<DataTableColumns<RowItem>>(() => withResizable([
     .filter((item) => item.visible)
     .map((item) => columnMap[item.key])
     .filter((item): item is DataTableColumns<RowItem>[number] => Boolean(item)),
-  {
-    title: '操作',
-    key: 'actions',
-    width: 260,
-    align: 'center',
-    fixed: 'right',
-    render: (row) => {
-      const rowReleasing = releasingId.value === row.id
-      const rowReviewing = creatingReviewId.value === row.id
-      return h('div', { style: 'display: flex; gap: 8px; justify-content: center;' }, [
-        h(
-          NButton,
-          {
-            size: 'small',
-            type: 'info',
-            quaternary: true,
-            onClick: () => handleView(row),
-          },
-          { default: () => '详情' },
-        ),
-        row.status === pickListApi.PickListStatus.Created
-          ? h(
-              NButton,
-              {
-                size: 'small',
-                type: 'primary',
-                quaternary: true,
-                disabled: Boolean(releasingId.value),
-                loading: rowReleasing,
-                onClick: () => handleRelease(row),
-              },
-              { default: () => '释放' },
-            )
-          : null,
-        row.status === pickListApi.PickListStatus.Picked
-          ? h(
-              NButton,
-              {
-                size: 'small',
-                type: 'warning',
-                quaternary: true,
-                disabled: Boolean(creatingReviewId.value),
-                loading: rowReviewing,
-                onClick: () => handleCreateReview(row),
-              },
-              { default: () => '创建复核' },
-            )
-          : null,
-      ])
-    },
-  },
 ]))
 
 async function loadData() {
@@ -341,6 +294,11 @@ function handleReleaseSelected() {
 }
 
 async function handleCreateReview(row: RowItem) {
+  if (row.outboundReviewOrderId) {
+    message.warning(`该拣货单已创建复核单 ${row.outboundReviewOrderNo || ''}`)
+    return
+  }
+
   dialog.warning({
     title: '创建出库复核单',
     content: `确认针对拣货单 ${row.pickNo} 创建出库复核单吗？`,
@@ -349,10 +307,10 @@ async function handleCreateReview(row: RowItem) {
     onPositiveClick: async () => {
       creatingReviewId.value = row.id
       try {
-        await reviewApi.create({
+        const review = await reviewApi.create({
           pickListId: row.id
         })
-        message.success('创建出库复核单成功')
+        message.success(`出库复核单 ${review.reviewNo} 创建成功`)
         await loadData()
       } catch (error) {
         message.error(error instanceof Error ? error.message : '创建复核单失败')
@@ -388,8 +346,9 @@ onMounted(() => {
         <n-form-item>
           <n-select v-model:value="query.status" clearable :options="statusOptions" placeholder="请选择状态" style="width: 160px" />
         </n-form-item>
+        <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="handleQuery">查询</n-button>
+          <n-button :loading="loading" @click="handleQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button :disabled="loading" @click="handleReset">重置</n-button>
@@ -398,12 +357,12 @@ onMounted(() => {
     </template>
 
     <template #actions-left>
-      <n-button :disabled="!canViewDetail" @click="handleViewSelected">查看详情</n-button>
+      <n-button :disabled="!canViewDetail" @click="handleViewSelected">查看</n-button>
       <n-button type="primary" ghost :disabled="!canReleaseSelected || Boolean(releasingId)" :loading="Boolean(releasingId) && canReleaseSelected" @click="handleReleaseSelected">
         释放
       </n-button>
       <n-button type="warning" ghost :disabled="!canCreateReviewSelected || Boolean(creatingReviewId)" :loading="Boolean(creatingReviewId) && canCreateReviewSelected" @click="handleCreateReviewSelected">
-        创建复核
+        {{ selectedRows[0]?.outboundReviewOrderId ? '已创建复核' : '创建复核' }}
       </n-button>
     </template>
 
@@ -421,8 +380,8 @@ onMounted(() => {
         :bordered="false"
         :checked-row-keys="checkedRowKeys"
         :row-key="getRowKey"
+        :row-props="(row) => ({ onClick: (event) => toggleSingleRow(row, event), onDblclick: () => handleView(row) })"
         @update:checked-row-keys="handleCheckedRowKeysChange"
-        @row-click="toggleSingleRow"
       />
     </template>
 

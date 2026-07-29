@@ -5,6 +5,7 @@ export default {
 </script>
 
 <script setup lang="ts">
+import WmsStatusTag from '../../../components/WmsStatusTag.vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import {
   NButton,
@@ -16,10 +17,8 @@ import {
   NModal,
   NPagination,
   NPopconfirm,
-  NSpace,
   NSwitch,
-  NTag,
-  useMessage,
+useMessage,
 } from 'naive-ui'
 import type { DataTableColumns, FormInst, FormRules } from 'naive-ui'
 
@@ -28,6 +27,7 @@ import type { DataSyncTaskDto, CreateUpdateDataSyncTaskDto } from '../../../api/
 import BaseCrudPage from '../../../components/BaseCrudPage.vue'
 import TableColumnManager from '../../../components/TableColumnManager.vue'
 import { useColumnConfig } from '../../../composables/useColumnConfig'
+import { useTableSelection } from '../../../composables/useTableSelection'
 import { withResizable } from '../../../utils/table'
 import { compareSortValue } from '../../../utils/tableColumn'
 
@@ -38,6 +38,22 @@ const loading = ref(false)
 const rows = ref<TaskRow[]>([])
 const togglingIds = ref<Set<string>>(new Set())
 const triggeringIds = ref<Set<string>>(new Set())
+
+function getRowKey(row: TaskRow) {
+  return row.id
+}
+
+const {
+  checkedRowKeys,
+  selectedRows,
+  selectedCount,
+  handleCheckedRowKeysChange,
+  syncCheckedRowKeys,
+  toggleSingleRow,
+  clearSelection,
+} = useTableSelection(rows, getRowKey)
+
+const selectedTask = computed(() => selectedCount.value === 1 ? selectedRows.value[0] : undefined)
 
 const query = reactive({
   filter: '',
@@ -56,6 +72,7 @@ async function loadData() {
   try {
     const data = await api.getList(listParams.value)
     rows.value = data.items ?? []
+    syncCheckedRowKeys()
     query.total = data.totalCount ?? 0
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
@@ -226,7 +243,7 @@ const columnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
     sorter: (a, b) => compareSortValue(resolveSyncStatus(a.lastSyncStatus), resolveSyncStatus(b.lastSyncStatus)),
     render: (row) => {
       const s = resolveSyncStatus(row.lastSyncStatus)
-      return h(NTag, { type: getSyncStatusTagType(s), size: 'small' }, { default: () => getSyncStatusLabel(s) })
+      return h(WmsStatusTag, { type: getSyncStatusTagType(s), size: 'small' }, { default: () => getSyncStatusLabel(s) })
     },
   },
   lastSyncMessage: {
@@ -241,53 +258,29 @@ const columnMap: Record<string, DataTableColumns<TaskRow>[number]> = {
 
 // ---- 列定义 ----
 const columns = computed<DataTableColumns<TaskRow>>(() => withResizable([
+  {
+    type: 'selection',
+    fixed: 'left',
+    width: 44,
+  },
   ...columnSettings.value
     .filter((item) => item.visible)
     .map((item) => columnMap[item.key])
     .filter((item): item is DataTableColumns<TaskRow>[number] => Boolean(item)),
-  {
-    title: '操作',
-    key: 'actions',
-    width: 220,
-    align: 'center',
-    render: (row) =>
-      h(NSpace, { size: 6, justify: 'center' }, {
-        default: () => [
-          h(
-            NButton,
-            {
-              size: 'small',
-              type: 'success',
-              quaternary: true,
-              loading: triggeringIds.value.has(row.id),
-              onClick: () => handleTrigger(row),
-            },
-            { default: () => '立即触发' },
-          ),
-          h(
-            NButton,
-            { size: 'small', type: 'primary', quaternary: true, onClick: () => openEdit(row) },
-            { default: () => '编辑' },
-          ),
-          h(
-            NPopconfirm,
-            {
-              onPositiveClick: async () => {
-                await api.remove(row.id)
-                message.success('删除成功')
-                await loadData()
-              },
-            },
-            {
-              trigger: () =>
-                h(NButton, { size: 'small', type: 'error', quaternary: true }, { default: () => '删除' }),
-              default: () => '确认删除该同步任务吗？',
-            },
-          ),
-        ],
-      }),
-  },
 ]))
+
+async function deleteSelectedTask() {
+  const row = selectedTask.value
+  if (!row) return
+  try {
+    await api.remove(row.id)
+    message.success('删除成功')
+    clearSelection()
+    await loadData()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '删除失败')
+  }
+}
 
 function handleColumnConfigShowChange(value: boolean) {
   showColumnConfig.value = value
@@ -369,12 +362,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <BaseCrudPage>
+  <BaseCrudPage :selected-count="selectedCount" @clear-selection="clearSelection">
     <template #search>
       <n-form inline class="crud-search-form">
         <n-form-item class="crud-page-spacer" />
         <n-form-item>
-          <n-button type="primary" :loading="loading" @click="onQuery">查询</n-button>
+          <n-button :loading="loading" @click="onQuery">查询</n-button>
         </n-form-item>
         <n-form-item>
           <n-button :loading="loading" @click="onReset">重置</n-button>
@@ -385,6 +378,22 @@ onMounted(() => {
     <template #actions-left>
       <div class="crud-action-main">
         <n-button type="primary" @click="openCreate">新增</n-button>
+        <n-button :disabled="!selectedTask" @click="selectedTask && openEdit(selectedTask)">编辑</n-button>
+        <n-button
+          type="success"
+          :disabled="!selectedTask"
+          :loading="Boolean(selectedTask && triggeringIds.has(selectedTask.id))"
+          @click="selectedTask && handleTrigger(selectedTask)"
+        >
+          立即触发
+        </n-button>
+        <n-popconfirm :disabled="!selectedTask" @positive-click="deleteSelectedTask">
+          <template #trigger>
+            <n-button type="error" :disabled="!selectedTask">删除</n-button>
+          </template>
+          确认删除该同步任务吗？
+        </n-popconfirm>
+        <n-button :loading="loading" @click="onRefresh">刷新</n-button>
       </div>
     </template>
 
@@ -405,9 +414,16 @@ onMounted(() => {
         :loading="loading"
         :columns="columns"
         :data="rows"
+        :row-key="getRowKey"
+        :checked-row-keys="checkedRowKeys"
         :bordered="false"
+        :row-props="(row) => ({
+          onClick: (event) => toggleSingleRow(row, event),
+          onDblclick: () => openEdit(row),
+        })"
         size="small"
         striped
+        @update:checked-row-keys="handleCheckedRowKeysChange"
       />
     </template>
 

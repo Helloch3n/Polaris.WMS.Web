@@ -12,7 +12,7 @@ import {
   NSpace,
   useMessage,
 } from 'naive-ui'
-import { CloudUploadOutline, DownloadOutline, AlertCircleOutline } from '@vicons/ionicons5'
+import { ArrowDownTrayIcon, CloudArrowUpIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import type { UploadFileInfo, DataTableColumns } from 'naive-ui'
 
 interface ImportErrorDetail {
@@ -174,7 +174,7 @@ function handleClose() {
           @click="handleDownloadTemplate"
         >
           <template #icon>
-            <n-icon><DownloadOutline /></n-icon>
+            <n-icon><ArrowDownTrayIcon /></n-icon>
           </template>
           下载 {{ props.templateName }}
         </n-button>
@@ -194,7 +194,7 @@ function handleClose() {
           <n-upload-dragger v-if="fileList.length === 0">
             <div style="margin-bottom: 12px">
               <n-icon size="48" :depth="3">
-                <CloudUploadOutline />
+                <CloudArrowUpIcon />
               </n-icon>
             </div>
             <n-text style="font-size: 16px">
@@ -215,7 +215,7 @@ function handleClose() {
       >
         <div class="section-title error-title">
           <n-icon size="16" color="#d03050" style="margin-right: 6px; vertical-align: middle;">
-            <AlertCircleOutline />
+            <ExclamationCircleIcon />
           </n-icon>
           数据校验未通过，请根据下方明细修改后重新上传：
         </div>

@@ -266,7 +266,7 @@ onMounted(() => {
           >
             审核执行
           </n-button>
-          <n-button type="primary" :loading="loading" @click="loadDetail">刷新</n-button>
+          <n-button :loading="loading" @click="loadDetail">刷新</n-button>
         </template>
 
         <template #summary>

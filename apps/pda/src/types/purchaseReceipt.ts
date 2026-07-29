@@ -2,6 +2,7 @@ export type PurchaseSourceDocType = 'ASN' | 'PO'
 
 // 创建采购收货单主表 DTO
 export interface CreatePurchaseReceiptDto {
+  warehouseId?: string | null
   sourceDocType: string
   sourceDocNo: string
   supplierId?: string | null
@@ -40,6 +41,14 @@ export interface AddPurchaseReceiptRecordsDto {
   records: AddPurchaseReceiptRecordDto[]
 }
 
+export interface StartPurchaseReceiptDto {
+  requestId: string
+  receipt: CreatePurchaseReceiptDto
+  sourceAsnLineId?: string | null
+  sourcePoLineId?: string | null
+  record: AddPurchaseReceiptRecordDto
+}
+
 // 采购收货记录 DTO
 export interface PurchaseRecordDto {
   id: string
@@ -63,15 +72,24 @@ export interface PurchaseReceiptDetailDto {
   id: string
   purchaseReceiptId: string
   sourceDetailId?: string | null
+  sourceAsnLineId?: string | null
+  sourcePoLineId?: string | null
   productId: string
   productName: string
   productCode: string
   expectedQuantity: number
   receivedQuantity: number
   batchNo?: string | null
+  isQualityCheckRequired: boolean
   erpSyncStatus: number | string
   erpSyncErrorMessage?: string | null
   records: PurchaseRecordDto[]
+}
+
+export enum PurchaseReceiptStatus {
+  Draft = 0,
+  Receiving = 1,
+  Completed = 2,
 }
 
 // 采购收货单 DTO
@@ -80,6 +98,10 @@ export interface PurchaseReceiptDto {
   receiptNo: string
   sourceDocType: string
   sourceDocNo: string
+  status: PurchaseReceiptStatus
+  warehouseId: string
+  warehouseCode: string
+  warehouseName: string
   supplierId?: string | null
   supplierName?: string | null
   remark?: string | null
@@ -139,6 +161,13 @@ export interface PurchaseReceiptSourceDocument {
   supplierName?: string | null
   remark?: string | null
   details: PurchaseReceiptSourceDetail[]
+}
+
+export interface PurchaseReceiptDraftSession {
+  draftSessionId: string
+  requestId: string
+  receipt: CreatePurchaseReceiptDto
+  sourceDoc: PurchaseReceiptSourceDocument
 }
 
 // 页面录入态明细

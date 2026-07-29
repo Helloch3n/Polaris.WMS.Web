@@ -95,7 +95,7 @@ async function handleLogin() {
     <div class="login-panel">
       <div class="login-header">
         <div class="logo-icon" aria-hidden="true">
-            <img class="brand-warehouse" src="/polaris-favicon.svg" alt="" />
+          <span class="brand-logo-mark" />
         </div>
         <h1 class="login-title">Polaris WMS</h1>
         <p class="login-subtitle">INDUSTRIAL PDA TERMINAL</p>
@@ -263,73 +263,23 @@ async function handleLogin() {
 }
 
 .logo-icon {
-  position: relative;
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 72px;
   margin: 0 auto 16px;
-  border-radius: 28%;
-  background: linear-gradient(145deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  overflow: hidden;
-  isolation: isolate;
 }
 
-.logo-icon::before,
-.logo-icon::after {
-  content: '';
-  position: absolute;
-  inset: 8%;
-  border-radius: 26%;
-  border: 1px solid rgba(129, 140, 248, 0.4);
-  transform: scale(0.84);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.logo-icon::before {
-  animation: logo-ripple 3s ease-out infinite;
-}
-
-.logo-icon::after {
-  animation: logo-ripple 3s ease-out 1.5s infinite;
-}
-
-.brand-warehouse {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.28));
-  transform-origin: center;
-  animation: warehouse-float 4.2s ease-in-out infinite;
+.brand-logo-mark {
   width: 100%;
   height: 100%;
-}
-
-.warehouse-scan {
-  animation: warehouse-scan-move 2.4s ease-in-out infinite;
-}
-
-.warehouse-beacon {
-  animation: warehouse-beacon-pulse 2.2s ease-in-out infinite;
-}
-
-.warehouse-beacon-ring {
-  animation: warehouse-ring-pulse 2.2s ease-out infinite;
-}
-
-.star-fall-group {
-  transform-origin: center;
-}
-
-.star-fall {
-  animation: star-fall-drop 2.8s ease-in-out infinite;
-}
-
-.star-trail {
-  animation: star-fall-trail 2.8s ease-in-out infinite;
+  display: block;
+  background: #f8fafc;
+  filter: drop-shadow(0 12px 28px rgba(15, 23, 42, 0.28));
+  -webkit-mask: url('/polaris-favicon.svg') center / contain no-repeat;
+  mask: url('/polaris-favicon.svg') center / contain no-repeat;
 }
 
 :deep(.custom-login-field .van-field__control) {
@@ -376,119 +326,6 @@ async function handleLogin() {
 }
 
 /* checkbox styles removed — using text-only remember control */
-
-@keyframes logo-ripple {
-  0% {
-    transform: scale(0.82);
-    opacity: 0;
-  }
-
-  20% {
-    opacity: 0.52;
-  }
-
-  72% {
-    opacity: 0.12;
-  }
-
-  100% {
-    transform: scale(1.38);
-    opacity: 0;
-  }
-}
-
-@keyframes warehouse-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-1px);
-  }
-}
-
-@keyframes warehouse-scan-move {
-  0%,
-  20% {
-    opacity: 0;
-    transform: translateY(-0.5px);
-  }
-
-  50% {
-    opacity: 0.92;
-    transform: translateY(5px);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(9px);
-  }
-}
-
-@keyframes warehouse-beacon-pulse {
-  0%,
-  100% {
-    opacity: 0.72;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.12);
-  }
-}
-
-@keyframes warehouse-ring-pulse {
-  0% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.85);
-  }
-}
-
-@keyframes star-fall-drop {
-  0% {
-    transform: translate(0, 0) scale(0.7);
-    opacity: 0;
-  }
-
-  15% {
-    opacity: 1;
-  }
-
-  55% {
-    transform: translate(-3.7px, 4px) scale(1.05);
-    opacity: 0.95;
-  }
-
-  100% {
-    transform: translate(-5px, 5.8px) scale(0.72);
-    opacity: 0;
-  }
-}
-
-@keyframes star-fall-trail {
-  0% {
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 0.62;
-  }
-
-  55% {
-    opacity: 0.25;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
 
 @media (max-width: 360px) {
   .login-page {

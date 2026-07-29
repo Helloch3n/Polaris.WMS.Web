@@ -5,17 +5,20 @@ export type AuthState = {
   accessToken: string
   refreshToken: string
   userName: string
+  currentWarehouseId: string
 }
 
 const ACCESS_TOKEN_KEY = 'pda_access_token'
 const REFRESH_TOKEN_KEY = 'pda_refresh_token'
 const USER_NAME_KEY = 'pda_user_name'
+const CURRENT_WAREHOUSE_KEY = 'pda_current_warehouse_id'
 
 export const useAuthStore = defineStore('pda-auth', {
   state: (): AuthState => ({
     accessToken: localStorage.getItem(ACCESS_TOKEN_KEY) ?? '',
     refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY) ?? '',
     userName: localStorage.getItem(USER_NAME_KEY) ?? '',
+    currentWarehouseId: localStorage.getItem(CURRENT_WAREHOUSE_KEY) ?? '',
   }),
   getters: {
     isAuthenticated: (state): boolean => !!state.accessToken,
@@ -29,13 +32,20 @@ export const useAuthStore = defineStore('pda-auth', {
       localStorage.setItem(REFRESH_TOKEN_KEY, this.refreshToken)
       localStorage.setItem(USER_NAME_KEY, this.userName)
     },
+    setCurrentWarehouseId(warehouseId: string) {
+      this.currentWarehouseId = warehouseId.trim()
+      if (this.currentWarehouseId) localStorage.setItem(CURRENT_WAREHOUSE_KEY, this.currentWarehouseId)
+      else localStorage.removeItem(CURRENT_WAREHOUSE_KEY)
+    },
     clearAuth() {
       this.accessToken = ''
       this.refreshToken = ''
       this.userName = ''
+      this.currentWarehouseId = ''
       localStorage.removeItem(ACCESS_TOKEN_KEY)
       localStorage.removeItem(REFRESH_TOKEN_KEY)
       localStorage.removeItem(USER_NAME_KEY)
+      localStorage.removeItem(CURRENT_WAREHOUSE_KEY)
     },
     // 🚀 补齐 LoginView.vue 需要的 login 方法
     async login(username: string, password: string): Promise<boolean> {
